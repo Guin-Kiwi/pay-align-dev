@@ -14,7 +14,7 @@
   "process": ["AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md", "skills/", "scripts/", "docs/INDEX.json", "docs/STANDARDS.md", "docs/AGENT-GUIDANCE.md", ".github/", "environments/"],
   "review_gated": {
     "rule": "Edit only with a human's explicit approval; changes need a code owner's review (.github/CODEOWNERS).",
-    "paths": ["AGENTS.md", "LICENSE", "docs/INDEX.json", "CONTRIBUTING.md", "CITATION.cff", ".zenodo.json", "CLAUDE.md", ".github/CODEOWNERS", ".github/workflows/", ".github/rulesets/", "scripts/sdlc.py"]
+    "paths": ["AGENTS.md", "LICENSE", "docs/INDEX.json", "CONTRIBUTING.md", "CITATION.cff", ".zenodo.json", "CLAUDE.md", ".github/CODEOWNERS", ".github/workflows/", ".github/rulesets/", "scripts/sdlc.py", "docs/specs/UC-001-Set-Up-an-Employment.md", "docs/specs/UC-002-Process-the-Monthly-Employment.md"]
   },
   "templates": {
     "rule": "Copy to a new numbered file; never fill in the template itself.",
