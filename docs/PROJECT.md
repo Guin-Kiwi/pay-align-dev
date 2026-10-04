@@ -41,7 +41,7 @@ Where non-code material lives; link reference documents here so agents find them
 - Test data: `tests/fixtures/`
 - Reference material (brief, domain notes, glossary, diagrams): `docs/reference/`
   - `/docs/Employing_Household_Help_Basel.pdf`: The complete domain guide and ruleset for the 2026 AKBS simplified procedure.
-  - `/docs/Payslip_2026.xlsx`: The companion spreadsheet used as the mathematical reference for calculations.
+  - `/docs/Payslip_2026.xlsm`: The companion spreadsheet used as the mathematical reference for calculations.
   - [AKBS Household Employment Overview](https://www.ak-bs.ch/ubersicht/beitrage-an-die-ahv-iv-eo/haushaltshilfen/)
   - [Basel AWA NAV Legal Text](https://gesetzessammlung.bs.ch/app/de/texts_of_law/215.700)
 - Secrets and real config values: never in the repository; `.env` locally
