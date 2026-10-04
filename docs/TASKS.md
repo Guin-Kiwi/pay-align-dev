@@ -13,8 +13,8 @@ After approval, the next objective is to design the system components required t
 
 ## Current Use Case
 
-- docs/specs/UC-001-Set-Up-an-Employment.md
-- docs/specs/UC-002-Process-the-Monthly-Employment.md
+docs/specs/UC-001-Set-Up-an-Employment.md
+docs/specs/UC-002-Process-the-Monthly-Employment.md
 
 ## Current slice
 

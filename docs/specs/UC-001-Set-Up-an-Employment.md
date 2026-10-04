@@ -1,17 +1,41 @@
 # UC-001: Set Up an Employment
 
-## 1. Intent
-Enable a private household employer to initialize their system profile and register a new employee. This establishes the legal and financial baseline required to generate the AKBS registration payload and draft the standard hourly employment contract [cite: 4, 5].
+## Goal
+Enable a private household employer to initialize their system profile and register a new employee. This establishes the legal and financial baseline required for payroll processing.
 
-## 2. Actors
-- **Employer:** A private individual employing household help under the AKBS simplified procedure.
+## Business value
+This use case simplifies the onboarding process for private household employers in Basel-Stadt, ensuring compliance with AKBS requirements and reducing administrative burden.
 
-## 3. Inputs
-- **Employer Data (if not yet initialized):** Full name, date of birth, home address, AKBS *Mitgliedernummer* (optional) [cite: 4].
-- **Employee Data:** Full name, date of birth, home address, AHV number, cross-border work status (boolean) [cite: 4].
-- **Employment Data:** Start date, regular weekly hours, holiday entitlement (in weeks), gross hourly wage, VAvplus accident insurance opt-in (boolean) [cite: 4, 7].
+## Scope
 
-## 4. Main Success Scenario (Flow)
+### In scope
+- Initializing an `Employer` record if none exists.
+- Registering an `Employee` and `Employment` with required details.
+- Validating AHV numbers and required fields.
+- Saving all data to the database.
+
+### Out of scope
+- PDF generation for contracts or registration summaries.
+- Email notifications to the employer or employee.
+- Pre-filling employer or employee details from external sources.
+- Legal compliance checks beyond basic format validation (e.g., AHV number).
+- Support for cross-border employers or underage employees.
+
+## Actors
+
+**Primary**: Employer (a private individual employing household help under the AKBS simplified procedure).
+
+**Secondary**: None.
+
+## Preconditions
+- The employer has access to the PayAlign application.
+- The employer has the required details for themselves, the employee, and the employment contract.
+
+## Trigger
+The employer selects **"Set Up Employment"** in the application.
+
+## Main flow
+
 1. The employer opens the application and selects **"Set Up Employment"**. 
 2. The system checks if an `Employer` record exists. If not, it prompts the employer to enter their details.
 3. The employer enters the employee's details.
@@ -20,26 +44,33 @@ Enable a private household employer to initialize their system profile and regis
 6. The system saves the `Employer`, `Employee`, and `Employment` records to the database.
 7. The system displays a **confirmation message** (e.g., "Employment set up successfully").
 
-## 5. Acceptance Criteria
+## Alternate / edge flows
+- If the AHV number is invalid, the system displays an example (e.g., `756.XXXX.XXXX.XX`) and prompts the employer to retry.
+
+## Errors / failure cases
+- Invalid AHV number format.
+- Missing required fields (e.g., employee address).
+- Duplicate `Employer` record.
+
+## Acceptance criteria
 - The system must reject invalid AHV numbers (format: `756.XXXX.XXXX.XX`).
 - The system must prevent duplicate `Employer` records.
 - The system must save all data to the database.
 - The system must display a confirmation message upon success.
 
-## 6. Out of Scope
-- **PDF generation**: Contracts and registration summaries will not be generated as PDFs.
-- **Email notifications**: No emails will be sent to the employer or employee.
-- **Pre-fill data**: The system will not pre-fill employer or employee details from external sources.
-- **Legal compliance checks**: The system will not validate legal compliance beyond basic format checks (e.g., AHV number).
-- **Cross-border employers**: The system will not handle additional requirements for cross-border employers.
-- **Underage employees**: The system will not enforce additional requirements for employees under 18.
+## Security / trust-boundary notes
+- All data is stored locally and not shared with external systems.
+- The employer must authenticate to access the system (future consideration).
 
-## 7. Future Considerations
-- **PDF generation**: May be added in a future iteration for local file storage.
-- **In-app notifications**: May be added to remind the employer of pending actions.
-- **Pre-fill data**: May be added if integration with AKBS or other databases becomes available.
+## Validation plan
+- **Unit Tests**: Validate AHV string formatting and validation logic.
+- **Unit Tests**: Ensure the `SetupService` throws an error if an `Employer` is created when one already exists.
+- **Integration Tests**: Verify that persisting an `Employment` correctly links to the respective `Employee` and `Employer` via foreign keys.
 
-## 6. Test Intent (TDD)
-- **Unit:** Validate AHV string formatting and validation logic.
-- **Unit:** Ensure the `SetupService` throws an error if an `Employer` is created when one already exists.
-- **Integration:** Verify that persisting an `Employment` correctly links to the respective `Employee` and `Employer` via foreign keys.
+## Open questions / assumptions
+- Assumption: The employer has all required details (e.g., AHV number) at hand.
+- Open question: Should the system support bulk import of employees in the future?
+
+## Notes for implementation
+- Use the `SetupService` to handle the onboarding logic.
+- Ensure all validations are performed before saving to the database.
