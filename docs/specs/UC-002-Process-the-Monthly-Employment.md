@@ -13,21 +13,35 @@ Calculate an employee's monthly pay, apply correct 2026 social insurance and tax
 - Documented expense reimbursements (optional) [cite: 7, 9].
 
 ## 4. Main Success Scenario (Flow)
-1. User selects an active `Employment` and inputs the `MonthlyRecord` variables.
-2. System calculates the **Gross Wage** (Total paid hours × gross hourly wage + cash bonuses) [cite: 7, 9].
-3. System calculates **Employee Deductions** based on 2026 rates (AHV/IV/EO, ALV, 5% Tax) [cite: 16].
-4. System conditionally applies the NBU deduction if the employment's regular weekly hours are ≥ 8 [cite: 11, 16].
-5. System calculates the **Net Payout** (Gross - Deductions + Expense reimbursements) [cite: 7, 9].
-6. System calculates **Employer Costs** (AHV/IV/EO, ALV, FAK, Admin charge, VAvplus BU) [cite: 16].
-7. System updates the running holiday balance by subtracting the used holiday hours [cite: 8].
-8. System persists the `MonthlyRecord` and generated `Payslip`.
+1. The employer opens the application and selects **"Process Monthly Payroll"**. 
+2. The employer selects an active `Employment` and enters the monthly hours.
+3. The employer optionally enters a cash bonus and expense reimbursements.
+4. The system calculates:
+   - Gross wage (hours × hourly rate + bonus).
+   - Deductions (AHV/IV/EO, ALV, 5% tax, NBU if weekly hours ≥ 8).
+   - Net payout (gross wage - deductions + expenses).
+5. The system checks if the monthly run exceeds annual limits (CHF 22,680 for employee, CHF 60,480 for employer).
+6. The system saves the `MonthlyRecord` and `Payslip` to the database.
+7. The system displays a **confirmation message** (e.g., "Payroll processed successfully").
 
 ## 5. Acceptance Criteria
-- **Legal Rate Application:** Calculations must strictly apply the 2026 percentages: 5.3% AHV/IV/EO, 1.1% ALV, and 5% simplified tax for the employee [cite: 16].
-- **NBU Threshold Logic:** The 1.432% NBU premium must be deducted *only* if the `Employment` entity specifies 8 or more regular weekly hours [cite: 11, 16].
-- **Expense Handling:** Expense reimbursements must be added to the final payout but must *not* be included in the gross wage subject to AHV/IV/EO deductions [cite: 9].
-- **Annual Limit Guardrails:** The system must reject the monthly run if the new gross wage causes the employee's annual total to exceed CHF 22,680, or the employer's total annual payroll to exceed CHF 60,480 [cite: 3].
-- **Payslip Deliverable:** The output must itemize all allowances, deductions, and display the remaining holiday balance [cite: 8].
+- The system must apply 2026 deduction rates (5.3% AHV/IV/EO, 1.1% ALV, 5% tax, 1.432% NBU if applicable).
+- The system must reject monthly runs that exceed annual limits.
+- The system must save all data to the database.
+- The system must display a confirmation message upon success.
+
+## 6. Out of Scope
+- **PDF generation**: Payslips will not be generated as PDFs.
+- **Email notifications**: No emails will be sent to the employer or employee.
+- **Recurring inputs**: The system will not allow copying hours from previous months.
+- **Public holiday rates**: The system will not apply special rates for public holidays.
+- **Partial payments**: The system will not handle partial payments for employees who quit mid-month.
+- **Overpayment corrections**: The system will not allow corrections for overpayments.
+
+## 7. Future Considerations
+- **PDF generation**: May be added in a future iteration for local file storage.
+- **In-app notifications**: May be added to remind the employer of pending payroll entries.
+- **Recurring inputs**: May be added to simplify monthly payroll processing.
 
 ## 6. Test Intent (TDD)
 - **Unit:** Assert exact mathematical correctness of net pay calculation for an employment *under* 8 hours/week (no NBU).
