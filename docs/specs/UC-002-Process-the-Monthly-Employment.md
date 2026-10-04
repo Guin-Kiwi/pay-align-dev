@@ -8,15 +8,19 @@ Calculate an employee's monthly pay, apply correct 2026 social insurance and tax
 
 ## 3. Inputs (`MonthlyRecord`)
 - Target month and year.
-- **Daily hours worked** for each day of the month (e.g., `{"2026-10-01": 4, "2026-10-02": 0, ...}`).
+- **Daily work details** for each day of the month:
+  - Start time (e.g., `08:00`).
+  - End time (e.g., `17:00`).
+  - Break duration (e.g., `0.5` hours) and status (paid/unpaid).
 - Cash bonus amount (optional) [cite: 7, 9].
 - Documented expense reimbursements (optional) [cite: 7, 9].
 
 ## 4. Main Success Scenario (Flow)
 1. The employer opens the application and selects **"Process Monthly Payroll"**. 
-2. The employer selects an active `Employment` and inputs **daily hours worked** for the month.
+2. The employer selects an active `Employment` and inputs **daily work details** (start time, end time, break duration, and paid/unpaid status) for the month.
 3. The employer optionally enters a cash bonus and expense reimbursements.
 4. The system:
+   - Calculates **hours worked** for each day (end time - start time - unpaid breaks).
    - Identifies public holidays in the month and applies the correct pay rate.
    - Calculates **Gross wage** (total hours × hourly rate + bonus).
    - Calculates **Deductions** (AHV/IV/EO, ALV, 5% tax, NBU if weekly hours ≥ 8).
@@ -26,7 +30,8 @@ Calculate an employee's monthly pay, apply correct 2026 social insurance and tax
 7. The system displays a **confirmation message** (e.g., "Payroll processed successfully").
 
 ## 5. Acceptance Criteria
-- The system must accept **daily hours worked** as input.
+- The system must accept **daily work details** (start time, end time, break duration, and paid/unpaid status) as input.
+- The system must calculate **hours worked** for each day (end time - start time - unpaid breaks).
 - The system must identify public holidays and apply the correct pay rate.
 - The system must apply 2026 deduction rates (5.3% AHV/IV/EO, 1.1% ALV, 5% tax, 1.432% NBU if applicable).
 - The system must reject monthly runs that exceed annual limits.
