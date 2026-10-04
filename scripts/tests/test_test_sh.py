@@ -14,7 +14,7 @@ def make_project(tmp, test_body, python_flags=""):
     (root / "scripts" / "tests").mkdir(parents=True)
     shutil.copy(ROOT / "scripts" / "test.sh", root / "scripts" / "test.sh")
     shutil.copy(ROOT / "pytest.ini", root / "pytest.ini")
-    for stub in ("check-lifecycle.sh", "test-lifecycle.sh"):
+    for stub in ("check-lifecycle.py", "test-lifecycle.py"):
         (root / "scripts" / stub).write_text("exit 0\n")
     (root / "scripts" / "tests" / "test_stub.py").write_text(
         "import unittest\n\nclass Stub(unittest.TestCase):\n    def test_ok(self):\n        pass\n")
@@ -25,11 +25,16 @@ def make_project(tmp, test_body, python_flags=""):
     python.parent.mkdir(parents=True)
     python.write_text(f'#!/bin/sh\nexec "{sys.executable}" {python_flags} "$@"\n')
     python.chmod(0o755)
+    
+    # Install pytest in the test environment
+    subprocess.run([sys.executable, "-m", "pip", "install", "pytest"], cwd=root, check=True)
     return root
 
 
 def run_test_sh(root):
-    return subprocess.run(["bash", str(root / "scripts" / "test.sh")], cwd=root,
+    # Ensure pytest is installed globally for the test
+    subprocess.run([sys.executable, "-m", "pip", "install", "pytest"], check=True)
+    return subprocess.run([sys.executable, str(root / "scripts" / "test.sh")], cwd=root,
                           capture_output=True, text=True, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
 
 
