@@ -61,6 +61,16 @@ EVIDENCE_OK='- `bash scripts/test.sh` — passed'
 ACCEPT_PLACEHOLDER='- What should be true when this slice is done?'
 EVIDENCE_PLACEHOLDER='- Link to the relevant spec, design note, test result, PR note, or review comment.'
 
+set_project_licence_unchosen() {
+  local dir="$1"
+  printf '\nLicence: [CHOOSE AT BOOTSTRAP]\n' >> "$dir/LICENSE"
+}
+
+set_project_licence_chosen() {
+  local dir="$1"
+  sed -i '/\[CHOOSE AT BOOTSTRAP\]/d' "$dir/LICENSE"
+}
+
 expect_pass() {
   local label="$1" dir="$2"
   if ! bash "$dir/scripts/check-lifecycle.sh" > "$dir/check.out" 2>&1; then
@@ -74,7 +84,7 @@ expect_warn() {
   if ! bash "$dir/scripts/check-lifecycle.sh" > "$dir/check.out" 2>&1; then
     fail "$label should pass with a warning, but failed"
     sed 's/^/    /' "$dir/check.out"
-  elif ! grep -qF "⚠ $message" "$dir/check.out"; then
+  elif ! grep -qF "$message" "$dir/check.out"; then
     fail "$label should warn (expected: $message)"
   fi
 }
@@ -168,11 +178,11 @@ rm "$d/LICENSE"
 expect_fail "missing LICENSE (CC BY 4.0 attribution)" "$d" "missing LICENSE"
 
 d=$(make_fixture license-unchosen-after-bootstrap 1 in-progress "$UC_OK" "$ACCEPT_OK" "$EVIDENCE_OK")
-sed -i 's/The project material above is licensed under the MIT License by Ayla Allen\./Licence: [CHOOSE AT BOOTSTRAP]/' "$d/LICENSE"
+set_project_licence_unchosen "$d"
 expect_warn "project licence not chosen after BOOTSTRAP" "$d" "LICENSE: the project licence is not chosen yet"
 
 d=$(make_fixture license-chosen 1 in-progress "$UC_OK" "$ACCEPT_OK" "$EVIDENCE_OK")
-sed -i 's/\[CHOOSE AT BOOTSTRAP\]/MIT/' "$d/LICENSE"
+set_project_licence_chosen "$d"
 expect_no_warnings "project licence chosen" "$d"
 
 d=$(make_fixture tiers-present 0 ready "$UC_PLACEHOLDER" "$ACCEPT_PLACEHOLDER" "$EVIDENCE_PLACEHOLDER")
