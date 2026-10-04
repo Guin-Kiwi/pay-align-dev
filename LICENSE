@@ -26,7 +26,10 @@ This repository contains two kinds of material with different licences.
 
 2. Project material
 
-Copyright (c) 2026 PayAlign
+Copyright (c) 2026 Ayla Allen
+
+PayAlign is a student project by Ayla Allen, enrolled at FHNW University of
+Applied Sciences and Arts Northwestern Switzerland.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -38,6 +41,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
    above), docs/PROJECT.md, docs/TASKS.md, docs/specs/ and docs/adr/ files
    other than the templates, and README.md.
 
-   Copyright (c) the project's authors.
-   Licence: [CHOOSE AT BOOTSTRAP]
-   Until a licence is chosen, all rights are reserved.
+   The project material above is licensed under the MIT License by Ayla Allen.
