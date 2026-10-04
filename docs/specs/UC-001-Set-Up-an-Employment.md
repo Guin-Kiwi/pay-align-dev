@@ -12,18 +12,32 @@ Enable a private household employer to initialize their system profile and regis
 - **Employment Data:** Start date, regular weekly hours, holiday entitlement (in weeks), gross hourly wage, VAvplus accident insurance opt-in (boolean) [cite: 4, 7].
 
 ## 4. Main Success Scenario (Flow)
-1. System checks if an `Employer` record exists. If not, prompts for and persists the `Employer` initialization data.
-2. User enters the `Employee` demographic and identification data.
-3. User enters the `Employment` contract parameters.
-4. System validates the AHV number format and required fields.
-5. System persists the `Employee` and `Employment` entities, linking them to the `Employer`.
-6. System outputs a structured AKBS registration summary and the baseline contract parameters.
+1. The employer opens the application and selects **"Set Up Employment"**. 
+2. The system checks if an `Employer` record exists. If not, it prompts the employer to enter their details.
+3. The employer enters the employee's details.
+4. The employer enters the employment contract parameters.
+5. The system validates the AHV number format and required fields.
+6. The system saves the `Employer`, `Employee`, and `Employment` records to the database.
+7. The system displays a **confirmation message** (e.g., "Employment set up successfully").
 
 ## 5. Acceptance Criteria
-- **Singleton Employer:** The system must restrict the creation of an `Employer` record if one already exists in the database.
-- **AHV Validation:** The system must enforce the 13-digit AHV number format (`756.XXXX.XXXX.XX`) for the employee [cite: 4].
-- **Completeness:** The system must reject the setup if the employee's home address is missing, as it is required for simplified procedure tax settlement [cite: 4].
-- **Output Payload:** The system must successfully assemble a data object containing all fields requested by the AKBS online registration form [cite: 4].
+- The system must reject invalid AHV numbers (format: `756.XXXX.XXXX.XX`).
+- The system must prevent duplicate `Employer` records.
+- The system must save all data to the database.
+- The system must display a confirmation message upon success.
+
+## 6. Out of Scope
+- **PDF generation**: Contracts and registration summaries will not be generated as PDFs.
+- **Email notifications**: No emails will be sent to the employer or employee.
+- **Pre-fill data**: The system will not pre-fill employer or employee details from external sources.
+- **Legal compliance checks**: The system will not validate legal compliance beyond basic format checks (e.g., AHV number).
+- **Cross-border employers**: The system will not handle additional requirements for cross-border employers.
+- **Underage employees**: The system will not enforce additional requirements for employees under 18.
+
+## 7. Future Considerations
+- **PDF generation**: May be added in a future iteration for local file storage.
+- **In-app notifications**: May be added to remind the employer of pending actions.
+- **Pre-fill data**: May be added if integration with AKBS or other databases becomes available.
 
 ## 6. Test Intent (TDD)
 - **Unit:** Validate AHV string formatting and validation logic.
