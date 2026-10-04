@@ -1,0 +1,7 @@
+{
+  "phase": 1,
+  "name": "ai-sdlc-1-specify",
+  "model_tier": "large",
+  "goal": "Create or update a minimal use case specification.",
+  "instructions": "SKILL.md"
+}

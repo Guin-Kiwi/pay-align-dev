@@ -1,0 +1,13 @@
+# Files that need human review before merging (see docs/INDEX.json "edit" policy).
+# Replace the owner with your own GitHub user or team during BOOTSTRAP.
+/AGENTS.md            @Guin-Kiwi
+/CLAUDE.md            @Guin-Kiwi
+/CONTRIBUTING.md      @Guin-Kiwi
+/LICENSE              @Guin-Kiwi
+/docs/INDEX.json      @Guin-Kiwi
+/CITATION.cff         @Guin-Kiwi
+/.zenodo.json         @Guin-Kiwi
+/.github/CODEOWNERS   @Guin-Kiwi
+/.github/workflows/   @Guin-Kiwi
+/.github/rulesets/    @Guin-Kiwi
+/scripts/sdlc.py      @Guin-Kiwi

@@ -1,0 +1,35 @@
+This repository contains two kinds of material with different licences.
+
+1. AI-SDLC template material (CC BY 4.0)
+
+   The process files listed below are adapted from "The AI-SDLC Template and
+   Method: AI-Assisted Software Development Life Cycle" by Andreas Martin and
+   Sandro Schwander (FHNW University of Applied Sciences and Arts
+   Northwestern Switzerland), https://doi.org/10.5281/zenodo.22833065,
+   licensed under the Creative Commons Attribution 4.0 International licence
+   (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+
+   Changes: adapted by Ayla Allen in 2026 (Python-only profile, lifecycle and
+   PR advisory checks, CONTRIBUTING.md, rulesets, human review report, model
+   tiers and related documentation); the git history records each change.
+   These changes are also licensed under CC BY 4.0.
+
+   Template material: AGENTS.md, CLAUDE.md, CONTRIBUTING.md, LICENSE,
+   skills/, scripts/, docs/INDEX.json, docs/STANDARDS.md,
+   docs/AGENT-GUIDANCE.md, docs/future/, docs/specs/UC-TEMPLATE.md,
+   docs/adr/ADR-TEMPLATE.md, docs/adr/ADR-000-python-as-project-language.md,
+   .github/, .devcontainer/, .vscode/, environments/, .dockerignore,
+   pytest.ini, tests/unit/test_architecture.py.
+
+   Keep this section in projects created from the template: CC BY 4.0
+   requires the attribution to stay.
+
+2. Project material
+
+   Everything else, in particular src/, tests/ (apart from the file listed
+   above), docs/PROJECT.md, docs/TASKS.md, docs/specs/ and docs/adr/ files
+   other than the templates, and README.md.
+
+   Copyright (c) the project's authors.
+   Licence: [CHOOSE AT BOOTSTRAP]
+   Until a licence is chosen, all rights are reserved.

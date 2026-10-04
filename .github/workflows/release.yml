@@ -1,0 +1,50 @@
+# Human review required: changes need a code owner's approval (.github/CODEOWNERS).
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ${{ hashFiles('.python-version') != '' && '.python-version' || 'environments/python/.python-version' }}
+          cache: pip
+          cache-dependency-path: "**/requirements.txt"
+
+      - name: Install dependencies
+        run: |
+          req=requirements.txt
+          [ -f "$req" ] || req=environments/python/requirements.txt
+          python -m pip install -r "$req"
+
+      - name: Check AI-SDLC lifecycle artefacts
+        run: bash scripts/check-lifecycle.sh
+
+      - name: Check whitespace errors
+        run: git diff --check
+
+      - name: Run project tests
+        run: bash scripts/test.sh
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true

@@ -1,0 +1,7 @@
+{
+  "phase": 4,
+  "name": "ai-sdlc-4-validate",
+  "model_tier": "standard",
+  "goal": "Verify that the repository is ready for its declared release path, checking existing artifacts.",
+  "instructions": "SKILL.md"
+}

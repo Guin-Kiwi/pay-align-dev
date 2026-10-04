@@ -1,0 +1,22 @@
+# Deployable images contain only the app (src/, runtime dependencies, LICENSE).
+# The AI-SDLC process files stay in the repository as development evidence.
+.git
+.github
+.devcontainer
+.vscode
+.venv
+.agents
+.claude
+.cursor
+docs
+skills
+scripts
+environments
+tests
+AGENTS.md
+CLAUDE.md
+CONTRIBUTING.md
+CITATION.cff
+.zenodo.json
+pytest.ini
+**/__pycache__

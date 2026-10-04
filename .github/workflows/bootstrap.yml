@@ -1,0 +1,51 @@
+# Human review required: changes need a code owner's approval (.github/CODEOWNERS).
+name: Bootstrap issue
+
+# Opens a one-time "Define the project" issue in repositories created from the
+# template. Stops once docs/PROJECT.md no longer contains the template note.
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  open-issue:
+    if: ${{ !github.event.repository.is_template && github.event.repository.has_issues }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Open the bootstrap issue once
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! grep -q "Complete this document during" docs/PROJECT.md; then
+            echo "Project already defined; nothing to do."
+            exit 0
+          fi
+          title="Define the project (BOOTSTRAP)"
+          count=$(gh issue list --state all --search "\"$title\" in:title" --json number --jq 'length')
+          if [ "$count" != "0" ]; then
+            echo "Bootstrap issue already exists."
+            exit 0
+          fi
+          gh issue create --title "$title" --body-file - <<'EOF'
+          This repository was created from the AI-SDLC template. Before building features, define the project.
+
+          - [ ] Confirm setup: `bash scripts/check-setup.sh` (Codespaces runs it automatically)
+          - [ ] Ask your agent to start BOOTSTRAP: Copilot Chat `/ai-sdlc` → `bootstrap`; Claude Code `/ai-sdlc-0-bootstrap`
+          - [ ] Complete `docs/PROJECT.md` (purpose, architecture, structure, resources, commands, dependencies)
+          - [ ] Replace template identity: README badges, `CITATION.cff`, `.zenodo.json`, owner in `.github/CODEOWNERS`
+          - [ ] Choose your code's licence in `LICENSE` section 2 (keep section 1: the template's CC BY 4.0 attribution)
+          - [ ] Import rulesets from `.github/rulesets/` (Settings → Rules → Rulesets → New ruleset → Import a ruleset): `main-team.json` for teams or `main-solo.json` alone; `release-tags.json` only if you publish releases
+          - [ ] Enable secret scanning with push protection and Dependabot alerts (Settings → Code security)
+          - [ ] Set `docs/TASKS.md` to PHASE 0 / STATUS done, then close this issue
+          EOF

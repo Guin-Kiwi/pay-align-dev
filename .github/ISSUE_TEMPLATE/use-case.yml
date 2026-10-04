@@ -1,0 +1,36 @@
+name: Use case
+description: Propose a feature as an AI-SDLC use case (input for SPECIFY).
+title: "UC: "
+labels: ["use-case"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: The outcome in one or two lines.
+    validations:
+      required: true
+  - type: textarea
+    id: actors
+    attributes:
+      label: Actors
+      description: Who uses or is affected by this?
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        Given
+        When
+        Then
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+  - type: textarea
+    id: notes
+    attributes:
+      label: Security notes / open questions
+      description: Write "none" if nothing applies.

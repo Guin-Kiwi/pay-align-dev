@@ -1,0 +1,7 @@
+{
+  "phase": 0,
+  "name": "ai-sdlc-0-bootstrap",
+  "model_tier": "large",
+  "goal": "Align the repository with the intended system and prepare it for AI-SDLC.",
+  "instructions": "SKILL.md"
+}

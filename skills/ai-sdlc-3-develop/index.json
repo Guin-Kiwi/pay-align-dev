@@ -1,0 +1,7 @@
+{
+  "phase": 3,
+  "name": "ai-sdlc-3-develop",
+  "model_tier": "standard",
+  "goal": "Implement the current use case using strict Test-Driven Development.",
+  "instructions": "SKILL.md"
+}

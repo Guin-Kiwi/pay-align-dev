@@ -1,0 +1,7 @@
+{
+  "phase": 2,
+  "name": "ai-sdlc-2-design",
+  "model_tier": "large",
+  "goal": "Identify the minimal architecture components required for the current use case. Do not generate implementation details.",
+  "instructions": "SKILL.md"
+}

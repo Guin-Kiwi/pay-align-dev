@@ -1,0 +1,7 @@
+{
+  "phase": 5,
+  "name": "ai-sdlc-5-deploy",
+  "model_tier": "standard",
+  "goal": "Verify the continuous deployment workflow for the validated artifact. Deployment is defined together with the user, never unilaterally.",
+  "instructions": "SKILL.md"
+}
