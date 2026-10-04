@@ -1,4 +1,28 @@
 # Human review required: changes need a code owner's approval (.github/CODEOWNERS).
+#
+# Template Citation (Do Not Modify)
+#
+cff-version: 1.2.0
+message: "If you use the AI-SDLC template in your work, please cite the archived release."
+title: "The AI-SDLC Template and Method: AI-Assisted Software Development Life Cycle"
+type: software
+authors:
+  - family-names: Martin
+    given-names: Andreas
+    orcid: "https://orcid.org/0000-0002-7909-7663"
+  - family-names: Schwander
+    given-names: Sandro
+    orcid: "https://orcid.org/0009-0006-9708-3800"
+license: CC-BY-4.0
+version: 1.0.0
+date-released: 2026-09-18
+repository-code: "https://github.com/AIaSDev/ai-sdlc-template"
+url: "https://ai-sdlc.aisl.science/"
+
+---
+
+# Project Citation (Modify for PayAlign)
+
 cff-version: 1.2.0
 message: "If you use PayAlign in your work, please cite the archived release."
 title: "PayAlign: Simplified Payroll for Household Employers in Basel-Stadt"

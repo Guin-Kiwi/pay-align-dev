@@ -4,6 +4,14 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22833065.svg)](https://doi.org/10.5281/zenodo.22833065)
 [![arXiv](https://img.shields.io/badge/arXiv-2609.24348-b31b1b.svg)](https://doi.org/10.48550/arXiv.2609.24348)
 
+---
+
+# PayAlign
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**PayAlign** is a local-only payroll management system for private household employers in Basel-Stadt. It simplifies the process of calculating monthly pay, applying social insurance and tax deductions, and generating compliant payslips for annual AKBS reporting.
+
 Starter repository for student and teaching projects that use the AI-Assisted
 Software Development Life Cycle (AI-SDLC).
 
