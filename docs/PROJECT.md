@@ -1,8 +1,5 @@
 # PROJECT.md
 
-Complete this document during **BOOTSTRAP**. Keep it concise and specific to
-the project created from this template.
-
 ## Purpose
 
 - **Project name:** PayAlign
