@@ -1,21 +1,18 @@
 # TASKS.md
 
-PHASE: 0
+PHASE: 2
 STATUS: ready
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
 ## Active objective
 
-This repository starts as the AI-SDLC template. First objective: define the
-project — complete `docs/PROJECT.md` (purpose, architecture, commands) for
-this specific project. Once it reflects a real project, strip the
-template-only commentary per `skills/ai-sdlc-0-bootstrap` step 5, then replace
-this paragraph with the actual current objective.
+The use cases for **UC-001: Set Up an Employment** and **UC-002: Process the Monthly Employment** have been specified. The next objective is to design the system components required to implement these use cases. This includes defining the domain models, application services, and interfaces.
 
 ## Current Use Case
 
-docs/specs/UC-[NNN]-[NAME].md
+- docs/specs/UC-001-Set-Up-an-Employment.md
+- docs/specs/UC-002-Process-the-Monthly-Employment.md
 
 ## Current slice
 
@@ -43,7 +40,8 @@ State the next concrete action that should happen if work resumes later.
 
 ## Backlog
 
-- docs/specs/UC-[NNN]-[NAME].md
+- docs/specs/UC-002-Employee-Registration.md
+- docs/specs/UC-003-Monthly-Payroll-Processing.md
 
 ## Working agreement
 
