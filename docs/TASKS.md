@@ -7,7 +7,9 @@ STATUS: ready
 
 ## Active objective
 
-The use cases for **UC-001: Set Up an Employment** and **UC-002: Process the Monthly Employment** have been specified. The next objective is to design the system components required to implement these use cases. This includes defining the domain models, application services, and interfaces.
+The use cases for **UC-001: Set Up an Employment** and **UC-002: Process the Monthly Employment** have been specified. **Human review is required** before proceeding to the Design phase to ensure alignment and prevent rework.
+
+After approval, the next objective is to design the system components required to implement these use cases. This includes defining the domain models, application services, and interfaces.
 
 ## Current Use Case
 
