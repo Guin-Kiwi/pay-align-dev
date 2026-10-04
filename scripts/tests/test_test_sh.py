@@ -25,16 +25,11 @@ def make_project(tmp, test_body, python_flags=""):
     python.parent.mkdir(parents=True)
     python.write_text(f'#!/bin/sh\nexec "{sys.executable}" {python_flags} "$@"\n')
     python.chmod(0o755)
-    
-    # Install pytest in the test environment
-    subprocess.run([sys.executable, "-m", "pip", "install", "pytest"], cwd=root, check=True)
     return root
 
 
 def run_test_sh(root):
-    # Ensure pytest is installed globally for the test
-    subprocess.run([sys.executable, "-m", "pip", "install", "pytest"], check=True)
-    return subprocess.run([sys.executable, str(root / "scripts" / "test.sh")], cwd=root,
+    return subprocess.run(["bash", str(root / "scripts" / "test.sh")], cwd=root,
                           capture_output=True, text=True, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
 
 
