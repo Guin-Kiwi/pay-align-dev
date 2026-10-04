@@ -168,6 +168,7 @@ rm "$d/LICENSE"
 expect_fail "missing LICENSE (CC BY 4.0 attribution)" "$d" "missing LICENSE"
 
 d=$(make_fixture license-unchosen-after-bootstrap 1 in-progress "$UC_OK" "$ACCEPT_OK" "$EVIDENCE_OK")
+sed -i 's/The project material above is licensed under the MIT License by Ayla Allen\./Licence: [CHOOSE AT BOOTSTRAP]/' "$d/LICENSE"
 expect_warn "project licence not chosen after BOOTSTRAP" "$d" "LICENSE: the project licence is not chosen yet"
 
 d=$(make_fixture license-chosen 1 in-progress "$UC_OK" "$ACCEPT_OK" "$EVIDENCE_OK")
