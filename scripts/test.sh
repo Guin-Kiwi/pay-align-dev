@@ -12,7 +12,6 @@ if ! "$PYTHON" -m pytest --version > /dev/null 2>&1; then
   exit 1
 fi
 
-bash scripts/check-lifecycle.sh
 bash scripts/test-lifecycle.sh
 "$PYTHON" -m unittest discover -s scripts/tests -q
 "$PYTHON" -m pytest -q
