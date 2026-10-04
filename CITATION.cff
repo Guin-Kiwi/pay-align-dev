@@ -1,17 +1,15 @@
-# Human review required: changes need a code owner's approval (.github/CODEOWNERS). Describes the template, not a derived project; replace at BOOTSTRAP.
+# Human review required: changes need a code owner's approval (.github/CODEOWNERS).
 cff-version: 1.2.0
-message: "If you use AI-SDLC in your work, please cite the archived release."
-title: "The AI-SDLC Template and Method: AI-Assisted Software Development Life Cycle"
+message: "If you use PayAlign in your work, please cite the archived release."
+title: "PayAlign: Simplified Payroll for Household Employers in Basel-Stadt"
 type: software
 authors:
-  - family-names: Martin
-    given-names: Andreas
-    orcid: "https://orcid.org/0000-0002-7909-7663"
-  - family-names: Schwander
-    given-names: Sandro
-    orcid: "https://orcid.org/0009-0006-9708-3800"
-license: CC-BY-4.0
-version: 1.0.0
-date-released: 2026-09-18
-repository-code: "https://github.com/AIaSDev/ai-sdlc-template"
-url: "https://ai-sdlc.aisl.science/"
+  - family-names: YourLastName
+    given-names: YourFirstName
+    affiliation: "University of Basel"
+    orcid: "https://orcid.org/0000-0000-0000-0000"  # Replace with your ORCID
+license: MIT
+version: 0.1.0
+date-released: 2026-10-04
+repository-code: "https://github.com/Guin-Kiwi/pay-align-dev"
+url: "https://github.com/Guin-Kiwi/pay-align-dev"
