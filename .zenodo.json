@@ -1,17 +1,22 @@
 {
-  "title": "PayAlign: Simplified Payroll for Household Employers in Basel-Stadt",
-  "description": "PayAlign is a local-only payroll management system for private household employers in Basel-Stadt. It simplifies the process of calculating monthly pay, applying social insurance and tax deductions, and generating compliant payslips for annual AKBS reporting.",
+  "title": "The AI-SDLC Template and Method: AI-Assisted Software Development Life Cycle",
+  "description": "The reusable project template for the AI-Assisted Software Development Life Cycle (AI-SDLC), a lightweight and spec-driven lifecycle for AI-assisted software development. The template provides repository-local guidance, phase-specific Agent Skills, specifications, task-state and architecture artifacts, and supporting project configuration.",
   "creators": [
     {
-      "name": "YourLastName, YourFirstName",
-      "orcid": "0000-0000-0000-0000",  # Replace with your ORCID
-      "affiliation": "University of Basel"
+      "name": "Martin, Andreas",
+      "orcid": "0000-0002-7909-7663",
+      "affiliation": "FHNW University of Applied Sciences and Arts Northwestern Switzerland"
+    },
+    {
+      "name": "Schwander, Sandro",
+      "orcid": "0009-0006-9708-3800",
+      "affiliation": "FHNW University of Applied Sciences and Arts Northwestern Switzerland"
     }
   ],
-  "version": "0.1.0",
+  "version": "1.0.0",
   "upload_type": "software",
   "access_right": "open",
-  "license": "MIT",
+  "license": "cc-by-4.0",
   "language": "eng",
   "keywords": [
     "AI-assisted software development",
