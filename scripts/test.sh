@@ -1,30 +1,18 @@
-#!/usr/bin/env python3
+#!/usr/bin/env bash
 
-import os
-import subprocess
-import sys
+set -euo pipefail
 
-def main():
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    os.chdir(root_dir)
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
 
-    python = "python"
-    if os.name == "nt" and os.path.exists(".venv\\Scripts\\python.exe"):
-        python = ".venv\\Scripts\\python.exe"
-    elif os.path.exists(".venv/bin/python"):
-        python = ".venv/bin/python"
+PYTHON=python3
+[ -x .venv/bin/python ] && PYTHON=.venv/bin/python
+if ! "$PYTHON" -m pytest --version > /dev/null 2>&1; then
+  echo "✗ pytest is not installed for $PYTHON; run: bash scripts/setup-python.sh" >&2
+  exit 1
+fi
 
-    try:
-        subprocess.run([python, "-m", "pytest", "--version"], check=True, capture_output=True)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print(f"✗ pytest is not installed for {python}; run: python -m pip install -r requirements.txt", file=sys.stderr)
-        sys.exit(1)
-
-    # Run checks
-    subprocess.run([python, "scripts/check-lifecycle.py"], check=True)
-    subprocess.run([python, "scripts/test-lifecycle.py"], check=True)
-    subprocess.run([python, "-m", "unittest", "discover", "-s", "scripts/tests", "-q"], check=True)
-    subprocess.run([python, "-m", "pytest", "-q"], check=True)
-
-if __name__ == "__main__":
-    main()
+bash scripts/check-lifecycle.sh
+bash scripts/test-lifecycle.sh
+"$PYTHON" -m unittest discover -s scripts/tests -q
+"$PYTHON" -m pytest -q
