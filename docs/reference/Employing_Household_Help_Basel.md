@@ -164,6 +164,13 @@ Applies to relationships of at least 5 hours per week[cite: 16].
 *   **Two-year training / EBA:** CHF 22.30[cite: 16]
 *   **Three-year training / EFZ:** CHF 24.55[cite: 16]
 
+### Wage Requirements
+
+- **Minimum Wage**: As of January 1, 2026, the **cantonal minimum wage for Basel-Stadt is CHF 23.55/hour**. This applies to all employees, including household help, unless exempted by a collective bargaining agreement (GAV).
+  - **Source**: [Basel-Stadt Minimum Wage FAQ](https://www.bs.ch/wsu/awa/arbeitsbeziehungen/loehne/mindestlohn/haeufige-fragen-zum-kantonalen-mindestlohn-faq).
+
+> **Note**: Employers must ensure the hourly wage meets or exceeds this threshold. Wages below the minimum may result in legal penalties.
+
 ### Official links and contacts
 *   **AKBS household employment:** ak-bs.ch/ubersicht/beitrage-an-die-ahv-iv-eo/haushaltshilfen/[cite: 18]
 *   **AKBS telephone:** 061 685 22 22[cite: 18]
