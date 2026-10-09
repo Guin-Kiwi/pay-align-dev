@@ -1,15 +1,13 @@
 # TASKS.md
 
 PHASE: 2
-STATUS: ready
+STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
 ## Active objective
 
-The use cases for **UC-001: Set Up an Employment** and **UC-002: Process the Monthly Employment** have been specified. **Human review is required** before proceeding to the Design phase to ensure alignment and prevent rework.
-
-After approval, the next objective is to design the system components required to implement these use cases. This includes defining the domain models, application services, and interfaces.
+The use cases for **UC-001: Set Up an Employment** and **UC-002: Process the Monthly Employment** have been specified and **approved after human review**. The next objective is to design the system components required to implement these use cases. This includes defining the domain models, application services, and interfaces.
 
 ## Current Use Case
 
@@ -28,6 +26,7 @@ Describe the smallest vertical step being worked right now.
 
 ## Blockers / assumptions / decisions
 
+- **Human review completed and approved**: The specs for UC-001 and UC-002 have been reviewed and approved, allowing progression to the Design phase.
 - Blockers that stop progress.
 - Assumptions currently being made.
 - Decisions that changed direction, scope, or sequencing.
@@ -38,7 +37,8 @@ Describe the smallest vertical step being worked right now.
 
 ## Next smallest step
 
-State the next concrete action that should happen if work resumes later.
+- **UC-001**: `SetupService` has been implemented and committed. Proceed to unit tests and repository integration.
+- **UC-002**: Design the `PayrollService` to handle monthly payroll processing, including gross wage calculations, deductions, and payslip generation.
 
 ## Backlog
 
