@@ -29,5 +29,5 @@ EMPLOYEE_GROSS_LIMIT = 22_680  # CHF 22,680 per employee per year
 EMPLOYER_GROSS_LIMIT = 60_480  # CHF 60,480 per employer per year
 
 # Minimum values (2026)
-MIN_HOURLY_WAGE = 23.55  # Basel-Stadt minimum wage (CHF 23.55/hour, effective January 1, 2026). Source: https://www.bs.ch/wsu/awa/arbeitsbeziehungen/loehne/mindestlohn/haeufige-fragen-zum-kantonalen-mindestlohn-faq
+MIN_HOURLY_WAGE = 22.20  # Basel-Stadt cantonal minimum wage 2026 (base wage; holiday and 1 August supplements are paid on top). Source: https://www.bs.ch/wsu/awa/arbeitsbeziehungen/loehne/mindestlohn/haeufige-fragen-zum-kantonalen-mindestlohn-faq
 MIN_WEEKLY_HOURS = 5     # Recommended minimum weekly hours
