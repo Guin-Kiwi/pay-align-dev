@@ -4,7 +4,7 @@
     {
       "label": "AI-SDLC: Run checks",
       "type": "shell",
-      "command": "python scripts/test.sh",
+      "command": "bash scripts/test.sh",
       "group": "test",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "shared" }

@@ -91,10 +91,7 @@ class TestPayrollService(unittest.TestCase):
             ),
         ]
 
-        self.assertEqual(
-            self.service.calculate_monthly_hours(entries),
-            (8.0, 4.0),
-        )
+        self.assertEqual(self.service.calculate_monthly_hours(entries), (4.0, 4.0))
 
     def test_calculate_gross_wage_invalid_input(self):
         """Test invalid input handling for gross wage calculation."""

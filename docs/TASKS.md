@@ -1,7 +1,7 @@
 # TASKS.md
 
 PHASE: 2
-STATUS: in-progress
+STATUS: done
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -16,9 +16,15 @@ docs/specs/UC-002-Process-the-Monthly-Employment.md
 
 ## Current slice
 
-Design the persistence boundary for UC-002: application repository ports for
-`Employment`, `MonthlyRecord`, and `Payslip`, plus infrastructure adapters using
-the configured relational database.
+Develop: Wire PayrollService to FastAPI endpoints
+
+Create RESTful endpoints in `src/app/interfaces/` that expose the core payroll functionality:
+
+- POST /employments (create employment record)
+- POST /monthly-payroll (process monthly payroll for an employment)
+- GET /payslips/{employment_id}/{year}/{month} (retrieve payslip)
+
+Dependencies: PayrollService already implemented and tested. Focus on clean API design with proper error handling and validation.
 
 ## Acceptance / validation cues
 

@@ -26,6 +26,9 @@ class SQLitePayrollRepository:
         return value / 100
 
     def _create_schema(self) -> None:
+        if self._is_legacy_schema():
+            self._migrate_legacy_schema()
+            return
         self.connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS monthly_records (
@@ -60,6 +63,69 @@ class SQLitePayrollRepository:
             """
         )
         self.connection.commit()
+
+    def _is_legacy_schema(self) -> bool:
+        tables = {
+            row["name"]
+            for row in self.connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+        }
+        if not {"monthly_records", "payslips"}.issubset(tables):
+            return False
+        monthly_columns = {
+            row["name"]
+            for row in self.connection.execute("PRAGMA table_info(monthly_records)")
+        }
+        return "cash_bonus" in monthly_columns
+
+    def _migrate_legacy_schema(self) -> None:
+        self.connection.execute("BEGIN")
+        try:
+            self.connection.executescript(
+                """
+                ALTER TABLE monthly_records RENAME TO monthly_records_legacy;
+                ALTER TABLE payslips RENAME TO payslips_legacy;
+                """
+            )
+            self._create_schema()
+            self.connection.execute(
+                """
+                INSERT INTO monthly_records (
+                    id, employment_id, employer_id, month, year, hours_worked,
+                    holiday_hours, public_holiday_hours, cash_bonus_cents,
+                    expense_reimbursements_cents
+                )
+                SELECT id, employment_id, employer_id, month, year, hours_worked,
+                    holiday_hours, public_holiday_hours,
+                    CAST(ROUND(cash_bonus * 100) AS INTEGER),
+                    CAST(ROUND(expense_reimbursements * 100) AS INTEGER)
+                FROM monthly_records_legacy
+                """
+            )
+            money_columns = (
+                "gross_wage", "ahv_deduction", "alv_deduction", "tax_deduction",
+                "nbu_deduction", "net_payout", "employer_ahv", "employer_alv",
+                "employer_fak", "employer_bu", "admin_charge", "total_employer_cost",
+            )
+            target_columns = ", ".join(f"{column}_cents" for column in money_columns)
+            source_columns = ", ".join(
+                f"CAST(ROUND({column} * 100) AS INTEGER)" for column in money_columns
+            )
+            self.connection.execute(
+                f"INSERT INTO payslips (id, monthly_record_id, {target_columns}) "
+                f"SELECT id, monthly_record_id, {source_columns} FROM payslips_legacy"
+            )
+            self.connection.executescript(
+                """
+                DROP TABLE monthly_records_legacy;
+                DROP TABLE payslips_legacy;
+                """
+            )
+            self.connection.commit()
+        except Exception:
+            self.connection.rollback()
+            raise
 
     def save_monthly_record(self, record: MonthlyRecord, employer_id: int) -> MonthlyRecord:
         saved_record = self._insert_monthly_record(record, employer_id)

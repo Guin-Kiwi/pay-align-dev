@@ -1,0 +1,12 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: sqlite:////app/data/payroll.db
+    volumes:
+      - ./data:/app/data
+    command: ["uvicorn", "src.app.interfaces.main:app", "--host", "0.0.0.0", "--port", "8000"]
