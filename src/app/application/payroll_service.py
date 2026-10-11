@@ -56,7 +56,7 @@ class PayrollService:
         return work_date in PUBLIC_HOLIDAYS_2026
 
     def calculate_monthly_hours(self, entries: list[WorkEntry]) -> tuple[float, float]:
-        """Return total paid hours and paid public-holiday hours for entries."""
+        """Return regular paid hours and paid public-holiday hours for entries."""
         if not entries:
             return 0.0, 0.0
 
@@ -64,14 +64,15 @@ class PayrollService:
         if any((entry.work_date.month, entry.work_date.year) != first_month for entry in entries):
             raise InvalidPayrollInputError("Work entries must belong to one calendar month.")
 
-        total_hours = 0.0
+        regular_hours = 0.0
         public_holiday_hours = 0.0
         for entry in entries:
             paid_hours = self.calculate_paid_hours(entry)
-            total_hours += paid_hours
             if self.is_public_holiday(entry.work_date):
                 public_holiday_hours += paid_hours
-        return total_hours, public_holiday_hours
+            else:
+                regular_hours += paid_hours
+        return regular_hours, public_holiday_hours
 
     def calculate_gross_wage(
         self, 
@@ -282,13 +283,21 @@ class PayrollService:
         employment: Employment,
         month: int,
         year: int,
-        hours_worked: float,
+        hours_worked: float | None = None,
         holiday_hours: float = 0.0,
         public_holiday_hours: float = 0.0,
         cash_bonus: float = 0.0,
         expense_reimbursements: float = 0.0,
+        work_entries: list[WorkEntry] | None = None,
     ) -> tuple[MonthlyRecord, Payslip]:
         """Calculate, validate, and persist one monthly payroll run."""
+        if work_entries is not None:
+            hours_worked, public_holiday_hours = self.calculate_monthly_hours(work_entries)
+        elif hours_worked is None:
+            raise InvalidPayrollInputError(
+                "Either hours_worked or work_entries must be provided."
+            )
+
         monthly_record = self.create_monthly_record(
             employment=employment,
             month=month,
