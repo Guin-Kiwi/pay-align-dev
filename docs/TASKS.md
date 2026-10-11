@@ -1,13 +1,15 @@
 # TASKS.md
 
 PHASE: 2
-STATUS: done
+STATUS: ready
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
 ## Active objective
 
-The use cases for **UC-001: Set Up an Employment** and **UC-002: Process the Monthly Employment** have been specified and **approved after human review**. The next objective is to design the system components required to implement these use cases. This includes defining the domain models, application services, and interfaces.
+The use cases for **UC-001: Set Up an Employment** and **UC-002: Process the Monthly Employment** have been specified. **Human review is required** before proceeding to the Design phase to ensure alignment and prevent rework.
+
+After approval, the next objective is to design the system components required to implement these use cases. This includes defining the domain models, application services, and interfaces.
 
 ## Current Use Case
 
@@ -16,41 +18,27 @@ docs/specs/UC-002-Process-the-Monthly-Employment.md
 
 ## Current slice
 
-Develop: Wire PayrollService to FastAPI endpoints
-
-Create RESTful endpoints in `src/app/interfaces/` that expose the core payroll functionality:
-
-- POST /employments (create employment record)
-- POST /monthly-payroll (process monthly payroll for an employment)
-- GET /payslips/{employment_id}/{year}/{month} (retrieve payslip)
-
-Dependencies: PayrollService already implemented and tested. Focus on clean API design with proper error handling and validation.
+Describe the smallest vertical step being worked right now.
 
 ## Acceptance / validation cues
 
-- The application layer depends only on repository interfaces.
-- Infrastructure owns ORM mappings, database sessions, and adapter wiring.
-- A monthly payroll run can persist and retrieve its record and payslip together.
-- Evidence: UC-002 integration tests for save/retrieve and annual-limit queries.
+- What should be true when this slice is done?
+- What evidence will show that it is done?
+- Which artefact, test, review note, or document should hold that evidence?
 
 ## Blockers / assumptions / decisions
 
-- **Human review completed and approved**: The specs for UC-001 and UC-002 have been reviewed and approved, allowing progression to the Design phase.
-- Persistence design: repository ports belong in `src/app/application/`; SQLAlchemy
-	adapters and session wiring belong in `src/app/infrastructure/`.
 - Blockers that stop progress.
 - Assumptions currently being made.
 - Decisions that changed direction, scope, or sequencing.
 
 ## Evidence links
 
-- [UC-002 specification](specs/UC-002-Process-the-Monthly-Employment.md)
-- [Project architecture](PROJECT.md)
+- Link to the relevant spec, design note, test result, PR note, or review comment.
 
 ## Next smallest step
 
-- Implement the repository ports and one persistence adapter for `MonthlyRecord` and
-	`Payslip`, starting with integration tests.
+State the next concrete action that should happen if work resumes later.
 
 ## Backlog
 
