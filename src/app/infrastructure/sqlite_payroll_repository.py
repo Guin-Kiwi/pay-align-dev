@@ -240,6 +240,7 @@ class SQLitePayrollRepository:
             values[name] = self._from_cents(values.pop(f"{name}_cents"))
         return Payslip(**values)
 
+    # TODO(PR #3 review): limit is per employee, not per employment; needs employee_id. Owner: Ayla.
     def employee_gross_to_date(self, employment_id: int, year: int) -> float:
         row = self.connection.execute(
             """
