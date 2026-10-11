@@ -16,29 +16,35 @@ docs/specs/UC-002-Process-the-Monthly-Employment.md
 
 ## Current slice
 
-Describe the smallest vertical step being worked right now.
+Design the persistence boundary for UC-002: application repository ports for
+`Employment`, `MonthlyRecord`, and `Payslip`, plus infrastructure adapters using
+the configured relational database.
 
 ## Acceptance / validation cues
 
-- What should be true when this slice is done?
-- What evidence will show that it is done?
-- Which artefact, test, review note, or document should hold that evidence?
+- The application layer depends only on repository interfaces.
+- Infrastructure owns ORM mappings, database sessions, and adapter wiring.
+- A monthly payroll run can persist and retrieve its record and payslip together.
+- Evidence: UC-002 integration tests for save/retrieve and annual-limit queries.
 
 ## Blockers / assumptions / decisions
 
 - **Human review completed and approved**: The specs for UC-001 and UC-002 have been reviewed and approved, allowing progression to the Design phase.
+- Persistence design: repository ports belong in `src/app/application/`; SQLAlchemy
+	adapters and session wiring belong in `src/app/infrastructure/`.
 - Blockers that stop progress.
 - Assumptions currently being made.
 - Decisions that changed direction, scope, or sequencing.
 
 ## Evidence links
 
-- Link to the relevant spec, design note, test result, PR note, or review comment.
+- [UC-002 specification](specs/UC-002-Process-the-Monthly-Employment.md)
+- [Project architecture](PROJECT.md)
 
 ## Next smallest step
 
-- **UC-001**: `SetupService` has been implemented and committed. Proceed to unit tests and repository integration.
-- **UC-002**: Design the `PayrollService` to handle monthly payroll processing, including gross wage calculations, deductions, and payslip generation.
+- Implement the repository ports and one persistence adapter for `MonthlyRecord` and
+	`Payslip`, starting with integration tests.
 
 ## Backlog
 
