@@ -1,6 +1,6 @@
 # src/app/domain/employment.py
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Optional
 
@@ -11,7 +11,7 @@ class Employment:
     id: Optional[int] = None  # Database ID (None for new instances)
     employer_id: int = 0  # Foreign key to Employer
     employee_id: int = 0  # Foreign key to Employee
-    start_date: date = date.today()
+    start_date: date = field(default_factory=date.today)
     hourly_wage: float = 0.0  # Gross hourly wage in CHF
     weekly_hours: float = 0.0  # Weekly working hours
     holiday_entitlement: int = 20  # Annual paid holiday days (default: 20)

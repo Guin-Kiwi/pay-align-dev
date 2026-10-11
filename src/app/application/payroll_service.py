@@ -100,7 +100,7 @@ class PayrollService:
         Example:
             >>> service = PayrollService()
             >>> service.calculate_gross_wage(160, 25.0, 8, 4, 100)
-            4350.0  # (160 + 8) * 25 + (4 * 25 * 0.5) + 100
+            4450.0  # (160 + 8 + 4) * 25 + (4 * 25 * 0.5) + 100
         """
         # Validate inputs
         if hours_worked < 0:
