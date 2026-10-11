@@ -1,1 +1,0 @@
-"""Application-layer entry point reserved for framework-independent wiring."""
