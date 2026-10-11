@@ -9,6 +9,7 @@ from src.app.application.payroll_service import (
     PayrollService,
 )
 from src.app.domain.employment import Employment
+from src.app.domain.constants import PUBLIC_HOLIDAYS_2026
 from src.app.domain.monthly_record import MonthlyRecord
 from src.app.domain.work_entry import WorkEntry
 
@@ -64,6 +65,11 @@ class TestPayrollService(unittest.TestCase):
 
         self.assertEqual(self.service.calculate_paid_hours(entry), 8.0)
         self.assertTrue(self.service.is_public_holiday(entry.work_date))
+
+    def test_public_holiday_list_contains_nine_statutory_holidays(self):
+        self.assertFalse(self.service.is_public_holiday(date(2026, 1, 2)))
+        self.assertFalse(self.service.is_public_holiday(date(2026, 3, 2)))
+        self.assertEqual(len(PUBLIC_HOLIDAYS_2026), 9)
 
     def test_unpaid_work_entry_has_no_paid_hours(self):
         entry = WorkEntry(
