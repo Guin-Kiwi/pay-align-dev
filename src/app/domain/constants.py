@@ -5,9 +5,6 @@ from datetime import date
 # Public holidays for Basel-Stadt (2026)
 PUBLIC_HOLIDAYS_2026 = {
     date(2026, 1, 1),   # New Year's Day
-    date(2026, 1, 2),   # Berchtoldstag
-    date(2026, 3, 2),   # Basel Fasnacht (Monday after Ash Wednesday)
-    date(2026, 3, 3),   # Basel Fasnacht (Tuesday)
     date(2026, 4, 3),   # Good Friday
     date(2026, 4, 6),   # Easter Monday
     date(2026, 5, 1),   # Labour Day
