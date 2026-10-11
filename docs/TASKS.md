@@ -7,6 +7,8 @@ STATUS: ready
 
 ## Active objective
 
+Base merged from PR #3. Work continues in uc-001-employment-setup, uc-002-database-pattern, uc-002-payroll-calculation, uc-002-payroll-saving and delivery-ci-docker.
+
 The use cases for **UC-001: Set Up an Employment** and **UC-002: Process the Monthly Employment** have been specified. **Human review is required** before proceeding to the Design phase to ensure alignment and prevent rework.
 
 After approval, the next objective is to design the system components required to implement these use cases. This includes defining the domain models, application services, and interfaces.
