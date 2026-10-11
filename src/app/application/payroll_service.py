@@ -11,6 +11,7 @@ from src.app.domain.constants import (
 from src.app.domain.employment import Employment
 from src.app.domain.monthly_record import MonthlyRecord
 from src.app.domain.payslip import Payslip
+from src.app.domain.work_entry import WorkEntry
 
 # Constants
 HOLIDAY_PREMIUM_RATE = 0.5  # 50% premium for working on public holidays
@@ -32,6 +33,45 @@ class PayrollService:
     def _round_money(value: float) -> float:
         """Round a monetary value to Swiss centimes using half-up rounding."""
         return float(Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+    @staticmethod
+    def calculate_paid_hours(entry: WorkEntry) -> float:
+        """Return paid hours for one work entry after unpaid breaks."""
+        if not entry.paid:
+            return 0.0
+        elapsed_hours = (
+            entry.end_time.hour * 60
+            + entry.end_time.minute
+            - entry.start_time.hour * 60
+            - entry.start_time.minute
+        ) / 60
+        paid_hours = elapsed_hours - entry.unpaid_break_hours
+        if paid_hours < 0:
+            raise InvalidPayrollInputError("Unpaid breaks exceed the work duration.")
+        return paid_hours
+
+    @staticmethod
+    def is_public_holiday(work_date: date) -> bool:
+        """Return whether a date is a configured 2026 Basel-Stadt holiday."""
+        return work_date in PUBLIC_HOLIDAYS_2026
+
+    def calculate_monthly_hours(self, entries: list[WorkEntry]) -> tuple[float, float]:
+        """Return total paid hours and paid public-holiday hours for entries."""
+        if not entries:
+            return 0.0, 0.0
+
+        first_month = entries[0].work_date.month, entries[0].work_date.year
+        if any((entry.work_date.month, entry.work_date.year) != first_month for entry in entries):
+            raise InvalidPayrollInputError("Work entries must belong to one calendar month.")
+
+        total_hours = 0.0
+        public_holiday_hours = 0.0
+        for entry in entries:
+            paid_hours = self.calculate_paid_hours(entry)
+            total_hours += paid_hours
+            if self.is_public_holiday(entry.work_date):
+                public_holiday_hours += paid_hours
+        return total_hours, public_holiday_hours
 
     def calculate_gross_wage(
         self, 
@@ -235,6 +275,46 @@ class PayrollService:
             total_employer_cost=total_employer_cost
         )
         return payslip
+
+    def process_monthly_payroll(
+        self,
+        repository,
+        employment: Employment,
+        month: int,
+        year: int,
+        hours_worked: float,
+        holiday_hours: float = 0.0,
+        public_holiday_hours: float = 0.0,
+        cash_bonus: float = 0.0,
+        expense_reimbursements: float = 0.0,
+    ) -> tuple[MonthlyRecord, Payslip]:
+        """Calculate, validate, and persist one monthly payroll run."""
+        monthly_record = self.create_monthly_record(
+            employment=employment,
+            month=month,
+            year=year,
+            hours_worked=hours_worked,
+            holiday_hours=holiday_hours,
+            public_holiday_hours=public_holiday_hours,
+            cash_bonus=cash_bonus,
+            expense_reimbursements=expense_reimbursements,
+        )
+        payslip = self.generate_payslip(monthly_record, employment)
+
+        self.validate_annual_limits(
+            employment=employment,
+            current_gross_wage=payslip.gross_wage,
+            employee_gross_to_date=repository.employee_gross_to_date(
+                employment.id, year
+            ),
+            employer_gross_to_date=repository.employer_gross_to_date(
+                employment.employer_id, year
+            ),
+        )
+
+        return repository.save_payroll_run(
+            monthly_record, payslip, employer_id=employment.employer_id
+        )
 
     def validate_annual_limits(
         self, 

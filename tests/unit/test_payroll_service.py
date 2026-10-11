@@ -1,6 +1,7 @@
 # tests/unit/test_payroll_service.py
 
 import unittest
+from datetime import date, time
 
 from src.app.application.payroll_service import (
     AnnualLimitExceededError,
@@ -9,6 +10,7 @@ from src.app.application.payroll_service import (
 )
 from src.app.domain.employment import Employment
 from src.app.domain.monthly_record import MonthlyRecord
+from src.app.domain.work_entry import WorkEntry
 
 
 class TestPayrollService(unittest.TestCase):
@@ -51,6 +53,48 @@ class TestPayrollService(unittest.TestCase):
             hourly_wage=25.0
         )
         self.assertEqual(gross_wage, 4000.0)  # 160 * 25
+
+    def test_work_entry_calculates_paid_hours_and_public_holiday(self):
+        entry = WorkEntry(
+            work_date=date(2026, 5, 14),
+            start_time=time(9, 0),
+            end_time=time(17, 30),
+            unpaid_break_hours=0.5,
+        )
+
+        self.assertEqual(self.service.calculate_paid_hours(entry), 8.0)
+        self.assertTrue(self.service.is_public_holiday(entry.work_date))
+
+    def test_unpaid_work_entry_has_no_paid_hours(self):
+        entry = WorkEntry(
+            work_date=date(2026, 5, 15),
+            start_time=time(9, 0),
+            end_time=time(17, 0),
+            unpaid_break_hours=1.0,
+            paid=False,
+        )
+
+        self.assertEqual(self.service.calculate_paid_hours(entry), 0.0)
+        self.assertFalse(self.service.is_public_holiday(entry.work_date))
+
+    def test_monthly_hours_derive_public_holiday_hours_from_entries(self):
+        entries = [
+            WorkEntry(
+                work_date=date(2026, 5, 14),
+                start_time=time(9, 0),
+                end_time=time(13, 0),
+            ),
+            WorkEntry(
+                work_date=date(2026, 5, 15),
+                start_time=time(9, 0),
+                end_time=time(13, 0),
+            ),
+        ]
+
+        self.assertEqual(
+            self.service.calculate_monthly_hours(entries),
+            (8.0, 4.0),
+        )
 
     def test_calculate_gross_wage_invalid_input(self):
         """Test invalid input handling for gross wage calculation."""
