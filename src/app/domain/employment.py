@@ -30,6 +30,7 @@ class Employment:
 
         # Warnings for implicit constraints
         from .constants import MIN_HOURLY_WAGE, MIN_WEEKLY_HOURS
+        # TODO(PR #3 review): raise ValueError instead of print(). Owner: Nano.
         if self.hourly_wage < MIN_HOURLY_WAGE:
             print(f"Warning: Hourly wage (CHF {self.hourly_wage}) is below the Basel-Stadt minimum wage (CHF {MIN_HOURLY_WAGE}).")
         if self.weekly_hours < MIN_WEEKLY_HOURS:
