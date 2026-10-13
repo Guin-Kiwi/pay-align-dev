@@ -12,8 +12,9 @@ following the accepted architecture decisions and use-case specifications.
 
 ## Current Use Case
 
-- [UC-001: Set Up an Employment](specs/UC-001-Set-Up-an-Employment.md)
-- [UC-002: Process the Monthly Employment](specs/UC-002-Process-the-Monthly-Employment.md)
+docs/specs/UC-001-Set-Up-an-Employment.md [UC-001: Set Up an Employment](specs/UC-001-Set-Up-an-Employment.md)
+
+docs/specs/UC-002-Process-the-Monthly-Employment.md [UC-002: Process the Monthly Employment](specs/UC-002-Process-the-Monthly-Employment.md)
 
 ## Current slice
 
