@@ -1,14 +1,14 @@
 # TASKS.md
 
-PHASE: 2
+PHASE: 3
 STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
 ## Active objective
 
-Define the smallest architecture slice for the specified employment setup and
-monthly payroll use cases without implementing code.
+Implement and validate the initial vertical slice for employment setup and monthly payroll, 
+following the accepted architecture decisions and use-case specifications.
 
 ## Current Use Case
 
@@ -17,60 +17,10 @@ monthly payroll use cases without implementing code.
 
 ## Current slice
 
-Architecture design for onboarding an employer/employee/employment and
-processing one monthly payroll run.
+Initial implementation of the domain models, `SetupService`, and `PayrollService`, with unit tests for setup and payroll calculations.
 
-### Minimal component map
-
-- **Domain**
-  - Entities: `Employer`, `Employee`, `Employment`, `WorkEntry`,
-    `MonthlyRecord`, `Payslip`, and the immutable per-run entry snapshot.
-  - A normal-case monthly run has three distinct hour categories: worked,
-    paid holiday, and paid public-holiday.
-  - Value/validation rules: AHV number format, required fields, non-negative
-    work and payment inputs, active employment, month validity, and annual
-    employee/employer limits.
-  - Rules: a named 2026 AKBS ruleset owns rates, limits, holiday treatment,
-    and NBU eligibility; decimal monetary values are rounded to centimes using
-    the approved policy.
-- **Application**
-  - `SetupService` validates and coordinates creation of the employer,
-    employee, and employment aggregate.
-  - `PayrollService` accepts daily work entries and optional bonus/
-    reimbursement data, calculates the monthly record and payslip, checks
-    annual limits, and coordinates an atomic save.
-  - Repository ports provide employer uniqueness lookup, employment lookup,
-    annual gross totals, and persistence of the monthly record/payslip.
-- **Interfaces**
-  - Setup request/response models expose onboarding inputs and confirmation or
-    validation errors.
-  - Payroll request/response models expose daily work details, optional
-    amounts, calculated payslip values, and confirmation or limit errors.
-  - HTTP routes remain thin adapters: parse/validate transport data, invoke
-    application services, and map domain/application errors to responses.
-- **Infrastructure**
-  - ORM mappings and repositories persist the domain entities and their
-    foreign-key relationships.
-  - A transaction boundary persists the entries, frozen run snapshot,
-    `MonthlyRecord`, and `Payslip` together only after all validation and
-    annual-limit checks pass.
-  - Web-server and database wiring supplies the ports and configuration
-    without entering the domain or application layers.
-
-### Boundaries and affected components
-
-- Setup flow crosses interfaces -> `SetupService` -> domain entities ->
-  repository ports -> ORM/database adapters.
-- Payroll flow crosses interfaces -> `PayrollService` -> work/payroll domain
-  rules -> repository ports -> one infrastructure transaction.
-- The domain does not import FastAPI, SQLAlchemy, or transport models.
-- Reimbursements are kept outside the AHV-liable gross wage base and are
-  added only to the final employee payout.
-- Holiday balance starts from employment entitlement, then is derived from
-  the immediately prior persisted run minus paid holiday hours.
-- Completed runs are immutable; corrections and reversals are out of scope.
-- Sick-pay and other exception-management workflows are out of scope for this
-slice and require a future dedicated use case.
+The implementation must remain consistent with ADR-001 through ADR-004. Workbook-derived golden payroll cases 
+should be used to verify the calculated values. The discrepancy in `admin_charge` and `total_employer_cost` remains pending confirmation.
 
 ## Acceptance / validation cues
 
@@ -133,9 +83,10 @@ slice and require a future dedicated use case.
 
 ## Next smallest step
 
-After human review, enter DEVELOP and implement the payroll entry/snapshot
-boundary alongside the setup slice: domain validation, repository ports, and
-the smallest transaction boundary.
+## Next smallest step
+
+Implement and run golden payroll tests against `PayrollService` using the workbook-derived cases. 
+Resolve the pending `admin_charge` and `total_employer_cost` discrepancy before treating those expected values as final.
 
 ## Backlog
 
