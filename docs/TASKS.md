@@ -10,11 +10,11 @@ STATUS: in-progress
 Implement and validate the initial vertical slice for employment setup and monthly payroll, 
 following the accepted architecture decisions and use-case specifications.
 
-Current Use Case
+## Current Use Case
 
 docs/specs/UC-002-Process-the-Monthly-Employment.md
 
-Current slice
+## Current slice
 
 Initial implementation of the domain models, `SetupService`, and `PayrollService`, with unit tests for setup and payroll calculations.
 
@@ -79,8 +79,6 @@ should be used to verify the calculated values. The discrepancy in `admin_charge
 - [ADR-003 Monetary precision and rounding](adr/ADR-003-monetary-precision-and-rounding.md)
 - [ADR-004 Payroll entry snapshots and holiday balance](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)
 - [PROJECT architecture](PROJECT.md)
-
-## Next smallest step
 
 ## Next smallest step
 
