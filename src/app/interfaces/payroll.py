@@ -1,4 +1,3 @@
-import sqlite3
 from datetime import date, time
 
 from fastapi import APIRouter, HTTPException
@@ -8,13 +7,15 @@ from src.app.application.payroll_service import PayrollService
 from src.app.application.setup_service import SetupService
 from src.app.domain.employment import Employment
 from src.app.domain.work_entry import WorkEntry
+from src.app.infrastructure.database import create_database_engine, create_schema
 from src.app.infrastructure.sqlite_payroll_repository import SQLitePayrollRepository
 
 payroll_router = APIRouter()
 payroll_service = PayrollService()
 setup_service = SetupService()
-# TODO(PR #3 review): in-memory database; read DATABASE_URL, to be replaced by SQLAlchemy. Owner: Ayla.
-repository = SQLitePayrollRepository(sqlite3.connect(":memory:", check_same_thread=False))
+_engine = create_database_engine()
+create_schema(_engine)
+repository = SQLitePayrollRepository(_engine.raw_connection().driver_connection)
 
 class EmploymentCreate(BaseModel):
     employer_id: int = Field(..., description="Employer ID")
