@@ -1,7 +1,7 @@
 # TASKS.md
 
-PHASE: 3
-STATUS: in-progress
+PHASE: 2
+STATUS: done
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -20,6 +20,11 @@ Initial implementation of the domain models, `SetupService`, and `PayrollService
 
 The implementation must remain consistent with ADR-001 through ADR-004. Workbook-derived golden payroll cases 
 should be used to verify the calculated values. The discrepancy in `admin_charge` and `total_employer_cost` remains pending confirmation.
+
+Design sub-slice (phase 2): the persistence adapter for UC-002 saving, proposed in
+[ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md). It touches infrastructure
+(one SQLAlchemy adapter, `work_entries` and `payroll_snapshots` tables, start-up
+configuration), the application port and errors, and the payroll router error mapping.
 
 ## Acceptance / validation cues
 
@@ -48,6 +53,11 @@ should be used to verify the calculated values. The discrepancy in `admin_charge
   transaction coordination.
 - The 2026 ruleset is intentionally narrow; adding another year requires a
   new version rather than changing historical calculations.
+- Replacing the sqlite3 repository with a SQLAlchemy adapter (ADR-005) removes
+  the duplicate schema and the SQLite-only coupling, but means rewriting a
+  repository that already has tests.
+- Foreign keys are declared but not enforced until UC-001 persists employers
+  and employments, so payroll rows can reference missing parents in the meantime.
 
 ## Validation approach
 
@@ -57,6 +67,11 @@ should be used to verify the calculated values. The discrepancy in `admin_charge
 - Integration tests will verify repository foreign keys, employer uniqueness,
   and atomic persistence of the monthly record and payslip.
 - Architecture tests will continue to enforce inward dependency direction.
+- ADR-005 slice: integration tests assert that a duplicate month raises
+  `DuplicateMonthError` and persists nothing, that a failed save leaves no
+  entries, snapshot, record or payslip, that the employee limit sums across
+  employments of the same employee, that start-up fails clearly when
+  `DATABASE_URL` is unset or unsupported, and that tests dispose their engines.
 
 ## Blockers / assumptions / decisions
 
@@ -69,6 +84,13 @@ should be used to verify the calculated values. The discrepancy in `admin_charge
   corrections.
 - ADR-001 through ADR-004 are marked Accepted for implementation.
 - Decision: database setup uses SQLAlchemy and reads `DATABASE_URL`, with skeleton tables for the five entities; the code is delivered on `uc-002-payroll-saving`. The money type and `DATABASE_URL` format are recorded in `docs/PROJECT.md`.
+- Proposed: ADR-005 (single SQLAlchemy persistence adapter). Status stays
+  Proposed until a human accepts it; `docs/PROJECT.md` is updated on acceptance,
+  not before.
+- Open question for a human: how `holiday_entitlement` (days) converts to the
+  hours used by the derived holiday balance in ADR-004. Not decided by ADR-005.
+- Assumption: the earlier float-column SQLite schema was never deployed, so the
+  repository's legacy migration can be dropped.
 - Human review remains required for the review-gated use-case specifications.
 
 ## Evidence links
@@ -79,11 +101,15 @@ should be used to verify the calculated values. The discrepancy in `admin_charge
 - [ADR-002 Versioned AKBS payroll rules](adr/ADR-002-versioned-akbs-payroll-rules.md)
 - [ADR-003 Monetary precision and rounding](adr/ADR-003-monetary-precision-and-rounding.md)
 - [ADR-004 Payroll entry snapshots and holiday balance](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)
+- [ADR-005 SQLAlchemy persistence adapter (Proposed)](adr/ADR-005-sqlalchemy-persistence-adapter.md)
 - [PROJECT architecture](PROJECT.md)
 
 ## Next smallest step
 
-Implement and run golden payroll tests against `PayrollService` using the workbook-derived cases. 
+A human reviews ADR-005 and answers the days-to-hours question. On acceptance, update `docs/PROJECT.md`,
+then start DEVELOP on `uc-002-payroll-saving` with the first failing test for the new adapter.
+
+Separately, on `uc-002-payroll-calculation`: implement and run golden payroll tests against `PayrollService` using the workbook-derived cases.
 Resolve the pending `admin_charge` and `total_employer_cost` discrepancy before treating those expected values as final.
 
 ## Backlog
