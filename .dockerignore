@@ -1,5 +1,6 @@
 # Deployable images contain only the app (src/, runtime dependencies, LICENSE).
 # The AI-SDLC process files stay in the repository as development evidence.
+
 .git
 .github
 .devcontainer
@@ -12,6 +13,7 @@ docs
 skills
 scripts
 environments
+.env
 tests
 AGENTS.md
 CLAUDE.md
