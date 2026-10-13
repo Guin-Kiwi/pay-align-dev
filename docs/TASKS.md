@@ -1,7 +1,7 @@
 # TASKS.md
 
-PHASE: 2
-STATUS: ready
+PHASE: 3
+STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -15,12 +15,11 @@ After approval, the next objective is to design the system components required t
 
 ## Current Use Case
 
-docs/specs/UC-001-Set-Up-an-Employment.md
 docs/specs/UC-002-Process-the-Monthly-Employment.md
 
 ## Current slice
 
-Describe the smallest vertical step being worked right now.
+golden payroll cases from the workbook as test data
 
 ## Acceptance / validation cues
 
@@ -40,7 +39,7 @@ Describe the smallest vertical step being worked right now.
 
 ## Next smallest step
 
-State the next concrete action that should happen if work resumes later.
+golden test in code against PayrollService
 
 ## Backlog
 
