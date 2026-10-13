@@ -65,3 +65,10 @@ Document the commands for the selected stack:
 * **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), Pydantic (Validation), Pytest (Testing)
 * **Environment Variables:** `DATABASE_URL` (Required for infrastructure configuration). 
 * Never commit `.env` credentials to version control.
+
+## Data conventions
+
+* **`DATABASE_URL` format:** a SQLAlchemy URL, e.g. `sqlite:////app/data/payroll.db` (four slashes for an absolute path inside the container). Until the database setup lands on `uc-002-payroll-saving`, the API still uses an in-memory SQLite connection and ignores the variable.
+* **Tables:** `employers`, `employees`, `employments`, `monthly_records` and `payslips`, one per core entity. The holiday balance is not stored on `employments`; it is derived from persisted runs ([ADR-004](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)).
+* **Money type** ([ADR-003](adr/ADR-003-monetary-precision-and-rounding.md)): `Decimal` in domain and application code, integer centimes in the database (columns suffixed `_cents`). The domain and `PayrollService` still use `float`; the migration to `Decimal` belongs to the payroll-calculation slice.
+* **`MonthlyRecord` fields:** `id`, `employment_id`, `month` (1-12), `year` (2026 or later), `hours_worked`, `holiday_hours` (paid holiday), `public_holiday_hours`, `cash_bonus` and `expense_reimbursements` (stored as `_cents`). The employer is stored alongside as `employer_id`. Duplicate `(employment_id, month, year)` is rejected.

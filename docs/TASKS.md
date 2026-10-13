@@ -68,6 +68,7 @@ should be used to verify the calculated values. The discrepancy in `admin_charge
   categories, derived holiday balance, and the exclusion of sick-pay and
   corrections.
 - ADR-001 through ADR-004 are marked Accepted for implementation.
+- Decision: database setup uses SQLAlchemy and reads `DATABASE_URL`, with skeleton tables for the five entities; the code is delivered on `uc-002-payroll-saving`. The money type and `DATABASE_URL` format are recorded in `docs/PROJECT.md`.
 - Human review remains required for the review-gated use-case specifications.
 
 ## Evidence links
