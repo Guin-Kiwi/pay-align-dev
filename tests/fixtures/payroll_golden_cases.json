@@ -1,0 +1,246 @@
+{
+  "source": "docs/reference/Payslip_2026.xlsm recalculated with LibreOffice; Rates B11=28.50, B12=2026-01-01, B25=0.05, B26=0.00505, B27=0.5",
+  "rounding": "each line ROUND(x,2) half-up on the exact formula (ADR-003)",
+  "pending": "admin_charge and total_employer_cost follow the workbook (gross x 10.6% x 5%). calculations.md and payroll_service.py give gross x 5.3% x 5%. Confirm with Ayla before treating these as final.",
+  "cases": [
+    {
+      "id": "A_plain_under_8h",
+      "description": "20 h, 6 weekly hours: no NBU",
+      "employment": {
+        "hourly_wage": "28.50",
+        "weekly_hours": 6
+      },
+      "month": {
+        "year": 2026,
+        "month": 1
+      },
+      "workbook_inputs": {
+        "Rates!B14": 6,
+        "Jan!B8": 20
+      },
+      "input": {
+        "hours_worked": "20",
+        "holiday_hours": "0",
+        "public_holiday_hours": "0",
+        "cash_bonus": "0",
+        "expense_reimbursements": "0"
+      },
+      "expected": {
+        "gross_wage": "570.00",
+        "ahv_deduction": "30.21",
+        "alv_deduction": "6.27",
+        "tax_deduction": "28.50",
+        "nbu_deduction": "0.00",
+        "total_employee_deductions": "64.98",
+        "net_payout": "505.02",
+        "payment_to_employee": "505.02",
+        "employer_ahv": "30.21",
+        "employer_alv": "6.27",
+        "employer_fak": "9.41",
+        "employer_bu": "2.88",
+        "admin_charge": "3.02",
+        "total_employer_cost": "621.79"
+      }
+    },
+    {
+      "id": "B_nbu_8h_or_more",
+      "description": "Same month, 10 weekly hours: NBU applies",
+      "employment": {
+        "hourly_wage": "28.50",
+        "weekly_hours": 10
+      },
+      "month": {
+        "year": 2026,
+        "month": 1
+      },
+      "workbook_inputs": {
+        "Rates!B14": 10,
+        "Jan!B8": 20
+      },
+      "input": {
+        "hours_worked": "20",
+        "holiday_hours": "0",
+        "public_holiday_hours": "0",
+        "cash_bonus": "0",
+        "expense_reimbursements": "0"
+      },
+      "expected": {
+        "gross_wage": "570.00",
+        "ahv_deduction": "30.21",
+        "alv_deduction": "6.27",
+        "tax_deduction": "28.50",
+        "nbu_deduction": "8.16",
+        "total_employee_deductions": "73.14",
+        "net_payout": "496.86",
+        "payment_to_employee": "496.86",
+        "employer_ahv": "30.21",
+        "employer_alv": "6.27",
+        "employer_fak": "9.41",
+        "employer_bu": "2.88",
+        "admin_charge": "3.02",
+        "total_employer_cost": "621.79"
+      }
+    },
+    {
+      "id": "C_public_holiday_worked",
+      "description": "20 h in total, 4 of them on a public holiday (50% premium)",
+      "employment": {
+        "hourly_wage": "28.50",
+        "weekly_hours": 6
+      },
+      "month": {
+        "year": 2026,
+        "month": 1
+      },
+      "workbook_inputs": {
+        "Rates!B14": 6,
+        "May!B8": 20,
+        "May!B12": 4
+      },
+      "input": {
+        "hours_worked": "16",
+        "holiday_hours": "0",
+        "public_holiday_hours": "4",
+        "cash_bonus": "0",
+        "expense_reimbursements": "0"
+      },
+      "expected": {
+        "gross_wage": "627.00",
+        "ahv_deduction": "33.23",
+        "alv_deduction": "6.90",
+        "tax_deduction": "31.35",
+        "nbu_deduction": "0.00",
+        "total_employee_deductions": "71.48",
+        "net_payout": "555.52",
+        "payment_to_employee": "555.52",
+        "employer_ahv": "33.23",
+        "employer_alv": "6.90",
+        "employer_fak": "10.35",
+        "employer_bu": "3.17",
+        "admin_charge": "3.32",
+        "total_employer_cost": "683.97"
+      }
+    },
+    {
+      "id": "D_paid_holiday",
+      "description": "16 h worked + 8 paid holiday hours",
+      "employment": {
+        "hourly_wage": "28.50",
+        "weekly_hours": 6
+      },
+      "month": {
+        "year": 2026,
+        "month": 1
+      },
+      "workbook_inputs": {
+        "Rates!B14": 6,
+        "Jun!B8": 16,
+        "Jun!B9": 8
+      },
+      "input": {
+        "hours_worked": "16",
+        "holiday_hours": "8",
+        "public_holiday_hours": "0",
+        "cash_bonus": "0",
+        "expense_reimbursements": "0"
+      },
+      "expected": {
+        "gross_wage": "684.00",
+        "ahv_deduction": "36.25",
+        "alv_deduction": "7.52",
+        "tax_deduction": "34.20",
+        "nbu_deduction": "0.00",
+        "total_employee_deductions": "77.97",
+        "net_payout": "606.03",
+        "payment_to_employee": "606.03",
+        "employer_ahv": "36.25",
+        "employer_alv": "7.52",
+        "employer_fak": "11.29",
+        "employer_bu": "3.45",
+        "admin_charge": "3.63",
+        "total_employer_cost": "746.14"
+      }
+    },
+    {
+      "id": "E_bonus_and_expenses",
+      "description": "Bonus is AHV-liable, expenses are not",
+      "employment": {
+        "hourly_wage": "28.50",
+        "weekly_hours": 6
+      },
+      "month": {
+        "year": 2026,
+        "month": 1
+      },
+      "workbook_inputs": {
+        "Rates!B14": 6,
+        "Jul!B8": 20,
+        "Jul!B13": 100,
+        "Jul!B14": 45.5
+      },
+      "input": {
+        "hours_worked": "20",
+        "holiday_hours": "0",
+        "public_holiday_hours": "0",
+        "cash_bonus": "100",
+        "expense_reimbursements": "45.50"
+      },
+      "expected": {
+        "gross_wage": "670.00",
+        "ahv_deduction": "35.51",
+        "alv_deduction": "7.37",
+        "tax_deduction": "33.50",
+        "nbu_deduction": "0.00",
+        "total_employee_deductions": "76.38",
+        "net_payout": "593.62",
+        "payment_to_employee": "639.12",
+        "employer_ahv": "35.51",
+        "employer_alv": "7.37",
+        "employer_fak": "11.06",
+        "employer_bu": "3.38",
+        "admin_charge": "3.55",
+        "total_employer_cost": "776.37"
+      }
+    },
+    {
+      "id": "F_half_cent_rounding",
+      "description": "Tax line is exactly 24.665: half-up gives 24.67",
+      "employment": {
+        "hourly_wage": "28.50",
+        "weekly_hours": 6
+      },
+      "month": {
+        "year": 2026,
+        "month": 1
+      },
+      "workbook_inputs": {
+        "Rates!B14": 6,
+        "Aug!B8": 17.3,
+        "Aug!B13": 0.25
+      },
+      "input": {
+        "hours_worked": "17.3",
+        "holiday_hours": "0",
+        "public_holiday_hours": "0",
+        "cash_bonus": "0.25",
+        "expense_reimbursements": "0"
+      },
+      "expected": {
+        "gross_wage": "493.30",
+        "ahv_deduction": "26.14",
+        "alv_deduction": "5.43",
+        "tax_deduction": "24.67",
+        "nbu_deduction": "0.00",
+        "total_employee_deductions": "56.24",
+        "net_payout": "437.06",
+        "payment_to_employee": "437.06",
+        "employer_ahv": "26.14",
+        "employer_alv": "5.43",
+        "employer_fak": "8.14",
+        "employer_bu": "2.49",
+        "admin_charge": "2.61",
+        "total_employer_cost": "538.11"
+      }
+    }
+  ]
+}
