@@ -10,13 +10,11 @@ STATUS: in-progress
 Implement and validate the initial vertical slice for employment setup and monthly payroll, 
 following the accepted architecture decisions and use-case specifications.
 
-## Current Use Case
+Current Use Case
 
-docs/specs/UC-001-Set-Up-an-Employment.md [UC-001: Set Up an Employment](specs/UC-001-Set-Up-an-Employment.md)
+docs/specs/UC-002-Process-the-Monthly-Employment.md
 
-docs/specs/UC-002-Process-the-Monthly-Employment.md [UC-002: Process the Monthly Employment](specs/UC-002-Process-the-Monthly-Employment.md)
-
-## Current slice
+Current slice
 
 Initial implementation of the domain models, `SetupService`, and `PayrollService`, with unit tests for setup and payroll calculations.
 
