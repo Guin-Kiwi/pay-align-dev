@@ -6,7 +6,7 @@
 - **User or organisational problem:** Private individuals employing household help need a way to legally and accurately manage monthly payroll and annual reporting under the AKBS simplified settlement procedure without facing heavy corporate HR administration.
 - **Intended users:** Private household employers in Basel-Stadt.
 - **In scope:** Single-employer onboarding, employee registration and contract parameter generation, monthly payroll processing (gross-to-net calculations using 2026 rates), payslip generation, and annual aggregation for the AKBS wage declaration.
-- **Out of scope:** Exception management (sick pay, occupational accidents, property damage, disputes), termination workflows, employer account closure, and the standard settlement procedure (Standard-Abrechnung).
+- **Out of scope:** Exception management (including sick pay, occupational accidents, property damage, and disputes), termination workflows, employer account closure, and the standard settlement procedure (Standard-Abrechnung). The normal-case monthly payroll use case does not record or calculate sick-pay hours.
 
 ## Architecture
 
