@@ -11,6 +11,8 @@ import pathlib
 import tempfile
 import unittest
 
+import pytest
+
 APP = pathlib.Path(__file__).resolve().parents[2] / "src" / "app"
 LAYERS = ["domain", "application", "interfaces", "infrastructure"]
 FRAMEWORKS = {"fastapi", "starlette", "sqlalchemy", "flask", "django"}
@@ -32,12 +34,42 @@ def violations(app_dir):
         for path in sorted((app_dir / layer).rglob("*.py")):
             for module in _imports(path):
                 parts = module.split(".")
+                if parts[:2] == ["src", "app"]:
+                    parts = parts[1:]
                 if parts[0] == "app" and len(parts) > 1 and parts[1] in LAYERS:
                     if LAYERS.index(parts[1]) > rank:
                         found.append(f"{path.relative_to(app_dir)}: {layer} imports outer layer {module}")
                 if layer in FRAMEWORK_FREE and parts[0] in FRAMEWORKS:
                     found.append(f"{path.relative_to(app_dir)}: {layer} imports framework {module}")
     return found
+
+
+@pytest.mark.parametrize("prefix", ["app", "src.app"])
+@pytest.mark.parametrize("style", ["import", "from"])
+@pytest.mark.parametrize("layer", ["domain", "interfaces"])
+def test_detects_absolute_import_of_outer_layer(tmp_path, prefix, style, layer):
+    module = f"{prefix}.infrastructure.db"
+    source = f"import {module}\n" if style == "import" else f"from {module} import Session\n"
+    path = tmp_path / layer / "user.py"
+    path.parent.mkdir()
+    path.write_text(source)
+
+    assert violations(tmp_path) == [
+        f"{layer}/user.py: {layer} imports outer layer {module}"
+    ]
+
+
+@pytest.mark.parametrize("prefix", ["app", "src.app"])
+@pytest.mark.parametrize("style", ["import", "from"])
+@pytest.mark.parametrize("target_layer", ["domain", "infrastructure"])
+def test_allows_absolute_import_of_inner_or_same_layer(tmp_path, prefix, style, target_layer):
+    module = f"{prefix}.{target_layer}.user"
+    source = f"import {module}\n" if style == "import" else f"from {module} import User\n"
+    path = tmp_path / "infrastructure" / "db.py"
+    path.parent.mkdir()
+    path.write_text(source)
+
+    assert violations(tmp_path) == []
 
 
 class DependencyRuleTests(unittest.TestCase):
