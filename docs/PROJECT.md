@@ -47,17 +47,21 @@ Where non-code material lives; link reference documents here so agents find them
 
 ## Commands
 
-Document the commands for the selected stack:
+Alle Befehle werden im Projektverzeichnis ausgeführt. Für Docker-Befehle muss Docker verfügbar sein; beim Start muss Port 8000 frei sein.
 
 | Activity | Command |
 |---|---|
-| Install | `docker compose build` |
-| Unit tests | `docker compose run --rm app pytest tests/unit/` |
-| Integration tests | `docker compose run --rm app pytest tests/integration/` |
-| Run locally | `docker compose up` |
-| Build/release | `docker compose build --no-cache` |
+| Docker-Image bauen | `docker compose build api` |
+| Anwendung starten | `docker compose up api` |
+| Health-Check | `curl --fail --include http://localhost:8000/health` |
+| Unit-Tests | `.venv/bin/python -m pytest tests/unit/` |
+| Integrationstests | `.venv/bin/python -m pytest tests/integration/` |
+| Alle Projektprüfungen | `bash scripts/test.sh` |
+| Image ohne Cache bauen | `docker compose build --no-cache api` |
 
-*(Note: If running outside of Docker for fast local development, use standard `pip install -r requirements.txt` and `pytest` commands).*
+Tests werden ausserhalb des Laufzeitcontainers in der lokalen Python-Umgebung `.venv` ausgeführt. Diese muss eingerichtet sein und die Abhängigkeiten aus `requirements.txt` enthalten; sie können mit `.venv/bin/python -m pip install -r requirements.txt` installiert werden. `.dockerignore` schliesst Tests und Prozessskripte aus dem Laufzeitimage aus.
+
+Der Health-Check wird bei laufender Anwendung ausgeführt und soll HTTP 200 sowie `{"status":"ok"}` liefern. Er beweist noch keine dauerhafte Datenspeicherung.
 
 ## Dependencies
 
