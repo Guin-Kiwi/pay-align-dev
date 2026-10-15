@@ -1,7 +1,7 @@
 # ADR-003-monetary-precision-and-rounding
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 Payroll calculations combine hourly wages, percentages, reimbursements, and annual limits. Binary floating-point arithmetic can produce non-reproducible cent values, while an undefined rounding point can make payslips and tests disagree.
@@ -14,7 +14,7 @@ Payroll calculations combine hourly wages, percentages, reimbursements, and annu
 ## Decision
 Use decimal arithmetic for all monetary calculations. Store and expose monetary values at centime precision. Round each monetary deduction or contribution line to CHF 0.01 using a single documented half-up policy, then calculate displayed subtotals and totals from those rounded lines. Expense reimbursements remain separate from the AHV-liable wage base and are added to the final payout without being included in statutory deduction calculations.
 
-This ADR is proposed for human approval.
+This decision was accepted for implementation.
 
 ## Consequences
 - Domain calculation code must not use binary floating-point for money.

@@ -1,7 +1,7 @@
 # ADR-002-versioned-akbs-payroll-rules
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 PayAlign calculates payroll under the Basel-Stadt AKBS simplified procedure. Contribution rates, annual limits, holiday treatment, and other legal rules can change over time. Recalculating historical payroll with silently changed constants would undermine auditability and user trust.
@@ -14,9 +14,9 @@ The current 2026 rules are described in `docs/reference/calculations.md` and sup
 - Rebuild historical results whenever rates change: rejected because historical payroll must remain reproducible.
 
 ## Decision
-Payroll calculations use an explicit ruleset version, initially the 2026 AKBS ruleset. The ruleset includes rates, annual limits, holiday and public-holiday treatment, eligibility thresholds, and the source-review date. A future ruleset is added as a new version; it must not silently alter results produced under an earlier version. The current 2026 values are maintained in the domain/reference artifacts and require human review when changed.
+Payroll calculations use an explicit ruleset version, initially the 2026 AKBS ruleset. The ruleset includes rates, annual limits, holiday and public-holiday treatment, eligibility thresholds, and the source-review date. A future ruleset is added as a new version; it must not silently alter results produced under an earlier version. The current 2026 values are maintained in the domain/reference artifacts and require human review when changed. This decision was accepted for implementation; the 2026 rates used by the current specifications are the approved initial ruleset.
 
-This ADR is proposed for human approval. The apparent source wording discrepancy around the employee AHV/IV/EO and ALV percentages must be resolved during review; the calculation reference and current use-case acceptance criteria currently use 5.3% plus 1.1%.
+The calculation reference and current use-case acceptance criteria use 5.3% employee AHV/IV/EO and 1.1% employee ALV.
 
 ## Consequences
 - Payroll records need to retain or resolve the ruleset version used for calculation.

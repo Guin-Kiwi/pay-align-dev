@@ -11,7 +11,8 @@ from src.app.infrastructure.sqlite_payroll_repository import SQLitePayrollReposi
 
 payroll_router = APIRouter()
 payroll_service = PayrollService()
-# TODO(PR #3 review): in-memory database; read DATABASE_URL, to be replaced by SQLAlchemy. Owner: Ayla.
+setup_service = SetupService()
+# TODO(PR #3 review): in-memory database; read DATABASE_URL, to be replaced by SQLAlchemy. Owner: Ayla (@Guin-Kiwi).
 repository = SQLitePayrollRepository(sqlite3.connect(":memory:", check_same_thread=False))
 
 class MonthlyPayrollRequest(BaseModel):
@@ -37,7 +38,7 @@ class WorkEntryRequest(BaseModel):
     paid: bool = True
 
 
-# TODO(PR #3 review): duplicate class; merge into one. Owner: payroll router (Ayla, then person 3).
+# TODO(PR #3 review): duplicate class; merge into one. Owner: payroll router (Ayla (@Guin-Kiwi), then Aaron (@aaroncasula)).
 class MonthlyPayrollRequest(MonthlyPayrollRequest):
     work_entries: list[WorkEntryRequest] | None = None
 
@@ -45,6 +46,21 @@ class PayslipResponse(BaseModel):
     monthly_record_id: int
     gross_wage: float = Field(..., description="Gross wage in CHF")
     net_payout: float
+
+# TODO(PR #3 review): moves to the setup router. Owner: Nano (@Gedance23).
+@payroll_router.post("/employments", response_model=dict)
+async def create_employment(payload: EmploymentCreate):
+    try:
+        return setup_service.create_employment(
+            employer_id=payload.employer_id,
+            employee_id=payload.employee_id,
+            start_date=payload.start_date,
+            hourly_wage=payload.hourly_wage,
+            weekly_hours=payload.weekly_hours,
+            holiday_entitlement=payload.holiday_entitlement,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
 
 @payroll_router.post("/monthly-payroll", response_model=dict)
 async def process_monthly_payroll(payload: MonthlyPayrollRequest):
@@ -71,12 +87,12 @@ async def process_monthly_payroll(payload: MonthlyPayrollRequest):
             expense_reimbursements=payload.expense_reimbursements,
             work_entries=entries,
         )
-    # TODO(PR #3 review): AnnualLimitExceededError, InvalidPayrollInputError and IntegrityError become HTTP 500. Owner: payroll router (Ayla, then person 3).
+    # TODO(PR #3 review): AnnualLimitExceededError, InvalidPayrollInputError and IntegrityError become HTTP 500. Owner: payroll router (Ayla (@Guin-Kiwi), then Aaron (@aaroncasula)).
     except (ValueError, KeyError) as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return {"monthly_record_id": record.id, **payslip.__dict__}
 
-# TODO(PR #3 review): TASKS.md specifies /payslips/{employment_id}/{year}/{month}. Owner: payroll router (Ayla, then person 3).
+# TODO(PR #3 review): TASKS.md specifies /payslips/{employment_id}/{year}/{month}. Owner: payroll router (Ayla (@Guin-Kiwi), then Aaron (@aaroncasula)).
 @payroll_router.get("/payslips/{monthly_record_id}", response_model=PayslipResponse)
 async def get_payslip(monthly_record_id: int):
     try:
