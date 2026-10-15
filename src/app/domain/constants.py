@@ -25,7 +25,7 @@ BU_RATE = 0.00505  # 0.505%
 ADMIN_CHARGE_RATE = 0.05  # 5% of employer AHV
 
 # Annual limits (2026)
-EMPLOYEE_GROSS_LIMIT = 22_680  # CHF 22,680 per employee per year
+EMPLOYEE_GROSS_LIMIT = 22_680  # CHF 22,680 per employee per employer per year
 EMPLOYER_GROSS_LIMIT = 60_480  # CHF 60,480 per employer per year
 
 # Minimum values (2026)
