@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Optional
 
-from src.app.domain.constants import MIN_HOURLY_WAGE, MIN_WEEKLY_HOURS
+from src.app.domain.constants import MIN_HOURLY_WAGE
 
 
 @dataclass
@@ -32,10 +32,6 @@ class Employment:
             raise ValueError("Holiday entitlement cannot be negative.")
         if self.remaining_holiday_balance < 0:
             raise ValueError("Remaining holiday balance cannot be negative.")
-
-        # Warnings for implicit constraints
-        if self.weekly_hours < MIN_WEEKLY_HOURS:
-            print(f"Warning: Weekly hours ({self.weekly_hours}) are unusually low (recommended minimum: {MIN_WEEKLY_HOURS}).")
 
     def deduct_holiday_hours(self, hours: float) -> None:
         """Deduct holiday hours from the remaining balance."""

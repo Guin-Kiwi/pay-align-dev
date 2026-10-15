@@ -1,5 +1,6 @@
 # src/app/application/setup_service.py
 
+import logging
 from datetime import date
 from typing import Optional
 
@@ -7,6 +8,8 @@ from src.app.domain.employer import Employer
 from src.app.domain.employee import Employee
 from src.app.domain.employment import Employment
 from src.app.domain.constants import MIN_WEEKLY_HOURS
+
+logger = logging.getLogger(__name__)
 
 
 class SetupService:
@@ -56,9 +59,12 @@ class SetupService:
         holiday_entitlement: int = 20
     ) -> Employment:
         """Create and validate an employment relationship."""
-        # TODO(PR #3 review): use logging instead of print(). Owner: Nano.
         if weekly_hours < MIN_WEEKLY_HOURS:
-            print(f"Warning: Weekly hours ({weekly_hours}) are unusually low (recommended minimum: {MIN_WEEKLY_HOURS}).")
+            logger.warning(
+                "Weekly hours (%s) are unusually low (recommended minimum: %s).",
+                weekly_hours,
+                MIN_WEEKLY_HOURS,
+            )
 
         employment = Employment(
             employer_id=employer_id, 
