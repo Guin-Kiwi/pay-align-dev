@@ -27,7 +27,7 @@ def _build(part: str, build, details: dict):
 class SetupService:
     """Handles the setup of an employment relationship for household help."""
 
-    def __init__(self, repository: SetupRepository | None = None):
+    def __init__(self, repository: SetupRepository):
         self.repository = repository
 
     def get_employer(self) -> Employer | None:

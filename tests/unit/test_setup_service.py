@@ -3,16 +3,20 @@ import io
 import unittest
 from datetime import date
 
-from src.app.application.ports.setup_repository import SetupRepository, SetupResult
+from src.app.application.ports.setup_repository import SetupResult
 from src.app.application.setup_service import EmployerAlreadyExistsError, SetupService
 from src.app.domain.employee import Employee
 from src.app.domain.employer import Employer
 from src.app.domain.employment import Employment
+from src.app.infrastructure.in_memory_setup_repository import InMemorySetupRepository
 
 
 class TestSetupService(unittest.TestCase):
+    def setUp(self):
+        self.service = SetupService(InMemorySetupRepository())
+
     def test_accepts_hourly_wage_of_22_50(self):
-        employment = SetupService().create_employment(
+        employment = self.service.create_employment(
             employer_id=1,
             employee_id=1,
             start_date=date(2026, 1, 1),
@@ -24,7 +28,7 @@ class TestSetupService(unittest.TestCase):
 
     def test_rejects_hourly_wage_of_22_19(self):
         with self.assertRaises(ValueError):
-            SetupService().create_employment(
+            self.service.create_employment(
                 employer_id=1,
                 employee_id=1,
                 start_date=date(2026, 1, 1),
@@ -34,7 +38,7 @@ class TestSetupService(unittest.TestCase):
 
     def test_logs_warning_for_low_weekly_hours(self):
         with self.assertLogs("src.app.application.setup_service", level="WARNING") as logs:
-            SetupService().create_employment(
+            self.service.create_employment(
                 employer_id=1,
                 employee_id=1,
                 start_date=date(2026, 1, 1),
@@ -47,7 +51,7 @@ class TestSetupService(unittest.TestCase):
 
     def test_does_not_warn_at_minimum_weekly_hours(self):
         with self.assertNoLogs("src.app.application.setup_service", level="WARNING"):
-            SetupService().create_employment(
+            self.service.create_employment(
                 employer_id=1,
                 employee_id=1,
                 start_date=date(2026, 1, 1),
@@ -161,28 +165,6 @@ class TestRequiredFields(unittest.TestCase):
             make_employer(ahv_number="")
         with self.assertRaisesRegex(ValueError, "AHV number is required"):
             make_employee(ahv_number="")
-
-
-class InMemorySetupRepository(SetupRepository):
-    def __init__(self):
-        self.employer = None
-        self.employees = []
-        self.employments = []
-
-    def get_employer(self):
-        return self.employer
-
-    def save(self, employer, employee, employment):
-        if employer.id is None:
-            employer.id = 1
-            self.employer = employer
-        employee.id = len(self.employees) + 1
-        self.employees.append(employee)
-        employment.id = len(self.employments) + 1
-        employment.employer_id = employer.id
-        employment.employee_id = employee.id
-        self.employments.append(employment)
-        return SetupResult(employer.id, employee.id, employment.id)
 
 
 EMPLOYER_DETAILS = {
