@@ -101,7 +101,7 @@ def calculate_gross_wage(
     if cash_bonus < 0:
         raise InvalidPayrollInputError("Cash bonus cannot be negative.")
 
-    # TODO(PR #3 review): money uses float; switch to Decimal per ADR-003. Owner: person 3.
+    # TODO(PR #3 review): money uses float; switch to Decimal per ADR-003. Owner: Aaron (@aaroncasula).
     base_pay = (hours_worked + holiday_hours + public_holiday_hours) * hourly_wage
     holiday_premium = public_holiday_hours * hourly_wage * HOLIDAY_PREMIUM_RATE
     return base_pay + holiday_premium + cash_bonus
