@@ -84,3 +84,21 @@ class TestSetupApi(unittest.TestCase):
         response = self.set_up(employee=EMPLOYEE, employment=EMPLOYMENT)
 
         self.assertEqual(response.status_code, 400)
+
+    def test_wage_of_exactly_22_20_is_accepted_as_number_or_text(self):
+        for wage in (22.20, "22.20"):
+            with self.subTest(wage=wage):
+                client = TestClient(create_app(setup_repository=InMemorySetupRepository()))
+                response = client.post(
+                    "/api/v1/setup",
+                    json={"employer": EMPLOYER, "employee": EMPLOYEE,
+                          "employment": {**EMPLOYMENT, "hourly_wage": wage}},
+                )
+                self.assertEqual(response.status_code, 201)
+
+    def test_wage_with_more_than_two_decimals_is_rejected(self):
+        response = self.set_up(
+            employer=EMPLOYER, employee=EMPLOYEE, employment={**EMPLOYMENT, "hourly_wage": "28.505"}
+        )
+
+        self.assertEqual(response.status_code, 422)

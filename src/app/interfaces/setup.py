@@ -1,8 +1,9 @@
 from dataclasses import asdict
 from datetime import date
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.app.application.setup_service import EmployerAlreadyExistsError, SetupService
 
@@ -26,7 +27,7 @@ class EmployeeDetails(BaseModel):
 
 class EmploymentDetails(BaseModel):
     start_date: date
-    hourly_wage: float
+    hourly_wage: Decimal = Field(decimal_places=2)
     weekly_hours: float
     holiday_entitlement: int = 20
 

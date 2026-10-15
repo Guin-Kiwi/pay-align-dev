@@ -2,6 +2,8 @@ import contextlib
 import io
 import unittest
 from datetime import date
+from decimal import Decimal
+from unittest import mock
 
 from src.app.application.ports.setup_repository import SetupResult
 from src.app.application.setup_service import EmployerAlreadyExistsError, SetupService
@@ -81,6 +83,21 @@ class TestEmployment(unittest.TestCase):
                 hourly_wage=22.19,
                 weekly_hours=10,
             )
+
+    def test_minimum_wage_check_is_exact_with_a_decimal_minimum(self):
+        with mock.patch("src.app.domain.employment.MIN_HOURLY_WAGE", Decimal("22.20")):
+            for wage in (22.20, Decimal("22.20")):
+                with self.subTest(wage=wage):
+                    employment = Employment(
+                        employer_id=1, employee_id=1, start_date=date(2026, 1, 1),
+                        hourly_wage=wage, weekly_hours=10,
+                    )
+                    self.assertEqual(employment.hourly_wage, wage)
+            with self.assertRaises(ValueError):
+                Employment(
+                    employer_id=1, employee_id=1, start_date=date(2026, 1, 1),
+                    hourly_wage=Decimal("22.19"), weekly_hours=10,
+                )
 
     def test_does_not_print_for_low_weekly_hours(self):
         output = io.StringIO()

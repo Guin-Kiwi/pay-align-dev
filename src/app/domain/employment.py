@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import date
+from decimal import Decimal
 from typing import Optional
 
 from src.app.domain.constants import MIN_HOURLY_WAGE
@@ -21,7 +22,7 @@ class Employment:
 
     def __post_init__(self):
         """Validate fields after initialization."""
-        if self.hourly_wage < MIN_HOURLY_WAGE:
+        if Decimal(str(self.hourly_wage)) < Decimal(str(MIN_HOURLY_WAGE)):
             raise ValueError(
                 f"Hourly wage (CHF {self.hourly_wage:.2f}) is below the Basel-Stadt "
                 f"minimum wage (CHF {MIN_HOURLY_WAGE:.2f})."
