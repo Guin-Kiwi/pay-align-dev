@@ -113,7 +113,6 @@ class SetupService:
             hourly_wage=hourly_wage, 
             weekly_hours=weekly_hours, 
             holiday_entitlement=holiday_entitlement,
-            remaining_holiday_balance=holiday_entitlement * weekly_hours  # Convert days to hours
         )
         return employment
 
