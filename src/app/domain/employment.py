@@ -2,7 +2,10 @@
 
 from dataclasses import dataclass, field
 from datetime import date
+from decimal import Decimal
 from typing import Optional
+
+from src.app.domain.constants import MIN_HOURLY_WAGE
 
 
 @dataclass
@@ -15,12 +18,14 @@ class Employment:
     hourly_wage: float = 0.0  # Gross hourly wage in CHF
     weekly_hours: float = 0.0  # Weekly working hours
     holiday_entitlement: int = 20  # Annual paid holiday days (default: 20)
-    remaining_holiday_balance: float = 0.0  # Remaining holiday hours for the year
 
     def __post_init__(self):
         """Validate fields after initialization."""
-        if self.hourly_wage <= 0:
-            raise ValueError("Hourly wage must be positive.")
+        if Decimal(str(self.hourly_wage)) < Decimal(str(MIN_HOURLY_WAGE)):
+            raise ValueError(
+                f"Hourly wage (CHF {self.hourly_wage:.2f}) is below the Basel-Stadt "
+                f"minimum wage (CHF {MIN_HOURLY_WAGE:.2f})."
+            )
         if self.weekly_hours <= 0:
             raise ValueError("Weekly hours must be positive.")
         if self.holiday_entitlement < 0:
