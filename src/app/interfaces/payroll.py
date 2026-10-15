@@ -5,7 +5,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from src.app.application.payroll_service import PayrollService
-from src.app.application.setup_service import SetupService
 from src.app.domain.employment import Employment
 from src.app.domain.work_entry import WorkEntry
 from src.app.infrastructure.sqlite_payroll_repository import SQLitePayrollRepository
@@ -15,14 +14,6 @@ payroll_service = PayrollService()
 setup_service = SetupService()
 # TODO(PR #3 review): in-memory database; read DATABASE_URL, to be replaced by SQLAlchemy. Owner: Ayla (@Guin-Kiwi).
 repository = SQLitePayrollRepository(sqlite3.connect(":memory:", check_same_thread=False))
-
-class EmploymentCreate(BaseModel):
-    employer_id: int = Field(..., description="Employer ID")
-    employee_id: int = Field(..., description="Employee ID")
-    start_date: date
-    hourly_wage: float = Field(..., gt=0, description="Gross hourly wage in CHF")
-    weekly_hours: float = Field(..., gt=0)
-    holiday_entitlement: int = Field(20, ge=0)
 
 class MonthlyPayrollRequest(BaseModel):
     employment_id: int
