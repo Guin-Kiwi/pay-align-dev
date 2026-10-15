@@ -30,19 +30,3 @@ class Employment:
             raise ValueError("Weekly hours must be positive.")
         if self.holiday_entitlement < 0:
             raise ValueError("Holiday entitlement cannot be negative.")
-        if self.remaining_holiday_balance < 0:
-            raise ValueError("Remaining holiday balance cannot be negative.")
-
-        # Warnings for implicit constraints
-        from .constants import MIN_HOURLY_WAGE, MIN_WEEKLY_HOURS
-        # TODO(PR #3 review): raise ValueError instead of print(). Owner: Nano (@Gedance23).
-        if self.hourly_wage < MIN_HOURLY_WAGE:
-            print(f"Warning: Hourly wage (CHF {self.hourly_wage}) is below the Basel-Stadt minimum wage (CHF {MIN_HOURLY_WAGE}).")
-        if self.weekly_hours < MIN_WEEKLY_HOURS:
-            print(f"Warning: Weekly hours ({self.weekly_hours}) are unusually low (recommended minimum: {MIN_WEEKLY_HOURS}).")
-
-    def deduct_holiday_hours(self, hours: float) -> None:
-        """Deduct holiday hours from the remaining balance."""
-        if hours > self.remaining_holiday_balance:
-            raise ValueError("Insufficient holiday balance.")
-        self.remaining_holiday_balance -= hours
