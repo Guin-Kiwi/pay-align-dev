@@ -6,7 +6,7 @@ from typing import Optional
 from src.app.domain.employer import Employer
 from src.app.domain.employee import Employee
 from src.app.domain.employment import Employment
-from src.app.domain.constants import MIN_HOURLY_WAGE, MIN_WEEKLY_HOURS
+from src.app.domain.constants import MIN_WEEKLY_HOURS
 
 
 class SetupService:
@@ -56,9 +56,6 @@ class SetupService:
         holiday_entitlement: int = 20
     ) -> Employment:
         """Create and validate an employment relationship."""
-        # Validate wage and hours
-        if hourly_wage < MIN_HOURLY_WAGE:
-            raise ValueError(f"Hourly wage (CHF {hourly_wage}) is below the Basel-Stadt minimum wage (CHF {MIN_HOURLY_WAGE}).")
         # TODO(PR #3 review): use logging instead of print(). Owner: Nano.
         if weekly_hours < MIN_WEEKLY_HOURS:
             print(f"Warning: Weekly hours ({weekly_hours}) are unusually low (recommended minimum: {MIN_WEEKLY_HOURS}).")

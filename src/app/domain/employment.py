@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Optional
 
+from src.app.domain.constants import MIN_HOURLY_WAGE, MIN_WEEKLY_HOURS
+
 
 @dataclass
 class Employment:
@@ -19,8 +21,11 @@ class Employment:
 
     def __post_init__(self):
         """Validate fields after initialization."""
-        if self.hourly_wage <= 0:
-            raise ValueError("Hourly wage must be positive.")
+        if self.hourly_wage < MIN_HOURLY_WAGE:
+            raise ValueError(
+                f"Hourly wage (CHF {self.hourly_wage:.2f}) is below the Basel-Stadt "
+                f"minimum wage (CHF {MIN_HOURLY_WAGE:.2f})."
+            )
         if self.weekly_hours <= 0:
             raise ValueError("Weekly hours must be positive.")
         if self.holiday_entitlement < 0:
@@ -29,10 +34,6 @@ class Employment:
             raise ValueError("Remaining holiday balance cannot be negative.")
 
         # Warnings for implicit constraints
-        from .constants import MIN_HOURLY_WAGE, MIN_WEEKLY_HOURS
-        # TODO(PR #3 review): raise ValueError instead of print(). Owner: Nano.
-        if self.hourly_wage < MIN_HOURLY_WAGE:
-            print(f"Warning: Hourly wage (CHF {self.hourly_wage}) is below the Basel-Stadt minimum wage (CHF {MIN_HOURLY_WAGE}).")
         if self.weekly_hours < MIN_WEEKLY_HOURS:
             print(f"Warning: Weekly hours ({self.weekly_hours}) are unusually low (recommended minimum: {MIN_WEEKLY_HOURS}).")
 
