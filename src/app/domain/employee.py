@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from src.app.domain.ahv_number import validate_ahv_number
+from src.app.domain.required_fields import require_fields
 
 
 @dataclass
@@ -18,6 +19,7 @@ class Employee:
 
     def __post_init__(self):
         """Validate fields after initialization."""
+        require_fields(name=self.name, address=self.address, nationality=self.nationality)
         validate_ahv_number(self.ahv_number)
         if self.tax_status not in ("ordinary", "tax_at_source"):
             raise ValueError("Tax status must be 'ordinary' or 'tax_at_source'.")

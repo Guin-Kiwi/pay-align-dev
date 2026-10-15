@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from src.app.domain.ahv_number import validate_ahv_number
+from src.app.domain.required_fields import require_fields
 
 
 @dataclass
@@ -17,4 +18,5 @@ class Employer:
 
     def __post_init__(self):
         """Validate fields after initialization."""
+        require_fields(name=self.name, address=self.address, contact_info=self.contact_info)
         validate_ahv_number(self.ahv_number)

@@ -91,22 +91,24 @@ class TestEmployment(unittest.TestCase):
         self.assertEqual(output.getvalue(), "")
 
 
-def make_employer(ahv_number):
-    return Employer(
-        name="Anna Muster",
-        address="Freie Strasse 1, 4001 Basel",
-        ahv_number=ahv_number,
-        contact_info="anna.muster@example.ch",
-    )
+def make_employer(ahv_number="756.1234.5678.97", **overrides):
+    fields = {
+        "name": "Anna Muster",
+        "address": "Freie Strasse 1, 4001 Basel",
+        "ahv_number": ahv_number,
+        "contact_info": "anna.muster@example.ch",
+    }
+    return Employer(**{**fields, **overrides})
 
 
-def make_employee(ahv_number):
-    return Employee(
-        name="Maria Rossi",
-        address="Clarastrasse 10, 4058 Basel",
-        ahv_number=ahv_number,
-        nationality="Italy",
-    )
+def make_employee(ahv_number="756.9876.5432.10", **overrides):
+    fields = {
+        "name": "Maria Rossi",
+        "address": "Clarastrasse 10, 4058 Basel",
+        "ahv_number": ahv_number,
+        "nationality": "Italy",
+    }
+    return Employee(**{**fields, **overrides})
 
 
 class TestAhvNumber(unittest.TestCase):
@@ -136,3 +138,25 @@ class TestAhvNumber(unittest.TestCase):
     def test_error_message_shows_the_expected_format(self):
         with self.assertRaisesRegex(ValueError, r"756\.XXXX\.XXXX\.XX"):
             make_employee("7561234567897")
+
+
+class TestRequiredFields(unittest.TestCase):
+    BLANK_VALUES = ["", "   "]
+
+    def test_employer_requires_every_field(self):
+        for field, label in [("name", "Name"), ("address", "Address"), ("contact_info", "Contact info")]:
+            for value in self.BLANK_VALUES:
+                with self.subTest(field=field, value=value), self.assertRaisesRegex(ValueError, f"{label} is required"):
+                    make_employer(**{field: value})
+
+    def test_employee_requires_every_field(self):
+        for field, label in [("name", "Name"), ("address", "Address"), ("nationality", "Nationality")]:
+            for value in self.BLANK_VALUES:
+                with self.subTest(field=field, value=value), self.assertRaisesRegex(ValueError, f"{label} is required"):
+                    make_employee(**{field: value})
+
+    def test_ahv_number_is_required(self):
+        with self.assertRaisesRegex(ValueError, "AHV number is required"):
+            make_employer(ahv_number="")
+        with self.assertRaisesRegex(ValueError, "AHV number is required"):
+            make_employee(ahv_number="")
