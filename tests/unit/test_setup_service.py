@@ -3,7 +3,8 @@ import io
 import unittest
 from datetime import date
 
-from src.app.application.setup_service import SetupService
+from src.app.application.ports.setup_repository import SetupRepository, SetupResult
+from src.app.application.setup_service import EmployerAlreadyExistsError, SetupService
 from src.app.domain.employee import Employee
 from src.app.domain.employer import Employer
 from src.app.domain.employment import Employment
@@ -160,3 +161,120 @@ class TestRequiredFields(unittest.TestCase):
             make_employer(ahv_number="")
         with self.assertRaisesRegex(ValueError, "AHV number is required"):
             make_employee(ahv_number="")
+
+
+class InMemorySetupRepository(SetupRepository):
+    def __init__(self):
+        self.employer = None
+        self.employees = []
+        self.employments = []
+
+    def get_employer(self):
+        return self.employer
+
+    def save(self, employer, employee, employment):
+        if employer.id is None:
+            employer.id = 1
+            self.employer = employer
+        employee.id = len(self.employees) + 1
+        self.employees.append(employee)
+        employment.id = len(self.employments) + 1
+        employment.employer_id = employer.id
+        employment.employee_id = employee.id
+        self.employments.append(employment)
+        return SetupResult(employer.id, employee.id, employment.id)
+
+
+EMPLOYER_DETAILS = {
+    "name": "Anna Muster",
+    "address": "Freie Strasse 1, 4001 Basel",
+    "ahv_number": "756.1234.5678.97",
+    "contact_info": "anna.muster@example.ch",
+}
+EMPLOYEE_DETAILS = {
+    "name": "Maria Rossi",
+    "address": "Clarastrasse 10, 4058 Basel",
+    "ahv_number": "756.9876.5432.10",
+    "nationality": "Italy",
+}
+EMPLOYMENT_DETAILS = {
+    "start_date": date(2026, 1, 1),
+    "hourly_wage": 28.50,
+    "weekly_hours": 6,
+}
+
+
+class TestSetUpEmployment(unittest.TestCase):
+    def setUp(self):
+        self.repository = InMemorySetupRepository()
+        self.service = SetupService(self.repository)
+
+    def test_saves_employer_employee_and_employment_when_no_employer_exists(self):
+        result = self.service.set_up_employment(
+            employer=EMPLOYER_DETAILS, employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS
+        )
+
+        self.assertEqual(result, SetupResult(employer_id=1, employee_id=1, employment_id=1))
+        self.assertEqual(self.repository.employer.name, "Anna Muster")
+        self.assertEqual(self.repository.employees[0].name, "Maria Rossi")
+        employment = self.repository.employments[0]
+        self.assertEqual((employment.employer_id, employment.employee_id), (1, 1))
+
+    def test_links_to_the_existing_employer(self):
+        self.repository.employer = make_employer(id=7)
+
+        result = self.service.set_up_employment(employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS)
+
+        self.assertEqual(result.employer_id, 7)
+        self.assertEqual(self.repository.employments[0].employer_id, 7)
+
+    def test_rejects_a_second_employer_and_saves_nothing(self):
+        self.repository.employer = make_employer(id=7)
+
+        with self.assertRaises(EmployerAlreadyExistsError):
+            self.service.set_up_employment(
+                employer=EMPLOYER_DETAILS, employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS
+            )
+
+        self.assertEqual(self.repository.employees, [])
+
+    def test_requires_employer_details_when_no_employer_exists(self):
+        with self.assertRaisesRegex(ValueError, "^Employer: "):
+            self.service.set_up_employment(employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS)
+
+        self.assertIsNone(self.repository.employer)
+        self.assertEqual(self.repository.employees, [])
+
+    def test_names_the_invalid_part_and_saves_nothing(self):
+        cases = {
+            "Employer": {
+                "employer": {**EMPLOYER_DETAILS, "ahv_number": "7561234567897"},
+                "employee": EMPLOYEE_DETAILS,
+                "employment": EMPLOYMENT_DETAILS,
+            },
+            "Employee": {
+                "employer": EMPLOYER_DETAILS,
+                "employee": {**EMPLOYEE_DETAILS, "address": ""},
+                "employment": EMPLOYMENT_DETAILS,
+            },
+            "Employment": {
+                "employer": EMPLOYER_DETAILS,
+                "employee": EMPLOYEE_DETAILS,
+                "employment": {**EMPLOYMENT_DETAILS, "hourly_wage": 20.00},
+            },
+        }
+        for part, arguments in cases.items():
+            with self.subTest(part=part):
+                with self.assertRaisesRegex(ValueError, f"^{part}: "):
+                    self.service.set_up_employment(**arguments)
+
+                self.assertIsNone(self.repository.employer)
+                self.assertEqual(self.repository.employees, [])
+                self.assertEqual(self.repository.employments, [])
+
+    def test_get_employer_returns_the_saved_employer_or_none(self):
+        self.assertIsNone(self.service.get_employer())
+
+        self.repository.employer = make_employer(id=7)
+
+        self.assertEqual(self.service.get_employer().id, 7)

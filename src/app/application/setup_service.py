@@ -4,6 +4,7 @@ import logging
 from datetime import date
 from typing import Optional
 
+from src.app.application.ports.setup_repository import SetupRepository, SetupResult
 from src.app.domain.employer import Employer
 from src.app.domain.employee import Employee
 from src.app.domain.employment import Employment
@@ -12,8 +13,47 @@ from src.app.domain.constants import MIN_WEEKLY_HOURS
 logger = logging.getLogger(__name__)
 
 
+class EmployerAlreadyExistsError(Exception):
+    """Raised when setup sends employer details although an employer is already saved."""
+
+
+def _build(part: str, build, details: dict):
+    try:
+        return build(**details)
+    except ValueError as error:
+        raise ValueError(f"{part}: {error}") from error
+
+
 class SetupService:
     """Handles the setup of an employment relationship for household help."""
+
+    def __init__(self, repository: SetupRepository | None = None):
+        self.repository = repository
+
+    def get_employer(self) -> Employer | None:
+        """Return the saved employer, or None if setup has not run yet."""
+        return self.repository.get_employer()
+
+    def set_up_employment(
+        self,
+        employee: dict,
+        employment: dict,
+        employer: dict | None = None,
+    ) -> SetupResult:
+        """Validate employer, employee and employment, then save all three together.
+
+        Send employer details only when no employer is saved yet.
+        """
+        saved_employer = self.repository.get_employer()
+        if saved_employer is not None and employer is not None:
+            raise EmployerAlreadyExistsError("An employer already exists.")
+        if saved_employer is None and employer is None:
+            raise ValueError("Employer: Details are required because no employer exists yet.")
+
+        new_employer = saved_employer or _build("Employer", self.create_employer, employer)
+        new_employee = _build("Employee", self.create_employee, employee)
+        new_employment = _build("Employment", self.create_employment, employment)
+        return self.repository.save(new_employer, new_employee, new_employment)
 
     def create_employer(
         self, 
@@ -51,12 +91,12 @@ class SetupService:
 
     def create_employment(
         self, 
-        employer_id: int, 
-        employee_id: int, 
         start_date: date, 
         hourly_wage: float, 
         weekly_hours: float, 
-        holiday_entitlement: int = 20
+        holiday_entitlement: int = 20,
+        employer_id: int = 0,
+        employee_id: int = 0,
     ) -> Employment:
         """Create and validate an employment relationship."""
         if weekly_hours < MIN_WEEKLY_HOURS:
