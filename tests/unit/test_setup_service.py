@@ -4,6 +4,8 @@ import unittest
 from datetime import date
 
 from src.app.application.setup_service import SetupService
+from src.app.domain.employee import Employee
+from src.app.domain.employer import Employer
 from src.app.domain.employment import Employment
 
 
@@ -87,3 +89,50 @@ class TestEmployment(unittest.TestCase):
             )
 
         self.assertEqual(output.getvalue(), "")
+
+
+def make_employer(ahv_number):
+    return Employer(
+        name="Anna Muster",
+        address="Freie Strasse 1, 4001 Basel",
+        ahv_number=ahv_number,
+        contact_info="anna.muster@example.ch",
+    )
+
+
+def make_employee(ahv_number):
+    return Employee(
+        name="Maria Rossi",
+        address="Clarastrasse 10, 4058 Basel",
+        ahv_number=ahv_number,
+        nationality="Italy",
+    )
+
+
+class TestAhvNumber(unittest.TestCase):
+    VALID = "756.1234.5678.97"
+    INVALID = {
+        "no dots": "7561234567897",
+        "does not start with 756": "123.4567.8901.23",
+        "dots in the wrong place": "756.12345.678.97",
+        "too short": "756.1234.5678.9",
+        "spaces instead of dots": "756 1234 5678 97",
+    }
+
+    def test_accepts_dotted_ahv_number(self):
+        self.assertEqual(make_employer(self.VALID).ahv_number, self.VALID)
+        self.assertEqual(make_employee(self.VALID).ahv_number, self.VALID)
+
+    def test_employer_rejects_invalid_ahv_numbers(self):
+        for case, ahv_number in self.INVALID.items():
+            with self.subTest(case=case), self.assertRaises(ValueError):
+                make_employer(ahv_number)
+
+    def test_employee_rejects_invalid_ahv_numbers(self):
+        for case, ahv_number in self.INVALID.items():
+            with self.subTest(case=case), self.assertRaises(ValueError):
+                make_employee(ahv_number)
+
+    def test_error_message_shows_the_expected_format(self):
+        with self.assertRaisesRegex(ValueError, r"756\.XXXX\.XXXX\.XX"):
+            make_employee("7561234567897")
