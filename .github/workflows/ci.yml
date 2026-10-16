@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -34,7 +36,24 @@ jobs:
         run: bash scripts/check-lifecycle.sh
 
       - name: Check whitespace errors
-        run: git diff --check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          PUSH_AFTER_SHA: ${{ github.event.after }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git diff --check "$PR_BASE_SHA...$PR_HEAD_SHA"
+          else
+            base="$PUSH_BEFORE_SHA"
+            if [ "$base" = "0000000000000000000000000000000000000000" ]; then
+              base=$(git hash-object -t tree /dev/null)
+            fi
+            git diff --check "$base" "$PUSH_AFTER_SHA"
+          fi
 
       - name: Run project tests
         run: bash scripts/test.sh

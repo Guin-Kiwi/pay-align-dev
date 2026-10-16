@@ -6,7 +6,7 @@
 - **User or organisational problem:** Private individuals employing household help need a way to legally and accurately manage monthly payroll and annual reporting under the AKBS simplified settlement procedure without facing heavy corporate HR administration.
 - **Intended users:** Private household employers in Basel-Stadt.
 - **In scope:** Single-employer onboarding, employee registration and contract parameter generation, monthly payroll processing (gross-to-net calculations using 2026 rates), payslip generation, and annual aggregation for the AKBS wage declaration.
-- **Out of scope:** Exception management (sick pay, occupational accidents, property damage, disputes), termination workflows, employer account closure, and the standard settlement procedure (Standard-Abrechnung).
+- **Out of scope:** Exception management (including sick pay, occupational accidents, property damage, and disputes), termination workflows, employer account closure, and the standard settlement procedure (Standard-Abrechnung). The normal-case monthly payroll use case does not record or calculate sick-pay hours.
 
 ## Architecture
 
@@ -47,17 +47,21 @@ Where non-code material lives; link reference documents here so agents find them
 
 ## Commands
 
-Document the commands for the selected stack:
+Alle Befehle werden im Projektverzeichnis ausgeführt. Für Docker-Befehle muss Docker verfügbar sein; beim Start muss Port 8000 frei sein.
 
 | Activity | Command |
 |---|---|
-| Install | `docker compose build` |
-| Unit tests | `docker compose run --rm app pytest tests/unit/` |
-| Integration tests | `docker compose run --rm app pytest tests/integration/` |
-| Run locally | `docker compose up` |
-| Build/release | `docker compose build --no-cache` |
+| Docker-Image bauen | `docker compose build api` |
+| Anwendung starten | `docker compose up api` |
+| Health-Check | `curl --fail --include http://localhost:8000/health` |
+| Unit-Tests | `.venv/bin/python -m pytest tests/unit/` |
+| Integrationstests | `.venv/bin/python -m pytest tests/integration/` |
+| Alle Projektprüfungen | `bash scripts/test.sh` |
+| Image ohne Cache bauen | `docker compose build --no-cache api` |
 
-*(Note: If running outside of Docker for fast local development, use standard `pip install -r requirements.txt` and `pytest` commands).*
+Tests werden ausserhalb des Laufzeitcontainers in der lokalen Python-Umgebung `.venv` ausgeführt. Diese muss eingerichtet sein und die Abhängigkeiten aus `requirements.txt` enthalten; sie können mit `.venv/bin/python -m pip install -r requirements.txt` installiert werden. `.dockerignore` schliesst Tests und Prozessskripte aus dem Laufzeitimage aus.
+
+Der Health-Check wird bei laufender Anwendung ausgeführt und soll HTTP 200 sowie `{"status":"ok"}` liefern. Er beweist noch keine dauerhafte Datenspeicherung.
 
 ## Dependencies
 
@@ -65,3 +69,10 @@ Document the commands for the selected stack:
 * **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), Pydantic (Validation), Pytest (Testing)
 * **Environment Variables:** `DATABASE_URL` (Required for infrastructure configuration). 
 * Never commit `.env` credentials to version control.
+
+## Data conventions
+
+* **`DATABASE_URL` format:** a SQLAlchemy URL, e.g. `sqlite:////app/data/payroll.db` (four slashes for an absolute path inside the container). Until the database setup lands on `uc-002-payroll-saving`, the API still uses an in-memory SQLite connection and ignores the variable.
+* **Tables:** `employers`, `employees`, `employments`, `monthly_records` and `payslips`, one per core entity. The holiday balance is not stored on `employments`; it is derived from persisted runs ([ADR-004](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)).
+* **Money type** ([ADR-003](adr/ADR-003-monetary-precision-and-rounding.md)): `Decimal` in domain and application code, integer centimes in the database (columns suffixed `_cents`). The domain and `PayrollService` still use `float`; the migration to `Decimal` belongs to the payroll-calculation slice.
+* **`MonthlyRecord` fields:** `id`, `employment_id`, `month` (1-12), `year` (2026 or later), `hours_worked`, `holiday_hours` (paid holiday), `public_holiday_hours`, `cash_bonus` and `expense_reimbursements` (stored as `_cents`). The employer is stored alongside as `employer_id`. Duplicate `(employment_id, month, year)` is rejected.

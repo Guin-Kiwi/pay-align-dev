@@ -1,5 +1,6 @@
 # Deployable images contain only the app (src/, runtime dependencies, LICENSE).
 # The AI-SDLC process files stay in the repository as development evidence.
+
 .git
 .github
 .devcontainer
@@ -12,6 +13,7 @@ docs
 skills
 scripts
 environments
+.env
 tests
 AGENTS.md
 CLAUDE.md
@@ -20,3 +22,51 @@ CITATION.cff
 .zenodo.json
 pytest.ini
 **/__pycache__
+
+# Lokale Daten und Konfiguration
+data/
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/*.db-journal
+**/*.sqlite
+**/*.sqlite-wal
+**/*.sqlite-shm
+**/*.sqlite-journal
+**/*.sqlite3
+**/*.sqlite3-wal
+**/*.sqlite3-shm
+**/*.sqlite3-journal
+**/.env
+**/.env.*
+**/.envrc
+
+# Python-Umgebungen und Caches
+**/.venv
+**/venv
+**/env
+**/ENV
+**/*.py[codz]
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.pyre
+**/.hypothesis
+**/.tox
+**/.nox
+
+# Logs, Coverage und Build-Ausgaben
+**/*.log
+**/.coverage
+**/.coverage.*
+htmlcov/
+coverage.xml
+build/
+dist/
+**/*.egg-info
+.eggs/
+pip-wheel-metadata/
+
+# Lokale macOS- und Editor-Dateien
+**/.DS_Store
+**/.idea
