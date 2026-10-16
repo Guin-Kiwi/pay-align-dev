@@ -1,5 +1,5 @@
 import pytest
-from sqlalchemy import Date, Integer, inspect, text
+from sqlalchemy import Date, Integer, String, Time, inspect, text
 
 from src.app.infrastructure.database import (
     DatabaseConfigurationError,
@@ -8,7 +8,15 @@ from src.app.infrastructure.database import (
     get_database_url,
 )
 
-ENTITY_TABLES = {"employers", "employees", "employments", "monthly_records", "payslips"}
+ENTITY_TABLES = {
+    "employers",
+    "employees",
+    "employments",
+    "monthly_records",
+    "payslips",
+    "work_entries",
+    "payroll_snapshots",
+}
 
 
 def test_database_url_is_read_from_environment(monkeypatch):
@@ -87,8 +95,8 @@ def test_create_schema_creates_skeleton_tables_for_the_five_entities(tmp_path, e
     assert set(inspect(engine).get_table_names()) == ENTITY_TABLES
 
 
-def test_create_schema_preserves_foreign_key_relationships(tmp_path):
-    engine = create_database_engine(f"sqlite:///{tmp_path / 'payroll.db'}")
+def test_create_schema_preserves_foreign_key_relationships(tmp_path, engines):
+    engine = engines(f"sqlite:///{tmp_path / 'payroll.db'}")
     create_schema(engine)
     inspector = inspect(engine)
 
@@ -105,8 +113,13 @@ def test_create_schema_preserves_foreign_key_relationships(tmp_path):
     assert references("monthly_records") == {
         (("employment_id",), "employments"),
         (("employer_id",), "employers"),
+        (("employee_id",), "employees"),
     }
     assert references("payslips") == {(("monthly_record_id",), "monthly_records")}
+    assert references("work_entries") == {(("monthly_record_id",), "monthly_records")}
+    assert references("payroll_snapshots") == {
+        (("monthly_record_id",), "monthly_records")
+    }
 
 
 def test_monthly_records_hold_the_documented_fields(tmp_path, engines):
@@ -115,9 +128,102 @@ def test_monthly_records_hold_the_documented_fields(tmp_path, engines):
     columns = {c["name"] for c in inspect(engine).get_columns("monthly_records")}
     assert columns == {
         "id", "employment_id", "employer_id", "month", "year",
-        "hours_worked", "holiday_hours", "public_holiday_hours",
+        "employee_id",
         "cash_bonus_cents", "expense_reimbursements_cents",
     }
+
+
+def test_work_entries_hold_integer_minute_fields_and_category_constraint(
+    tmp_path, engines
+):
+    engine = engines(f"sqlite:///{tmp_path / 'payroll.db'}")
+    create_schema(engine)
+    columns = {
+        column["name"]: column
+        for column in inspect(engine).get_columns("work_entries")
+    }
+
+    assert set(columns) == {
+        "id",
+        "monthly_record_id",
+        "work_date",
+        "category",
+        "start_time",
+        "end_time",
+        "unpaid_break_minutes",
+        "paid_minutes",
+    }
+    assert isinstance(columns["work_date"]["type"], Date)
+    assert isinstance(columns["category"]["type"], String)
+    assert isinstance(columns["start_time"]["type"], Time)
+    assert isinstance(columns["end_time"]["type"], Time)
+    for name in ("unpaid_break_minutes", "paid_minutes"):
+        assert isinstance(columns[name]["type"], Integer)
+        assert columns[name]["nullable"] is False
+    assert columns["start_time"]["nullable"] is True
+    assert columns["end_time"]["nullable"] is True
+
+    with pytest.raises(Exception):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO work_entries "
+                    "(monthly_record_id, work_date, category, "
+                    "unpaid_break_minutes, paid_minutes) "
+                    "VALUES (1, '2026-01-01', 'invalid', 0, 0)"
+                )
+            )
+
+
+def test_payroll_snapshots_hold_integer_minute_fields_and_are_unique(tmp_path, engines):
+    engine = engines(f"sqlite:///{tmp_path / 'payroll.db'}")
+    create_schema(engine)
+    columns = {
+        column["name"]: column
+        for column in inspect(engine).get_columns("payroll_snapshots")
+    }
+
+    assert set(columns) == {
+        "id",
+        "monthly_record_id",
+        "hourly_wage_cents",
+        "weekly_minutes",
+        "holiday_weeks",
+        "ruleset_version",
+        "worked_minutes",
+        "worked_public_holiday_minutes",
+        "paid_holiday_minutes",
+        "paid_public_holiday_minutes",
+        "holiday_balance_minutes",
+    }
+    for name, column in columns.items():
+        if name not in {"ruleset_version"}:
+            assert isinstance(column["type"], Integer)
+        assert column["nullable"] is False
+
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO payroll_snapshots "
+                "(monthly_record_id, hourly_wage_cents, weekly_minutes, "
+                "holiday_weeks, ruleset_version, worked_minutes, "
+                "worked_public_holiday_minutes, paid_holiday_minutes, "
+                "paid_public_holiday_minutes, holiday_balance_minutes) "
+                "VALUES (1, 2500, 600, 4, '2026', 60, 0, 0, 0, 1200)"
+            )
+        )
+    with pytest.raises(Exception):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO payroll_snapshots "
+                    "(monthly_record_id, hourly_wage_cents, weekly_minutes, "
+                    "holiday_weeks, ruleset_version, worked_minutes, "
+                    "worked_public_holiday_minutes, paid_holiday_minutes, "
+                    "paid_public_holiday_minutes, holiday_balance_minutes) "
+                    "VALUES (1, 2500, 600, 4, '2026', 60, 0, 0, 0, 1200)"
+                )
+            )
 
 
 def test_employments_hold_the_documented_fields_and_types(tmp_path, engines):
@@ -148,14 +254,14 @@ def test_employments_hold_the_documented_fields_and_types(tmp_path, engines):
     assert columns["holiday_weeks"]["default"] is None
 
 
-def test_create_schema_is_idempotent(tmp_path):
-    engine = create_database_engine(f"sqlite:///{tmp_path / 'payroll.db'}")
+def test_create_schema_is_idempotent(tmp_path, engines):
+    engine = engines(f"sqlite:///{tmp_path / 'payroll.db'}")
     create_schema(engine)
     create_schema(engine)
     assert set(inspect(engine).get_table_names()) == ENTITY_TABLES
 
 
-def test_schema_persists_in_the_file_named_by_the_url(tmp_path):
+def test_schema_persists_in_the_file_named_by_the_url(tmp_path, engines):
     url = f"sqlite:///{tmp_path / 'payroll.db'}"
-    create_schema(create_database_engine(url))
-    assert set(inspect(create_database_engine(url)).get_table_names()) == ENTITY_TABLES
+    create_schema(engines(url))
+    assert set(inspect(engines(url)).get_table_names()) == ENTITY_TABLES
