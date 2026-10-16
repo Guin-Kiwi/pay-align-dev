@@ -165,23 +165,23 @@ class TestPayrollCalculation(unittest.TestCase):
 
         # Gross wage: (160 + 8 + 4) * 25 + (4 * 25 * 0.5) + 100 = 4450
         self.assertEqual(payslip.gross_wage, 4450.0)
-        
+
         # Employee deductions
         self.assertAlmostEqual(payslip.ahv_deduction, 235.85)    # 4450 * 0.053
         self.assertAlmostEqual(payslip.alv_deduction, 48.95)     # 4450 * 0.011
         self.assertAlmostEqual(payslip.tax_deduction, 222.50)    # 4450 * 0.05
         self.assertAlmostEqual(payslip.nbu_deduction, 63.72)     # 4450 * 0.01432
-        
+
         # Net payout uses rounded deductions: 4450 - (235.85 + 48.95 + 222.50 + 63.72) + 50 = 3928.98
         self.assertAlmostEqual(payslip.net_payout, 3928.98)
-        
+
         # Employer costs
         self.assertAlmostEqual(payslip.employer_ahv, 235.85)     # 4450 * 0.053
         self.assertAlmostEqual(payslip.employer_alv, 48.95)      # 4450 * 0.011
         self.assertAlmostEqual(payslip.employer_fak, 73.43)      # 4450 * 0.0165
         self.assertAlmostEqual(payslip.employer_bu, 22.47)       # 4450 * 0.00505
         self.assertAlmostEqual(payslip.admin_charge, 11.79)      # 235.85 * 0.05
-        
+
         # Total uses rounded employer cost lines: 4450 + 235.85 + 48.95 + 73.43 + 22.47 + 11.79 + 50 = 4892.49
         self.assertAlmostEqual(payslip.total_employer_cost, 4892.49)
 

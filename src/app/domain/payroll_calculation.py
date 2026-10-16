@@ -64,10 +64,10 @@ def calculate_monthly_hours(entries: list[WorkEntry]) -> tuple[float, float]:
 
 
 def calculate_gross_wage(
-    hours_worked: float, 
-    hourly_wage: float, 
-    holiday_hours: float = 0.0, 
-    public_holiday_hours: float = 0.0, 
+    hours_worked: float,
+    hourly_wage: float,
+    holiday_hours: float = 0.0,
+    public_holiday_hours: float = 0.0,
     cash_bonus: float = 0.0
 ) -> float:
     """Calculate the gross wage for the month.
@@ -108,7 +108,7 @@ def calculate_gross_wage(
 
 
 def calculate_employee_deductions(
-    gross_wage: float, 
+    gross_wage: float,
     weekly_hours: float
 ) -> tuple[float, float, float, float]:
     """Calculate employee deductions.
@@ -147,7 +147,7 @@ def calculate_employer_costs(
 
 
 def generate_payslip(
-    monthly_record: MonthlyRecord, 
+    monthly_record: MonthlyRecord,
     employment: Employment
 ) -> Payslip:
     """Generate a payslip for the monthly record."""
@@ -214,7 +214,7 @@ def generate_payslip(
 
 
 def validate_annual_limits(
-    employment: Employment, 
+    employment: Employment,
     current_gross_wage: float,
     employee_gross_to_date: float = 0.0,
     employer_gross_to_date: float = 0.0,
