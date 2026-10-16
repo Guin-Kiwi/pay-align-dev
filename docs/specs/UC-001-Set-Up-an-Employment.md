@@ -103,3 +103,10 @@ The employer selects **"Set Up Employment"** in the application.
 - The UI offers holiday weeks as a choice of 4 or 5 and may hint that 5 weeks apply to employees under 20 or over 50 (`docs/reference/Employing_Household_Help_Basel.md`).
 - Use the `SetupService` to handle the onboarding logic.
 - Ensure all validations are performed before saving to the database.
+
+## Fast Track: PR #13 merge leftovers
+
+- **Scope:** delete the `TODO(PR #13 merge)` comment blocks in `employment.py` and `payroll.py`, and the second minimum wage check in `SetupService.create_employment` that the merge kept from PR #9. No feature, API, data or dependency change. Builds on PR #15.
+- **Reason:** merging `main` into `uc-001-employment-setup` (cb4e085) brought old code back. PR #15 disabled it and left the decision to the UC-001 owner.
+- **Acceptance:** the minimum wage rule lives only in `Employment`; a low wage error shows both amounts with two decimals; no `TODO(PR #13 merge)` is left.
+- **Checks (phase 3):** regression test `test_low_wage_error_shows_both_amounts_with_two_decimals` failed before the fix and passes after it; `bash scripts/test.sh` passed (51 passed, 29 subtests); `git diff --check` clean. Required CI and review remain.
