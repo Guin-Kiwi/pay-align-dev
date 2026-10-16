@@ -37,9 +37,12 @@ UC-001 employment input sub-slice (Nano, `uc-001-employment-setup`): weekly hour
 holiday weeks (4 or 5) instead of days, an optional end date and 2026-only start dates.
 See [UC-001](specs/UC-001-Set-Up-an-Employment.md).
 - Specify (phase 1): done.
-- Develop (phase 3): in-progress. Done: `POST /api/v1/setup` takes weekly hours as H:MM and rejects other
-  formats with 400 (`tests/integration/test_setup_api.py`). Next, after PR #16 merges: `Employment` keeps
-  `weekly_minutes`, `holiday_weeks`, `end_date` and the 2026 start date rule.
+- Develop (phase 3): in-progress. Done: `POST /api/v1/setup` takes weekly hours as H:MM, holiday weeks
+  (4 or 5, default 4) and an optional end date, and accepts only 2026 start dates
+  (`tests/integration/test_setup_api.py`, `tests/unit/test_setup_service.py`). The branch includes the
+  PR #16 commits. Weekly hours are whole minutes at the API and in the `weekly_minutes` column, and float
+  hours inside `Employment`; `round(weekly_hours * 60)` converts exactly for every H:MM up to 99:59. Later:
+  move all hour fields (weekly, worked, holiday) to whole minutes together, when the holiday balance is built.
 
 Design sub-slice (phase 2): the persistence adapter for UC-002 saving, proposed in
 [ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md). It touches infrastructure

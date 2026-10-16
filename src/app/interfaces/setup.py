@@ -39,9 +39,10 @@ class EmployeeDetails(BaseModel):
 
 class EmploymentDetails(BaseModel):
     start_date: date
+    end_date: date | None = None
     hourly_wage: Decimal = Field(decimal_places=2)
     weekly_hours: str
-    holiday_entitlement: int = 20
+    holiday_weeks: int = 4
 
 
 class SetupRequest(BaseModel):
@@ -84,7 +85,7 @@ def set_up_employment(payload: SetupRequest, service: SetupService = Depends(get
         weekly_minutes = parse_hours(employment["weekly_hours"])
     except ValueError as error:
         raise HTTPException(status_code=400, detail=f"Employment: {error}") from error
-    # TODO(UC-001): pass weekly_minutes once Employment keeps minutes (after PR #16). Owner: Nano (@Gedance23).
+    # TODO(UC-001): Employment keeps float hours until all hour fields move to whole minutes. Owner: Nano (@Gedance23).
     employment["weekly_hours"] = weekly_minutes / 60
     try:
         result = service.set_up_employment(
