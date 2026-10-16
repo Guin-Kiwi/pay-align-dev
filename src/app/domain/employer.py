@@ -3,6 +3,9 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from src.app.domain.ahv_number import validate_ahv_number
+from src.app.domain.required_fields import require_fields
+
 
 @dataclass
 class Employer:
@@ -15,16 +18,5 @@ class Employer:
 
     def __post_init__(self):
         """Validate fields after initialization."""
-        if not self.ahv_number:
-            raise ValueError("AHV number is required.")
-        if not self._is_valid_ahv_number(self.ahv_number):
-            raise ValueError("Invalid AHV number format.")
-
-    @staticmethod
-    def _is_valid_ahv_number(ahv_number: str) -> bool:
-        """Validate the format of an AHV number.
-        
-        Format: 756.1234.5678.97 (13 digits, dots optional).
-        """
-        cleaned = ahv_number.replace(".", "")
-        return cleaned.isdigit() and len(cleaned) == 13
+        require_fields(name=self.name, address=self.address, contact_info=self.contact_info)
+        validate_ahv_number(self.ahv_number)
