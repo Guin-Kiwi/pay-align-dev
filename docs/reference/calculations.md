@@ -57,6 +57,6 @@ An administrative total summarizing the full cost to the employer for the month.
 ## 3. Validation Rules & Guardrails
 Before persisting a monthly payroll run, the service must validate the resulting cumulative totals against strict cantonal limits.
 
-* **Employee Limit Check:** The cumulative `Gross Wage` for a single Employee within the calendar year must be <= CHF 22,680.
+* **Employee Limit Check:** The cumulative `Gross Wage` paid to a single Employee by the Employer (across all of that Employee's Employments with this Employer) within the calendar year must be <= CHF 22,680. Wages paid by other employers are not counted.
 * **Employer Limit Check:** The cumulative `Gross Wage` across ALL Employees under the single Employer within the calendar year must be <= CHF 60,480.
 * **Holiday Balance Tracker:** `Remaining Holiday Balance = Previous Balance - Paid Holiday Hours`. (Ensure the system tracks this accurately across months).
