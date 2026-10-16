@@ -1,7 +1,7 @@
 # ADR-004-payroll-entry-snapshots-and-holiday-balance
 
 ## Status
-Accepted
+Accepted (amended: see Amendment 1)
 
 ## Context
 Monthly payroll must remain reproducible after submission. The application
@@ -71,6 +71,13 @@ none
 
 ## Amendment 1 (2026-10-16)
 
+Approval: AYLA PROPOSES; review by Nano and Aaron in this PR.
+
+Open items:
+
+- TODO(ADR-004): rounding mode for the pro-rated minutes; half-up (as ADR-003)
+  proposed by Nano. Owner: Ayla (@Guin-Kiwi).
+
 The following decisions amend this ADR:
 
 1. Holiday entitlement and the derived holiday balance are counted in whole
@@ -81,12 +88,12 @@ The following decisions amend this ADR:
 3. For an employment starting or ending during the year, entitlement is
    pro-rated by the days under contract in the calendar year, with both the
    start and end dates counted, divided by 365, and rounded once to whole
-   minutes (OR 329a para. 3). Source: UC-001 spec, "Decided on 16 October
-   2026".
+  minutes (OR 329a para. 3). Source: team decision of 16 October 2026,
+  recorded in the UC-001 spec (PR #17).
 4. The app accepts 2026 only (ADR-002). Later years, including 366 days in
    2028, are a known limitation; cross-year carry-over remains dormant until a
    second ruleset exists.
-5. Rounding mode is not decided.
+5. Rounding mode is not decided (see Open items).
 
 ### Assumptions
 
@@ -102,5 +109,3 @@ The following decisions amend this ADR:
   `start_date`, and `end_date` so the pro-rated entitlement can be reproduced.
 - The calendar-year denominator is fixed at 365 for the 2026-only application;
   leap-year handling is deferred with later rulesets.
-- TODO(ADR-004): rounding mode; half-up (as ADR-003) proposed by Nano. Owner:
-  Ayla (@Guin-Kiwi).
