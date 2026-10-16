@@ -36,9 +36,10 @@ class EmploymentRow(Base):
     employer_id: Mapped[int] = mapped_column(ForeignKey("employers.id"), nullable=False)
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     hourly_wage_cents: Mapped[int] = mapped_column(Integer, nullable=False)
-    weekly_hours: Mapped[float] = mapped_column(Float, nullable=False)
-    holiday_entitlement: Mapped[int] = mapped_column(Integer, nullable=False)
+    weekly_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    holiday_weeks: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class MonthlyRecordRow(Base):
