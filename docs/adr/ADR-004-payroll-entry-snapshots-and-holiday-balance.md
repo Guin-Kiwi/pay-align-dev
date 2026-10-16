@@ -94,6 +94,22 @@ The following decisions amend this ADR:
    2028, are a known limitation; cross-year carry-over remains dormant until a
    second ruleset exists.
 5. Rounding mode is not decided (see Open items).
+6. There are four hour categories, not three: worked; worked on a public
+  holiday (50% premium); paid holiday; paid public-holiday leave (no work
+  done).
+7. Hours live only in the daily entries (`work_entries`); monthly hour totals
+  are derived from them and are not stored on `monthly_records`. Time is
+  recorded in whole minutes.
+8. The snapshot refers to the run's persisted `work_entries`, which are
+  immutable once saved, instead of copying them. It freezes the employment
+  parameters, the ruleset version, the minute totals per category and the
+  holiday balance after the run.
+9. Carry-over: the next run reads the previous run for the same employment,
+  whatever its year. The first run of a new year adds that year's pro-rated
+  entitlement, and the entitlement of any skipped year, to the previous
+  closing balance. Unused holiday does not lapse at year end. This amends the
+  "same calendar year" wording in the Decision. It stays dormant while only
+  the 2026 ruleset exists (see item 4).
 
 ### Assumptions
 
@@ -109,3 +125,5 @@ The following decisions amend this ADR:
   `start_date`, and `end_date` so the pro-rated entitlement can be reproduced.
 - The calendar-year denominator is fixed at 365 for the 2026-only application;
   leap-year handling is deferred with later rulesets.
+- The payroll domain code that treats `public_holiday_hours` as hours worked on
+  a holiday changes to the category model.
