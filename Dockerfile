@@ -15,5 +15,4 @@ COPY . /app
 EXPOSE 8000
 
 # Run the application
-# TODO(PR #3 review): start src.app.infrastructure.web.app:app instead. Owner: person 4.
-CMD ["uvicorn", "src.app.interfaces.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.app.infrastructure.web.app:app", "--host", "0.0.0.0", "--port", "8000"]
