@@ -15,9 +15,10 @@ class Employment:
     employer_id: int = 0  # Foreign key to Employer
     employee_id: int = 0  # Foreign key to Employee
     start_date: date = field(default_factory=date.today)
+    end_date: Optional[date] = None  # Last day of a fixed-term contract (None: no end date)
     hourly_wage: float = 0.0  # Gross hourly wage in CHF
     weekly_hours: float = 0.0  # Weekly working hours
-    holiday_entitlement: int = 20  # Annual paid holiday days (default: 20)
+    holiday_weeks: int = 4  # Paid holiday weeks per year: 4, or 5 under 20 or over 50
 
     def __post_init__(self):
         """Validate fields after initialization."""
@@ -28,23 +29,7 @@ class Employment:
             )
         if self.weekly_hours <= 0:
             raise ValueError("Weekly hours must be positive.")
-        if self.holiday_entitlement < 0:
-            raise ValueError("Holiday entitlement cannot be negative.")
-# TODO(PR #13 merge): disabled, holiday balance is derived from saved runs (ADR-004). Owner: Nano (@Gedance23).
-#         if self.remaining_holiday_balance < 0:
-#             raise ValueError("Remaining holiday balance cannot be negative.")
-
-# TODO(PR #13 merge): disabled, holiday balance is derived from saved runs (ADR-004). Owner: Nano (@Gedance23).
-#         # Warnings for implicit constraints
-#         from .constants import MIN_HOURLY_WAGE, MIN_WEEKLY_HOURS
-#         # TODO(PR #3 review): raise ValueError instead of print(). Owner: Nano (@Gedance23).
-#         if self.hourly_wage < MIN_HOURLY_WAGE:
-#             print(f"Warning: Hourly wage (CHF {self.hourly_wage}) is below the Basel-Stadt minimum wage (CHF {MIN_HOURLY_WAGE}).")
-#         if self.weekly_hours < MIN_WEEKLY_HOURS:
-#             print(f"Warning: Weekly hours ({self.weekly_hours}) are unusually low (recommended minimum: {MIN_WEEKLY_HOURS}).")
-#
-#     def deduct_holiday_hours(self, hours: float) -> None:
-#         """Deduct holiday hours from the remaining balance."""
-#         if hours > self.remaining_holiday_balance:
-#             raise ValueError("Insufficient holiday balance.")
-#         self.remaining_holiday_balance -= hours
+        if self.holiday_weeks not in (4, 5):
+            raise ValueError("Holiday weeks must be 4 or 5.")
+        if self.end_date is not None and self.end_date < self.start_date:
+            raise ValueError("End date cannot be before the start date.")
