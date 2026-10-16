@@ -68,3 +68,39 @@ monthly payroll flow.
 ## Supersedes
 
 none
+
+## Amendment 1 (2026-10-16)
+
+The following decisions amend this ADR:
+
+1. Holiday entitlement and the derived holiday balance are counted in whole
+   minutes, not float hours.
+2. Yearly entitlement is `holiday_weeks` (4 or 5) × `weekly_minutes`. This
+   replaces the day-based `holiday_entitlement`, and the first run starts from
+   this figure.
+3. For an employment starting or ending during the year, entitlement is
+   pro-rated by the days under contract in the calendar year, with both the
+   start and end dates counted, divided by 365, and rounded once to whole
+   minutes (OR 329a para. 3). Source: UC-001 spec, "Decided on 16 October
+   2026".
+4. The app accepts 2026 only (ADR-002). Later years, including 366 days in
+   2028, are a known limitation; cross-year carry-over remains dormant until a
+   second ruleset exists.
+5. Rounding mode is not decided.
+
+### Assumptions
+
+- The 4-or-5 rule for `holiday_weeks` is determined in the domain and API, not
+  by a database CHECK.
+- Cross-year carry-over is not active while only the 2026 ruleset exists.
+
+### Amendment consequences
+
+- Holiday entitlement and derived balances require integer-minute arithmetic
+  and persistence rather than float-hour arithmetic.
+- The employment snapshot must retain `holiday_weeks`, `weekly_minutes`,
+  `start_date`, and `end_date` so the pro-rated entitlement can be reproduced.
+- The calendar-year denominator is fixed at 365 for the 2026-only application;
+  leap-year handling is deferred with later rulesets.
+- TODO(ADR-004): rounding mode; half-up (as ADR-003) proposed by Nano. Owner:
+  Ayla (@Guin-Kiwi).
