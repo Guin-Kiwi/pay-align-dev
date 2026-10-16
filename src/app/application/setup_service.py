@@ -8,7 +8,7 @@ from src.app.application.ports.setup_repository import SetupRepository, SetupRes
 from src.app.domain.employer import Employer
 from src.app.domain.employee import Employee
 from src.app.domain.employment import Employment
-from src.app.domain.constants import MIN_WEEKLY_HOURS
+from src.app.domain.constants import MIN_HOURLY_WAGE, MIN_WEEKLY_HOURS
 
 logger = logging.getLogger(__name__)
 
