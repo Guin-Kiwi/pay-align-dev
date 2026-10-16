@@ -33,9 +33,13 @@ Initial implementation of the domain models, `SetupService`, and `PayrollService
 The implementation must remain consistent with ADR-001 through ADR-004. Workbook-derived golden payroll cases 
 should be used to verify the calculated values. The discrepancy in `admin_charge` and `total_employer_cost` remains pending confirmation.
 
-Specify sub-slice (phase 1, in-progress, Nano, `uc-001-employment-setup`): the UC-001 employment input,
-with weekly hours as H:MM kept as minutes, holiday weeks (4 or 5) instead of days, and an optional end date.
+UC-001 employment input sub-slice (Nano, `uc-001-employment-setup`): weekly hours as H:MM kept as minutes,
+holiday weeks (4 or 5) instead of days, an optional end date and 2026-only start dates.
 See [UC-001](specs/UC-001-Set-Up-an-Employment.md).
+- Specify (phase 1): done.
+- Develop (phase 3): in-progress. Done: `POST /api/v1/setup` takes weekly hours as H:MM and rejects other
+  formats with 400 (`tests/integration/test_setup_api.py`). Next, after PR #16 merges: `Employment` keeps
+  `weekly_minutes`, `holiday_weeks`, `end_date` and the 2026 start date rule.
 
 Design sub-slice (phase 2): the persistence adapter for UC-002 saving, proposed in
 [ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md). It touches infrastructure

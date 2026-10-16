@@ -17,7 +17,7 @@ EMPLOYEE = {
     "ahv_number": "756.9876.5432.10",
     "nationality": "Italy",
 }
-EMPLOYMENT = {"start_date": "2026-01-01", "hourly_wage": 28.50, "weekly_hours": 6}
+EMPLOYMENT = {"start_date": "2026-01-01", "hourly_wage": 28.50, "weekly_hours": "6:00"}
 
 
 class TestSetupApi(unittest.TestCase):
@@ -102,3 +102,30 @@ class TestSetupApi(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 422)
+
+    def test_weekly_hours_typed_as_h_mm_are_accepted(self):
+        for text, hours in (("6:30", 6.5), ("30:15", 30.25)):
+            with self.subTest(text=text):
+                repository = InMemorySetupRepository()
+                client = TestClient(create_app(setup_repository=repository))
+                response = client.post(
+                    "/api/v1/setup",
+                    json={"employer": EMPLOYER, "employee": EMPLOYEE,
+                          "employment": {**EMPLOYMENT, "weekly_hours": text}},
+                )
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(repository.employments[0].weekly_hours, hours)
+
+    def test_weekly_hours_in_another_format_are_rejected_with_an_example(self):
+        for text in ("6.5", "6,5", "6h30", "6:75", "6:5", "0:00", "1 hour 43 minutes", "٦:٣٠"):
+            with self.subTest(text=text):
+                response = self.set_up(
+                    employer=EMPLOYER, employee=EMPLOYEE,
+                    employment={**EMPLOYMENT, "weekly_hours": text},
+                )
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(
+                    response.json()["detail"],
+                    "Employment: Invalid weekly hours. Use H:MM above 0:00, for example 6:30.",
+                )
+        self.assertEqual(self.client.get("/api/v1/employer").status_code, 404)
