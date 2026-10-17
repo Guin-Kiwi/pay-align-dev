@@ -73,11 +73,6 @@ none
 
 Approval: AYLA PROPOSES; review by Nano and Aaron in this PR.
 
-Open items:
-
-- TODO(ADR-004): rounding mode for the pro-rated minutes; half-up (as ADR-003)
-  proposed by Nano. Owner: Ayla (@Guin-Kiwi).
-
 The following decisions amend this ADR:
 
 1. Holiday entitlement and the derived holiday balance are counted in whole
@@ -86,14 +81,15 @@ The following decisions amend this ADR:
    replaces the day-based `holiday_entitlement`, and the first run starts from
    this figure.
 3. For an employment starting or ending during the year, entitlement is
-   pro-rated by the days under contract in the calendar year, with both the
-   start and end dates counted, divided by 365, and rounded once to whole
-  minutes (OR 329a para. 3). Source: team decision of 16 October 2026,
+  pro-rated by the days under contract in the calendar year, with both the
+  start and end dates counted, divided by 365, and rounded half-up once to
+  whole minutes (OR 329a para. 3). Source: team decision of 16 October 2026,
   recorded in the UC-001 spec (PR #17).
 4. The app accepts 2026 only (ADR-002). Later years, including 366 days in
    2028, are a known limitation; cross-year carry-over remains dormant until a
    second ruleset exists.
-5. Rounding mode is not decided (see Open items).
+5. The pro-rated entitlement is rounded half-up once to whole minutes, as
+  specified by ADR-003.
 6. There are four hour categories, not three: worked; worked on a public
   holiday (50% premium); paid holiday; paid public-holiday leave (no work
   done).
