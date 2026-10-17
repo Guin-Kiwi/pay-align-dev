@@ -6,16 +6,28 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: GitHub Release veröffentlichen (nur auf einem v*-Tag)
+        type: boolean
+        required: true
+        default: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: payalign:${{ github.sha }}
+      ARCHIVE_NAME: payalign-${{ github.sha }}-linux-amd64.tar.gz
+      TEST_CONTAINER: payalign-release-check-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -34,17 +46,145 @@ jobs:
         run: bash scripts/check-lifecycle.sh
 
       - name: Check whitespace errors
-        run: git diff --check
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            base=$(git rev-parse HEAD^)
+          else
+            base=$(git hash-object -t tree /dev/null)
+          fi
+          git diff --check "$base" HEAD
 
       - name: Run project tests
         run: bash scripts/test.sh
 
+      - name: Build linux/amd64 image
+        run: docker build --platform linux/amd64 --tag "$IMAGE_NAME" .
+
+      - name: Check image for local data and development files
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --platform linux/amd64 --entrypoint python "$IMAGE_NAME" -c '
+          from pathlib import Path
+          import fnmatch
+          root = Path("/app")
+          excluded = {
+              ".git", ".github", ".devcontainer", ".vscode", ".venv",
+              ".agents", ".claude", ".cursor", "docs", "skills", "scripts",
+              "environments", "tests", "data", "venv", "env", "ENV",
+              "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
+              ".pyre", ".hypothesis", ".tox", ".nox", "htmlcov", "build",
+              "dist", ".eggs", "pip-wheel-metadata", ".idea",
+              ".aws", ".ssh", ".codex",
+          }
+          patterns = (
+              ".env", ".env.*", ".envrc", "*.db", "*.db-*", "*.sqlite",
+              "*.sqlite-*", "*.sqlite3", "*.sqlite3-*", "*.py[codz]",
+              "*.log", ".coverage", ".coverage.*", "coverage.xml",
+              "*.egg-info", ".DS_Store", "AGENTS.md", "CLAUDE.md",
+              "CONTRIBUTING.md", "CITATION.cff", ".zenodo.json", "pytest.ini",
+          )
+          found = [str(p.relative_to(root)) for p in root.rglob("*")
+                   if p.name in excluded or any(fnmatch.fnmatchcase(p.name, pattern)
+                                                for pattern in patterns)]
+          if found:
+              raise SystemExit("Unerlaubte Dateien im Image: " + ", ".join(sorted(found)))
+          for required in ("src/app/infrastructure/web/app.py", "requirements.txt", "LICENSE"):
+              if not (root / required).is_file():
+                  raise SystemExit("Benötigte Datei fehlt: " + required)
+          '
+
+      - name: Start isolated test container
+        run: |
+          docker run --detach --platform linux/amd64 --name "$TEST_CONTAINER" \
+            --env DATABASE_URL=sqlite:///:memory: \
+            --publish 127.0.0.1::8000 "$IMAGE_NAME"
+
+      - name: Check health endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          address=$(docker port "$TEST_CONTAINER" 8000/tcp)
+          response="$RUNNER_TEMP/payalign-health.json"
+          healthy=false
+          for attempt in {1..30}; do
+            if status=$(curl --silent --show-error --connect-timeout 2 --max-time 3 \
+                --output "$response" --write-out '%{http_code}' "http://$address/health"); then
+              if [ "$status" = "200" ]; then
+                healthy=true
+                break
+              fi
+            fi
+            sleep 2
+          done
+          if [ "$healthy" != "true" ]; then
+            echo "Health-Check hat kein HTTP 200 geliefert." >&2
+            exit 1
+          fi
+          python - "$response" <<'PY'
+          import json
+          import sys
+          with open(sys.argv[1]) as response:
+              if json.load(response) != {"status": "ok"}:
+                  raise SystemExit("Unerwartete Health-Antwort")
+          PY
+
+      - name: Show test container logs on failure
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_id=$(docker ps --all --filter "name=^/${TEST_CONTAINER}$" --format '{{.ID}}')
+          if [ -n "$container_id" ]; then
+            docker logs "$TEST_CONTAINER"
+          fi
+
+      - name: Clean up own test container
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_id=$(docker ps --all --filter "name=^/${TEST_CONTAINER}$" --format '{{.ID}}')
+          if [ -n "$container_id" ]; then
+            docker container rm --force "$TEST_CONTAINER"
+          fi
+
+      - name: Save verified image archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker image save "$IMAGE_NAME" | gzip > "$RUNNER_TEMP/$ARCHIVE_NAME"
+          gzip --test "$RUNNER_TEMP/$ARCHIVE_NAME"
+
+      - name: Upload verified image archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: payalign-image-linux-amd64
+          path: ${{ runner.temp }}/${{ env.ARCHIVE_NAME }}
+          if-no-files-found: error
+          compression-level: 0
+
   publish:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && inputs.publish_release))
     needs: verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
+      - name: Download verified image archive
+        uses: actions/download-artifact@v4
+        with:
+          name: payalign-image-linux-amd64
+          path: release-artifacts
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          files: release-artifacts/*.tar.gz
+          fail_on_unmatched_files: true
