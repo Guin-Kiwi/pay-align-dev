@@ -38,6 +38,21 @@ class TestSetupService(unittest.TestCase):
                 weekly_hours=10,
             )
 
+    def test_low_wage_error_shows_both_amounts_with_two_decimals(self):
+        with self.assertRaises(ValueError) as error:
+            self.service.create_employment(
+                employer_id=1,
+                employee_id=1,
+                start_date=date(2026, 1, 1),
+                hourly_wage=Decimal("22.1"),
+                weekly_hours=10,
+            )
+
+        self.assertEqual(
+            str(error.exception),
+            "Hourly wage (CHF 22.10) is below the Basel-Stadt minimum wage (CHF 22.20).",
+        )
+
     def test_logs_warning_for_low_weekly_hours(self):
         with self.assertLogs("src.app.application.setup_service", level="WARNING") as logs:
             self.service.create_employment(
