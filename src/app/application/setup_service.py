@@ -8,7 +8,7 @@ from src.app.application.ports.setup_repository import SetupRepository, SetupRes
 from src.app.domain.employer import Employer
 from src.app.domain.employee import Employee
 from src.app.domain.employment import Employment
-from src.app.domain.constants import MIN_HOURLY_WAGE, MIN_WEEKLY_HOURS
+from src.app.domain.constants import MIN_WEEKLY_HOURS
 
 logger = logging.getLogger(__name__)
 
@@ -99,10 +99,6 @@ class SetupService:
         employee_id: int = 0,
     ) -> Employment:
         """Create and validate an employment relationship."""
-        # Validate wage and hours
-        if hourly_wage < MIN_HOURLY_WAGE:
-            raise ValueError(f"Hourly wage (CHF {hourly_wage}) is below the Basel-Stadt minimum wage (CHF {MIN_HOURLY_WAGE}).")
-        # TODO(PR #3 review): use logging instead of print(). Owner: Nano (@Gedance23).
         if weekly_hours < MIN_WEEKLY_HOURS:
             logger.warning(
                 "Weekly hours (%s) are unusually low (recommended minimum: %s).",
