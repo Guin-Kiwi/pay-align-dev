@@ -1,5 +1,6 @@
 import pytest
 from sqlalchemy import Date, Integer, String, Time, inspect, text
+from sqlalchemy.pool import StaticPool
 
 from src.app.infrastructure.database import (
     DatabaseConfigurationError,
@@ -56,6 +57,12 @@ def test_unsupported_or_malformed_database_url_is_rejected(url):
         create_database_engine(url)
 
 
+@pytest.mark.parametrize("url", ["sqlite+foo://", "sqlite:///x.db?timeout=abc"])
+def test_invalid_sqlite_engine_configuration_is_rejected(url):
+    with pytest.raises(DatabaseConfigurationError, match="DATABASE_URL"):
+        create_database_engine(url)
+
+
 def test_create_database_engine_reads_the_environment_when_no_url_is_given(
     monkeypatch, tmp_path
 ):
@@ -73,9 +80,18 @@ def test_create_database_engine_without_any_url_is_rejected(monkeypatch):
         create_database_engine()
 
 
-@pytest.mark.parametrize("url", ["sqlite://", "sqlite:///:memory:"])
-def test_in_memory_url_shares_one_database_across_connections(url, engines):
+@pytest.mark.parametrize(
+    "url",
+    [
+        "sqlite:///file:mem1?mode=memory&uri=true",
+        "sqlite://",
+        "sqlite:///:memory:",
+        ":memory:",
+    ],
+)
+def test_in_memory_url_uses_static_pool_and_shares_one_database(url, engines):
     engine = engines(url)
+    assert isinstance(engine.pool, StaticPool)
     with engine.begin() as connection:
         connection.execute(text("CREATE TABLE t (id INTEGER)"))
     with engine.connect() as connection:
@@ -84,6 +100,7 @@ def test_in_memory_url_shares_one_database_across_connections(url, engines):
 
 def test_file_url_that_merely_contains_memory_is_not_treated_as_in_memory(tmp_path, engines):
     engine = engines(f"sqlite:///{tmp_path / 'memory.db'}")
+    assert not isinstance(engine.pool, StaticPool)
     with engine.begin() as connection:
         connection.execute(text("CREATE TABLE t (id INTEGER)"))
     assert (tmp_path / "memory.db").exists()
