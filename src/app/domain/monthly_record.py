@@ -22,8 +22,8 @@ class MonthlyRecord:
         """Validate fields after initialization."""
         if not (1 <= self.month <= 12):
             raise ValueError("Month must be between 1 and 12.")
-        if self.year < 2026:
-            raise ValueError("Year must be 2026 or later.")
+        if self.year != 2026:
+            raise ValueError("Year must be 2026.")
         if self.hours_worked < 0:
             raise ValueError("Hours worked cannot be negative.")
         if self.holiday_hours < 0:
