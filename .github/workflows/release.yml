@@ -49,11 +49,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
-            base=$(git rev-parse HEAD^)
-          else
-            base=$(git hash-object -t tree /dev/null)
-          fi
+          # Bewusst festgelegte Integrationsbasis; keine vollständige historische Whitespace-Bereinigung.
+          base=afc02245b7db19f0430456ef79e6988ee5dbc16b
+          git merge-base --is-ancestor "$base" HEAD
           git diff --check "$base" HEAD
 
       - name: Run project tests
