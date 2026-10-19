@@ -72,3 +72,91 @@ def test_existing_employer_remains_available_after_loading_page():
     assert client.get('/setup').status_code == 200
     assert client.get('/api/v1/employer').json() == {'id': 1, **employer}
     assert TestClient(create_app()).get('/api/v1/employer').status_code == 404
+
+
+@pytest.mark.parametrize('employer_name', ['Anna Muster', '<img src=x onerror=alert(1)>'])
+def test_existing_employer_javascript_displays_details_without_enabling_save(employer_name):
+    import json
+    from pathlib import Path
+    import shutil
+    import subprocess
+
+    node = shutil.which('node')
+    if node is None:
+        candidates = sorted(Path('/vscode/vscode-server/bin').glob('*/*/node'))
+        assert candidates, 'This JavaScript regression test requires an existing Node.js runtime.'
+        node = str(candidates[-1])
+
+    client = TestClient(create_app())
+    page = Page(client.get('/setup').text)
+    initial_elements = {attrs['id']: attrs for _, attrs in page.tags if 'id' in attrs}
+    employer = {
+        'id': 1,
+        'name': employer_name,
+        'address': 'Freie Strasse 1, Basel',
+        'ahv_number': '756.1234.5678.97',
+        'contact_info': 'anna@example.ch',
+    }
+    javascript = client.get('/setup-assets/setup.js').text
+    harness = r'''
+const assert = require('node:assert/strict');
+const vm = require('node:vm');
+let input = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => input += chunk);
+process.stdin.on('end', async () => {
+  try {
+    const {elements: attributes, employer, javascript} = JSON.parse(input);
+    function element(attrs = {}) {
+      return {
+        hidden: Object.hasOwn(attrs, 'hidden'),
+        disabled: Object.hasOwn(attrs, 'disabled'),
+        textContent: '',
+        children: [],
+        append(...children) { this.children.push(...children); },
+        set innerHTML(value) { throw new Error('Employer data must be rendered as text'); }
+      };
+    }
+    const elements = Object.fromEntries(Object.entries(attributes).map(([id, attrs]) => [id, element(attrs)]));
+    const calls = [];
+    await vm.runInNewContext(javascript, {
+      document: {
+        getElementById(id) { assert.ok(elements[id], id); return elements[id]; },
+        createElement(tag) { assert.ok(['dt', 'dd'].includes(tag)); return element(); }
+      },
+      fetch: async (url, options) => {
+        calls.push({url, options});
+        return {status: 200, ok: true, json: async () => employer};
+      },
+      AbortController, setTimeout, clearTimeout
+    }, {timeout: 1000});
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, '/api/v1/employer');
+    assert.equal(calls[0].options.method ?? 'GET', 'GET');
+    assert.equal(elements['employer-status'].textContent, 'Vorhandener Arbeitgeber geladen.');
+    assert.equal(elements['employer-details'].hidden, false);
+    assert.deepEqual(elements['employer-details'].children.map(child => child.textContent), [
+      'Name', employer.name, 'Adresse', employer.address,
+      'AHV-Nummer', employer.ahv_number, 'Kontaktangaben', employer.contact_info
+    ]);
+    assert.equal(elements['employer-fields'].hidden, true);
+    assert.equal(elements['employer-fields'].disabled, true);
+    assert.equal(elements['employer-error'].hidden, true);
+    for (const id of ['save-setup', 'weekly-hours', 'holiday-entitlement']) {
+      assert.equal(elements[id].disabled, true, id);
+    }
+    console.log('Existing employer UI state verified');
+  } catch (error) {
+    console.error(error);
+    process.exitCode = 1;
+  }
+});
+'''
+    result = subprocess.run(
+        [node, '-e', harness],
+        input=json.dumps({'elements': initial_elements, 'employer': employer, 'javascript': javascript}),
+        text=True, capture_output=True, timeout=10,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert 'Existing employer UI state verified' in result.stdout
+    assert client.get('/api/v1/employer').status_code == 404
