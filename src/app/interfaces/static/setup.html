@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beschäftigung einrichten | PayAlign</title>
+  <link rel="stylesheet" href="/setup-assets/setup.css">
+  <script src="/setup-assets/setup.js" defer></script>
+</head>
+<body>
+<main>
+  <p class="brand">PayAlign</p>
+  <h1>Beschäftigung einrichten</h1>
+  <p>Bereiten Sie die Angaben für Ihr Arbeitsverhältnis vor. Es werden noch keine Eingaben gespeichert.</p>
+  <noscript><p>Bitte aktivieren Sie JavaScript, um den Arbeitgeberstatus zu laden. Speichern ist noch nicht verfügbar.</p></noscript>
+  <section aria-labelledby="employer-heading">
+    <h2 id="employer-heading">Arbeitgeber</h2>
+    <p id="employer-status" role="status" aria-live="polite">Arbeitgeberstatus wird geladen …</p>
+    <p id="employer-error" role="alert" hidden></p>
+    <dl id="employer-details" hidden></dl>
+    <fieldset id="employer-fields" disabled>
+      <legend>Angaben zum Arbeitgeber</legend>
+      <label for="employer-name">Name</label><input id="employer-name" autocomplete="name">
+      <label for="employer-address">Adresse</label><input id="employer-address" autocomplete="street-address">
+      <label for="employer-ahv">AHV-Nummer (756.XXXX.XXXX.XX)</label><input id="employer-ahv">
+      <label for="employer-contact">Kontaktangaben</label><input id="employer-contact">
+    </fieldset>
+  </section>
+  <section aria-labelledby="employee-heading">
+    <h2 id="employee-heading">Arbeitnehmer</h2>
+    <label for="employee-name">Name</label><input id="employee-name" autocomplete="name">
+    <label for="employee-address">Adresse</label><input id="employee-address" autocomplete="street-address">
+    <label for="employee-ahv">AHV-Nummer (756.XXXX.XXXX.XX)</label><input id="employee-ahv">
+    <label for="employee-nationality">Nationalität</label><input id="employee-nationality">
+  </section>
+  <section aria-labelledby="employment-heading">
+    <h2 id="employment-heading">Beschäftigung</h2>
+    <label for="start-date">Beginn</label><input id="start-date" type="date">
+    <label for="hourly-wage">Stundenlohn in CHF</label><input id="hourly-wage" type="number" step="0.01">
+    <p id="contract-note">Wochenstunden und Ferienanspruch: API-Vertrag wird noch bestätigt. Diese Felder sind noch nicht verfügbar.</p>
+    <label for="weekly-hours">Wochenstunden – Format noch offen</label><input id="weekly-hours" disabled aria-describedby="contract-note">
+    <label for="holiday-entitlement">Ferienanspruch – Einheit noch offen</label><input id="holiday-entitlement" disabled aria-describedby="contract-note">
+  </section>
+  <p id="save-note">Speichern wird erst nach Bestätigung des API-Vertrags und vollständiger Anbindung freigeschaltet.</p>
+  <button id="save-setup" type="button" disabled aria-describedby="save-note">Einrichtung speichern</button>
+  <p class="muted">Der aktuelle Arbeitgeberstatus ist nicht dauerhaft gespeichert und kann nach einem Neustart verloren gehen.</p>
+</main>
+</body>
+</html>
