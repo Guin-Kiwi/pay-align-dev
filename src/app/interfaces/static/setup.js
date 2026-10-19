@@ -14,13 +14,13 @@ async function loadEmployer() {
       signal: controller.signal
     });
     if (response.status === 404) {
-      status.textContent = "Noch kein Arbeitgeber eingerichtet. Bitte geben Sie die Arbeitgeberdaten ein.";
+      status.textContent = "No employer is configured yet. Please enter the employer details.";
       fields.disabled = false;
       return;
     }
     if (!response.ok) throw new Error("server");
     const employer = await response.json();
-    const labels = { name: "Name", address: "Adresse", ahv_number: "AHV-Nummer", contact_info: "Kontaktangaben" };
+    const labels = { name: "Name", address: "Address", ahv_number: "AHV number", contact_info: "Contact details" };
     if (!employer || !Object.keys(labels).every(key => typeof employer[key] === "string")) {
       throw new Error("response");
     }
@@ -33,10 +33,10 @@ async function loadEmployer() {
     }
     details.hidden = false;
     fields.hidden = true;
-    status.textContent = "Vorhandener Arbeitgeber geladen.";
+    status.textContent = "Existing employer loaded.";
   } catch (failure) {
-    status.textContent = "Arbeitgeberstatus konnte nicht geladen werden.";
-    error.textContent = "Bitte prüfen Sie Ihre Verbindung und laden Sie die Seite erneut. Es wurden keine Daten gespeichert.";
+    status.textContent = "Could not load the employer status.";
+    error.textContent = "Please check your connection and reload the page. No data has been saved.";
     error.hidden = false;
   } finally {
     clearTimeout(timeout);

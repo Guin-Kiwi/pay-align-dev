@@ -22,8 +22,8 @@ def test_setup_page_is_accessible_and_cannot_submit():
     assert response.status_code == 200
     assert response.headers['content-type'].startswith('text/html')
     page = Page(response.text)
-    assert ('html', {'lang': 'de'}) in page.tags
-    for text in ('Beschäftigung einrichten', 'Arbeitgeber', 'Arbeitnehmer', 'Beschäftigung', 'API-Vertrag'):
+    assert ('html', {'lang': 'en'}) in page.tags
+    for text in ('Set up employment', 'Employer', 'Employee', 'Employment', 'API contract'):
         assert text in response.text
     button = next(attrs for tag, attrs in page.tags if tag == 'button' and attrs.get('id') == 'save-setup')
     assert 'disabled' in button
@@ -133,11 +133,11 @@ process.stdin.on('end', async () => {
     assert.equal(calls.length, 1);
     assert.equal(calls[0].url, '/api/v1/employer');
     assert.equal(calls[0].options.method ?? 'GET', 'GET');
-    assert.equal(elements['employer-status'].textContent, 'Vorhandener Arbeitgeber geladen.');
+    assert.equal(elements['employer-status'].textContent, 'Existing employer loaded.');
     assert.equal(elements['employer-details'].hidden, false);
     assert.deepEqual(elements['employer-details'].children.map(child => child.textContent), [
-      'Name', employer.name, 'Adresse', employer.address,
-      'AHV-Nummer', employer.ahv_number, 'Kontaktangaben', employer.contact_info
+      'Name', employer.name, 'Address', employer.address,
+      'AHV number', employer.ahv_number, 'Contact details', employer.contact_info
     ]);
     assert.equal(elements['employer-fields'].hidden, true);
     assert.equal(elements['employer-fields'].disabled, true);
