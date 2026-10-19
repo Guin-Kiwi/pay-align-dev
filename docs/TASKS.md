@@ -116,57 +116,57 @@ configuration), the application port and errors, and the payroll router error ma
 - [ADR-005 SQLAlchemy persistence adapter (Proposed)](adr/ADR-005-sqlalchemy-persistence-adapter.md)
 - [PROJECT architecture](PROJECT.md)
 
-## Person 4 — CI, Docker, Release und Architekturtests
+## Person 4 — CI, Docker, Release and architecture tests
 
-Stand: Dokumentationsbasis `origin/main` bei `f6fdc84`.
-Der gemeinsame Status bleibt `PHASE: 3`, `STATUS: in-progress`.
+Documentation baseline: `origin/main` at `f6fdc84`.
+The shared status remains `PHASE: 3`, `STATUS: in-progress`.
 
 - **CI:** [PR #10](https://github.com/Guin-Kiwi/pay-align-dev/pull/10)
-  ist gemergt. Die Whitespace-Prüfung berücksichtigt Änderungen in PRs
-  und Pushes; Syntax- und Git-Vergleichstests sind im PR dokumentiert.
+  is merged. The whitespace check covers changes in PRs
+  and pushes; syntax and Git comparison tests are documented in the PR.
 - **Docker:** [PR #11](https://github.com/Guin-Kiwi/pay-align-dev/pull/11)
-  ist gemergt. Image-Build, Containerstart und Health-Check wurden
-  erfolgreich geprüft. Dies bestätigt keine dauerhafte Datenspeicherung.
-- **Release-Workflow:** [PR #12](https://github.com/Guin-Kiwi/pay-align-dev/pull/12)
-  wurde auf Commit `7eeb7fb8fb26c734c8c607a61ec0f973dabffb7b`
-  erfolgreich manuell validiert:
+  is merged. Image build, container startup and health checks
+  passed. This does not verify persistent data storage.
+- **Release workflow:** [PR #12](https://github.com/Guin-Kiwi/pay-align-dev/pull/12)
+  was successfully validated manually at commit
+  `7eeb7fb8fb26c734c8c607a61ec0f973dabffb7b`:
   [Release #3](https://github.com/Guin-Kiwi/pay-align-dev/actions/runs/39240966965).
-  `verify` war erfolgreich, das Image-Artefakt wurde hochgeladen,
-  `publish` erwartungsgemäß übersprungen.
-  Der PR ist noch nicht gemergt; menschliches Review und Annahme der
-  festen Integrationsbasis stehen aus. Eine tatsächliche Veröffentlichung
-  über einen `v*`-Tag wurde noch nicht getestet.
-- **Dokumentationskorrektur:**
+  `verify` succeeded, the image artifact was uploaded,
+  and `publish` was skipped as expected.
+  The PR is not merged; human review and acceptance of the
+  fixed integration baseline remain pending. Actual publication
+  through a `v*` tag has not been tested.
+- **Documentation cleanup:**
   [PR #22](https://github.com/Guin-Kiwi/pay-align-dev/pull/22)
-  ist gemergt. Commit `39ffed463d711ca4cf295f220fe5eb5c895e736b`
-  entfernt ausschließlich drei nachgestellte Leerzeichen.
-- **Architekturtests:** Auf `delivery-architecture-tests` liegen lokal
-  die Commits `b188fc8eb8b7ff4a58836f593c1d1b1acc57899b`
-  (relative Imports und Paketimporte) und
+  is merged. Commit `39ffed463d711ca4cf295f220fe5eb5c895e736b`
+  removes exactly three trailing spaces.
+- **Architecture tests:** Branch `delivery-architecture-tests` contains
+  the local commits `b188fc8eb8b7ff4a58836f593c1d1b1acc57899b`
+  (relative imports and package imports) and
   `02421b8ae6dd1014a32c09bc5d70e2f1a6492ad1`
-  (literale dynamische Imports). Zusammen ergänzen sie 58
-  Regressionstestfälle; alle bestehen. Sie sind noch nicht gepusht.
+  (literal dynamic imports). Together they add 58
+  regression cases, all passing. They have not been pushed.
 
-### Lokale Prüfnachweise der Architekturarbeit
+### Local architecture validation evidence
 
-- Architekturtests: **75 bestanden, 1 fehlgeschlagen**.
-- `bash scripts/test.sh`: Lifecycle-Tests und 32 Tooling-Tests bestanden;
-  pytest: **145 bestanden, 1 fehlgeschlagen, 1 xfailed,
-  41 Untertests bestanden**, eine Starlette/HTTPX-Abkündigungswarnung.
-- `git diff --check`: bestanden.
-- Einziger fehlgeschlagener Test:
+- Architecture tests: **75 passed, 1 failed**.
+- `bash scripts/test.sh`: lifecycle tests and 32 tooling tests passed;
+  pytest: **145 passed, 1 failed, 1 xfailed,
+  41 subtests passed**, with one Starlette/HTTPX deprecation warning.
+- `git diff --check`: passed.
+- Only failing test:
   `test_project_follows_the_dependency_rule`.
-  `src/app/interfaces/payroll.py` importiert direkt
+  `src/app/interfaces/payroll.py` directly imports
   `src.app.infrastructure.sqlite_payroll_repository`.
-  Ayla und Aaron bearbeiten die Payroll-Verdrahtung.
-- Die Architekturtests und die vollständige Testsuite auf dem
-  Architekturbranch sind deshalb noch nicht vollständig grün.
-  Der Test bleibt unverändert aktiv.
+  Ayla and Aaron are handling the payroll wiring.
+- The architecture tests and the full suite on the
+  architecture branch therefore still have a failure.
+  The test remains enabled and unchanged.
 
-Nächste Schritte für Person 4: Review von PR #12 begleiten,
-Architekturarbeit mit der Payroll-Korrektur abstimmen und anschließend
-die Tests erneut ausführen. Präsentationsnachweise daraus vorbereiten;
-die Präsentation wird hier nicht als abgeschlossen gemeldet.
+Next steps for Person 4: support the review of PR #12,
+coordinate architecture work with the payroll correction, and then
+rerun the tests. Prepare presentation evidence from these results;
+the presentation is not marked complete here.
 
 ## Next smallest step
 
