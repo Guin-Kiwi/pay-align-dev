@@ -76,6 +76,20 @@ class TestSetupService(unittest.TestCase):
                 weekly_hours=5,
             )
 
+    def test_rejects_start_dates_outside_2026(self):
+        for start_date in (date(2026, 1, 1), date(2026, 12, 31)):
+            with self.subTest(start_date=start_date):
+                employment = self.service.create_employment(
+                    start_date=start_date, hourly_wage=22.50, weekly_hours=10
+                )
+                self.assertEqual(employment.start_date, start_date)
+        for start_date in (date(2025, 12, 31), date(2027, 1, 1)):
+            with self.subTest(start_date=start_date):
+                with self.assertRaisesRegex(ValueError, "^Start date must be in 2026"):
+                    self.service.create_employment(
+                        start_date=start_date, hourly_wage=22.50, weekly_hours=10
+                    )
+
 
 class TestEmployment(unittest.TestCase):
     def test_accepts_hourly_wage_at_minimum_of_22_20(self):
@@ -126,6 +140,22 @@ class TestEmployment(unittest.TestCase):
             )
 
         self.assertEqual(output.getvalue(), "")
+
+    def make(self, **fields):
+        return Employment(start_date=date(2026, 3, 1), hourly_wage=22.50, weekly_hours=10, **fields)
+
+    def test_holiday_weeks_are_4_or_5_and_default_to_4(self):
+        self.assertEqual(self.make().holiday_weeks, 4)
+        self.assertEqual(self.make(holiday_weeks=5).holiday_weeks, 5)
+        for weeks in (0, 3, 6, 20):
+            with self.subTest(weeks=weeks), self.assertRaisesRegex(ValueError, "^Holiday weeks must be 4 or 5.$"):
+                self.make(holiday_weeks=weeks)
+
+    def test_end_date_is_optional_and_not_before_the_start_date(self):
+        self.assertIsNone(self.make().end_date)
+        self.assertEqual(self.make(end_date=date(2026, 3, 1)).end_date, date(2026, 3, 1))
+        with self.assertRaisesRegex(ValueError, "^End date cannot be before the start date.$"):
+            self.make(end_date=date(2026, 2, 28))
 
 
 def make_employer(ahv_number="756.1234.5678.97", **overrides):
