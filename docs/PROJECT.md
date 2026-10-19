@@ -63,9 +63,9 @@ Tests werden ausserhalb des Laufzeitcontainers in der lokalen Python-Umgebung `.
 
 Der Health-Check wird bei laufender Anwendung ausgeführt und soll HTTP 200 sowie `{"status":"ok"}` liefern. Er beweist noch keine dauerhafte Datenspeicherung.
 
-Der Release-Workflow prüft die bestehenden Tests, baut und startet ein Docker-Image für `linux/amd64` mit einer isolierten In-Memory-Datenbank und stellt das geprüfte Image als `payalign-<Commit-ID>-linux-amd64.tar.gz` bereit. Das Archiv enthält das Image, keine laufenden Container oder Abrechnungsdaten. Nach dem Herunterladen kann es mit `docker load --input payalign-<Commit-ID>-linux-amd64.tar.gz` geladen werden; `<Commit-ID>` wird durch die tatsächliche ID im Dateinamen ersetzt. Der Image-Name lautet danach `payalign:<Commit-ID>`. Auf ARM-Macs ist dieses Image nicht nativ; Docker benötigt Unterstützung für die Ausführung von `linux/amd64`.
+The release workflow runs the existing tests, builds and starts a Docker image for `linux/amd64` using an isolated in-memory database, and provides the verified image as `payalign-<Commit-ID>-linux-amd64.tar.gz`. The archive contains the image, not running containers or payroll data. After downloading it, load it with `docker load --input payalign-<Commit-ID>-linux-amd64.tar.gz`, replacing `<Commit-ID>` with the actual ID in the filename. The resulting image name is `payalign:<Commit-ID>`. This image is not native to ARM Macs; Docker requires support for running `linux/amd64` images.
 
-Pushes von Versions-Tags `v*` veröffentlichen das Archiv nach erfolgreichen Prüfungen am GitHub Release. Manuelle Läufe prüfen standardmässig nur und speichern das Archiv als Actions-Artefakt. Eine manuelle Veröffentlichung erfordert die ausdrückliche Auswahl von `publish_release` und einen `v*`-Tag als Ausführungsstand.
+Pushes of version tags matching `v*` publish the archive to a GitHub Release after successful checks. Manual runs only validate and store the archive as an Actions artifact by default. Manual publication requires explicitly selecting `publish_release` and running from a `v*` tag.
 
 ## Dependencies
 
