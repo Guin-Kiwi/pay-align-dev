@@ -19,7 +19,7 @@ STATUS: in-progress
 
 ## Active objective
 
-Implement and validate the initial vertical slice for employment setup and monthly payroll, 
+Implement and validate the initial vertical slice for employment setup and monthly payroll,
 following the accepted architecture decisions and use-case specifications.
 
 ## Current Use Case
@@ -30,7 +30,7 @@ docs/specs/UC-002-Process-the-Monthly-Employment.md
 
 Initial implementation of the domain models, `SetupService`, and `PayrollService`, with unit tests for setup and payroll calculations.
 
-The implementation must remain consistent with ADR-001 through ADR-004. Workbook-derived golden payroll cases 
+The implementation must remain consistent with ADR-001 through ADR-004. Workbook-derived golden payroll cases
 should be used to verify the calculated values. The discrepancy in `admin_charge` and `total_employer_cost` remains pending confirmation.
 
 Design sub-slice (phase 2): the persistence adapter for UC-002 saving, proposed in
