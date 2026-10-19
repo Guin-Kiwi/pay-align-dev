@@ -47,21 +47,21 @@ Where non-code material lives; link reference documents here so agents find them
 
 ## Commands
 
-Alle Befehle werden im Projektverzeichnis ausgeführt. Für Docker-Befehle muss Docker verfügbar sein; beim Start muss Port 8000 frei sein.
+Run all commands from the project directory. Docker must be available for Docker commands, and port 8000 must be free when starting the application.
 
 | Activity | Command |
 |---|---|
-| Docker-Image bauen | `docker compose build api` |
-| Anwendung starten | `docker compose up api` |
-| Health-Check | `curl --fail --include http://localhost:8000/health` |
-| Unit-Tests | `.venv/bin/python -m pytest tests/unit/` |
-| Integrationstests | `.venv/bin/python -m pytest tests/integration/` |
-| Alle Projektprüfungen | `bash scripts/test.sh` |
-| Image ohne Cache bauen | `docker compose build --no-cache api` |
+| Build Docker image | `docker compose build api` |
+| Start application | `docker compose up api` |
+| Health check | `curl --fail --include http://localhost:8000/health` |
+| Unit tests | `.venv/bin/python -m pytest tests/unit/` |
+| Integration tests | `.venv/bin/python -m pytest tests/integration/` |
+| All project checks | `bash scripts/test.sh` |
+| Build image without cache | `docker compose build --no-cache api` |
 
-Tests werden ausserhalb des Laufzeitcontainers in der lokalen Python-Umgebung `.venv` ausgeführt. Diese muss eingerichtet sein und die Abhängigkeiten aus `requirements.txt` enthalten; sie können mit `.venv/bin/python -m pip install -r requirements.txt` installiert werden. `.dockerignore` schliesst Tests und Prozessskripte aus dem Laufzeitimage aus.
+Run tests outside the runtime container in the local `.venv` Python environment. Set up this environment with the dependencies from `requirements.txt`, using `.venv/bin/python -m pip install -r requirements.txt`. `.dockerignore` excludes tests and process scripts from the runtime image.
 
-Der Health-Check wird bei laufender Anwendung ausgeführt und soll HTTP 200 sowie `{"status":"ok"}` liefern. Er beweist noch keine dauerhafte Datenspeicherung.
+Run the health check while the application is running. It should return HTTP 200 and `{"status":"ok"}`. This does not verify persistent data storage.
 
 ## Dependencies
 
