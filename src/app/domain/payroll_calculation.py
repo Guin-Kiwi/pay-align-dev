@@ -9,6 +9,7 @@ from src.app.domain.constants import (
 )
 from src.app.domain.employment import Employment
 from src.app.domain.errors import AnnualLimitExceededError, InvalidPayrollInputError
+from src.app.domain.hour_categories import MinuteTotals
 from src.app.domain.monthly_record import MonthlyRecord
 from src.app.domain.payslip import Payslip
 from src.app.domain.work_entry import WorkEntry
@@ -105,6 +106,43 @@ def calculate_gross_wage(
     base_pay = (hours_worked + holiday_hours + public_holiday_hours) * hourly_wage
     holiday_premium = public_holiday_hours * hourly_wage * HOLIDAY_PREMIUM_RATE
     return base_pay + holiday_premium + cash_bonus
+
+
+NBU_MIN_WEEKLY_MINUTES = 8 * 60  # NBU applies from 8 weekly hours (480 minutes)
+
+
+def nbu_applies(weekly_minutes: int) -> bool:
+    """Return whether NBU is deducted: weekly working time of at least 480 minutes."""
+    return weekly_minutes >= NBU_MIN_WEEKLY_MINUTES
+
+
+def calculate_gross_wage_from_minutes(
+    totals: MinuteTotals,
+    hourly_wage: Decimal,
+    cash_bonus: Decimal = Decimal("0"),
+) -> Decimal:
+    """Gross wage in CHF from whole minutes, as Decimal (ADR-003).
+
+    Hourly pay is computed once: wage x weighted minutes / 60, rounded half-up
+    to CHF 0.01. Hours worked on a public holiday count 1.5 times (50% premium).
+    The cash bonus is added afterwards.
+    """
+    if not isinstance(hourly_wage, Decimal) or not isinstance(cash_bonus, Decimal):
+        raise InvalidPayrollInputError("Hourly wage and cash bonus must be Decimal values.")
+    if hourly_wage < 0:
+        raise InvalidPayrollInputError("Hourly wage cannot be negative.")
+    if cash_bonus < 0:
+        raise InvalidPayrollInputError("Cash bonus cannot be negative.")
+
+    # Work in half-minutes so the 50% premium stays an integer.
+    weighted_half_minutes = (
+        2 * (totals.worked + totals.paid_holiday + totals.public_holiday_leave)
+        + 3 * totals.worked_public_holiday
+    )
+    hourly_pay = (hourly_wage * weighted_half_minutes / Decimal(120)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    return hourly_pay + cash_bonus.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def calculate_employee_deductions(
