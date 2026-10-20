@@ -12,7 +12,7 @@ STATUS: in-progress
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Established; review as needed | UC-001 and UC-002 are documented. |
 | 2 — Design | Baseline established; decisions open | ADR-001 to ADR-004 form the working baseline. ADR-005 remains Proposed. |
-| 3 — Develop | In progress | Payroll calculation and persistent payroll saving are being developed; the UC-002 database foundation slice is Implemented, awaiting review. |
+| 3 — Develop | In progress | Payroll calculation and persistent payroll saving are being developed; the UC-002 database foundation is done, wiring next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
 
