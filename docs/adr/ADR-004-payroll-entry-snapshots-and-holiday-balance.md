@@ -1,7 +1,7 @@
 # ADR-004-payroll-entry-snapshots-and-holiday-balance
 
 ## Status
-Accepted
+Accepted (amended: see Amendment 1)
 
 ## Context
 Monthly payroll must remain reproducible after submission. The application
@@ -68,3 +68,58 @@ monthly payroll flow.
 ## Supersedes
 
 none
+
+## Amendment 1 (2026-10-16)
+
+Approval: AYLA PROPOSES; review by Nano and Aaron in this PR.
+
+The following decisions amend this ADR:
+
+1. Holiday entitlement and the derived holiday balance are counted in whole
+   minutes, not float hours.
+2. Yearly entitlement is `holiday_weeks` (4 or 5) × `weekly_minutes`. This
+   replaces the day-based `holiday_entitlement`, and the first run starts from
+   this figure.
+3. For an employment starting or ending during the year, entitlement is
+  pro-rated by the days under contract in the calendar year, with both the
+  start and end dates counted, divided by 365, and rounded half-up once to
+  whole minutes (OR 329a para. 3). Source: team decision of 16 October 2026,
+  recorded in the UC-001 spec (PR #17).
+4. The app accepts 2026 only (ADR-002). Later years, including 366 days in
+   2028, are a known limitation; cross-year carry-over remains dormant until a
+   second ruleset exists.
+5. The pro-rated entitlement is rounded half-up once to whole minutes, as
+  specified by ADR-003.
+6. There are four hour categories, not three: worked; worked on a public
+  holiday (50% premium); paid holiday; paid public-holiday leave (no work
+  done).
+7. Hours live only in the daily entries (`work_entries`); monthly hour totals
+  are derived from them and are not stored on `monthly_records`. Time is
+  recorded in whole minutes.
+8. The snapshot refers to the run's persisted `work_entries`, which are
+  immutable once saved, instead of copying them. It freezes the employment
+  parameters, the ruleset version, the minute totals per category and the
+  holiday balance after the run.
+9. Carry-over: the next run reads the previous run for the same employment,
+  whatever its year. The first run of a new year adds that year's pro-rated
+  entitlement, and the entitlement of any skipped year, to the previous
+  closing balance. Unused holiday does not lapse at year end. This amends the
+  "same calendar year" wording in the Decision. It stays dormant while only
+  the 2026 ruleset exists (see item 4).
+
+### Assumptions
+
+- The 4-or-5 rule for `holiday_weeks` is determined in the domain and API, not
+  by a database CHECK.
+- Cross-year carry-over is not active while only the 2026 ruleset exists.
+
+### Amendment consequences
+
+- Holiday entitlement and derived balances require integer-minute arithmetic
+  and persistence rather than float-hour arithmetic.
+- The employment snapshot must retain `holiday_weeks`, `weekly_minutes`,
+  `start_date`, and `end_date` so the pro-rated entitlement can be reproduced.
+- The calendar-year denominator is fixed at 365 for the 2026-only application;
+  leap-year handling is deferred with later rulesets.
+- The payroll domain code that treats `public_holiday_hours` as hours worked on
+  a holiday changes to the category model.
