@@ -1,3 +1,3 @@
 import os
 
-os.environ.setdefault("DATABASE_URL", "sqlite://")
+os.environ["DATABASE_URL"] = "sqlite://"
