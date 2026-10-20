@@ -30,9 +30,9 @@ class PayrollSnapshotInput:
     holiday_weeks: int
     ruleset_version: str
     worked_minutes: int
-    worked_public_holiday_minutes: int
-    paid_holiday_minutes: int
-    paid_public_holiday_minutes: int
+    public_holiday_worked_minutes: int
+    annual_holiday_taken_minutes: int
+    public_holiday_taken_minutes: int
     holiday_balance_minutes: int
 
 

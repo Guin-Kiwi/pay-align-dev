@@ -49,9 +49,9 @@ def make_run(*, employment_id=7, employee_id=9, employer_id=3, month=10, year=20
         holiday_weeks=4,
         ruleset_version="2026",
         worked_minutes=225,
-        worked_public_holiday_minutes=0,
-        paid_holiday_minutes=0,
-        paid_public_holiday_minutes=0,
+        public_holiday_worked_minutes=0,
+        annual_holiday_taken_minutes=0,
+        public_holiday_taken_minutes=0,
         holiday_balance_minutes=1200,
     )
     payslip = PayslipInput(

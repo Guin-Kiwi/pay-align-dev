@@ -60,8 +60,8 @@ class WorkEntryRow(Base):
     __tablename__ = "work_entries"
     __table_args__ = (
         CheckConstraint(
-            "category IN ('worked', 'worked_public_holiday', 'paid_holiday', "
-            "'paid_public_holiday')",
+            "category IN ('worked', 'public_holiday_worked', 'annual_holiday_taken', "
+            "'public_holiday_taken')",
             name="ck_work_entries_category",
         ),
     )
@@ -90,9 +90,9 @@ class PayrollSnapshotRow(Base):
     holiday_weeks: Mapped[int] = mapped_column(Integer, nullable=False)
     ruleset_version: Mapped[str] = mapped_column(String, nullable=False)
     worked_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
-    worked_public_holiday_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
-    paid_holiday_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
-    paid_public_holiday_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    public_holiday_worked_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    annual_holiday_taken_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    public_holiday_taken_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     holiday_balance_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
 
 

@@ -37,9 +37,9 @@ class SqlAlchemyPayrollRepository:
             holiday_weeks=snapshot.holiday_weeks,
             ruleset_version=snapshot.ruleset_version,
             worked_minutes=snapshot.worked_minutes,
-            worked_public_holiday_minutes=snapshot.worked_public_holiday_minutes,
-            paid_holiday_minutes=snapshot.paid_holiday_minutes,
-            paid_public_holiday_minutes=snapshot.paid_public_holiday_minutes,
+            public_holiday_worked_minutes=snapshot.public_holiday_worked_minutes,
+            annual_holiday_taken_minutes=snapshot.annual_holiday_taken_minutes,
+            public_holiday_taken_minutes=snapshot.public_holiday_taken_minutes,
             holiday_balance_minutes=snapshot.holiday_balance_minutes,
         )
 

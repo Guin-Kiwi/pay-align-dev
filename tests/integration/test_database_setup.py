@@ -208,9 +208,9 @@ def test_payroll_snapshots_hold_integer_minute_fields_and_are_unique(tmp_path, e
         "holiday_weeks",
         "ruleset_version",
         "worked_minutes",
-        "worked_public_holiday_minutes",
-        "paid_holiday_minutes",
-        "paid_public_holiday_minutes",
+        "public_holiday_worked_minutes",
+        "annual_holiday_taken_minutes",
+        "public_holiday_taken_minutes",
         "holiday_balance_minutes",
     }
     for name, column in columns.items():
@@ -224,8 +224,8 @@ def test_payroll_snapshots_hold_integer_minute_fields_and_are_unique(tmp_path, e
                 "INSERT INTO payroll_snapshots "
                 "(monthly_record_id, hourly_wage_cents, weekly_minutes, "
                 "holiday_weeks, ruleset_version, worked_minutes, "
-                "worked_public_holiday_minutes, paid_holiday_minutes, "
-                "paid_public_holiday_minutes, holiday_balance_minutes) "
+                "public_holiday_worked_minutes, annual_holiday_taken_minutes, "
+                "public_holiday_taken_minutes, holiday_balance_minutes) "
                 "VALUES (1, 2500, 600, 4, '2026', 60, 0, 0, 0, 1200)"
             )
         )
@@ -236,8 +236,8 @@ def test_payroll_snapshots_hold_integer_minute_fields_and_are_unique(tmp_path, e
                     "INSERT INTO payroll_snapshots "
                     "(monthly_record_id, hourly_wage_cents, weekly_minutes, "
                     "holiday_weeks, ruleset_version, worked_minutes, "
-                    "worked_public_holiday_minutes, paid_holiday_minutes, "
-                    "paid_public_holiday_minutes, holiday_balance_minutes) "
+                    "public_holiday_worked_minutes, annual_holiday_taken_minutes, "
+                    "public_holiday_taken_minutes, holiday_balance_minutes) "
                     "VALUES (1, 2500, 600, 4, '2026', 60, 0, 0, 0, 1200)"
                 )
             )
