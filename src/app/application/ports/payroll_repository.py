@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import date, time
 
+from src.app.domain.hour_categories import MinuteTotals
+
 
 @dataclass(frozen=True)
 class MonthlyRecordInput:
@@ -24,15 +26,19 @@ class WorkEntryInput:
 
 
 @dataclass(frozen=True)
-class PayrollSnapshotInput:
+class EmploymentTerms:
     hourly_wage_cents: int
     weekly_minutes: int
     holiday_weeks: int
+    employment_start_date: date
+    employment_end_date: date | None
+
+
+@dataclass(frozen=True)
+class RunSnapshot:
+    employment: EmploymentTerms
     ruleset_version: str
-    worked_minutes: int
-    public_holiday_worked_minutes: int
-    annual_holiday_taken_minutes: int
-    public_holiday_taken_minutes: int
+    hours: MinuteTotals
     holiday_balance_minutes: int
 
 
@@ -56,6 +62,7 @@ class PayslipInput:
 class PriorRun:
     monthly_record_id: int
     year: int
+    month: int
     holiday_balance_minutes: int
 
 
@@ -72,14 +79,17 @@ class PayrollRepositoryPort:
         self,
         record: MonthlyRecordInput,
         entries: tuple[WorkEntryInput, ...],
-        snapshot: PayrollSnapshotInput,
+        snapshot: RunSnapshot,
         payslip: PayslipInput,
     ) -> SavedPayrollRun:
         raise NotImplementedError
 
     def save_snapshot(
-        self, record_id: int, snapshot: PayrollSnapshotInput
+        self, record_id: int, snapshot: RunSnapshot
     ) -> int:
+        raise NotImplementedError
+
+    def run_snapshot(self, monthly_record_id: int) -> RunSnapshot | None:
         raise NotImplementedError
 
     def employee_gross_to_date(self, employee_id: int, year: int) -> int:

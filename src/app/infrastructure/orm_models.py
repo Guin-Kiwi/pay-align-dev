@@ -1,7 +1,9 @@
 from datetime import date, time
 
-from sqlalchemy import CheckConstraint, Date, ForeignKey, Integer, String, Time, UniqueConstraint
+from sqlalchemy import CheckConstraint, event, Date, ForeignKey, Integer, String, Time, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from src.app.domain.errors import ImmutableRecordError
 
 
 class Base(DeclarativeBase):
@@ -88,6 +90,8 @@ class PayrollSnapshotRow(Base):
     hourly_wage_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     weekly_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     holiday_weeks: Mapped[int] = mapped_column(Integer, nullable=False)
+    employment_start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    employment_end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     ruleset_version: Mapped[str] = mapped_column(String, nullable=False)
     worked_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     public_holiday_worked_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -115,3 +119,12 @@ class PayslipRow(Base):
     employer_bu_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     admin_charge_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     total_employer_cost_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+def _reject_change(mapper, connection, target) -> None:
+    raise ImmutableRecordError(f"{mapper.local_table.name} rows cannot be changed.")
+
+
+for _row_class in (PayrollSnapshotRow, WorkEntryRow):
+    event.listen(_row_class, "before_update", _reject_change)
+    event.listen(_row_class, "before_delete", _reject_change)

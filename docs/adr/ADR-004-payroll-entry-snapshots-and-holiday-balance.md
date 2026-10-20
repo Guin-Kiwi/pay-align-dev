@@ -123,3 +123,30 @@ The following decisions amend this ADR:
   leap-year handling is deferred with later rulesets.
 - The payroll domain code that treats `public_holiday_hours` as hours worked on
   a holiday changes to the category model.
+
+## Amendment 2 (2026-10-20)
+Reason: "snapshot" was used for several different things across ADR-004, ADR-005
+and UC-002. This amendment defines the run snapshot once and replaces the earlier
+wording.
+
+1. A run snapshot is written once per monthly run, in the run's transaction, together
+   with the entries, the `MonthlyRecord` and the `Payslip`. It is never updated or
+   deleted.
+2. It records what the calculation used and what carries forward, in four parts:
+   - Employment: hourly wage, weekly minutes, holiday weeks, employment start date
+     and employment end date, as they were at the run. The live values stay on the
+     employment and may change.
+   - Ruleset: the named ruleset version (ADR-002).
+   - Hours: the minute totals per hour category.
+   - Balance: the holiday balance after the run. The next run starts from it.
+3. The entries are not copied. The run's `work_entries` are the record of them and
+   are immutable once saved.
+4. A run can be reproduced from its entries and its run snapshot, with the rules of
+   the named ruleset. Gross to date for the annual limits comes from the earlier
+   `monthly_records`, not from the snapshot.
+5. This replaces "a frozen snapshot of the submitted entries, the employment
+   parameters, and the named payroll-ruleset version" and "calculated from that
+   snapshot" in the Decision, and "the employment snapshot" in Amendment 1.
+6. Immutability is enforced by the application: no update path, frozen objects, and
+   ORM guards on `payroll_snapshots` and `work_entries`. Direct SQL is not prevented.
+7. Period snapshots (month or year end) are not part of this decision.

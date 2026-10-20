@@ -19,3 +19,8 @@ class DuplicateMonthError(Exception):
 class InvalidHolidayBalanceError(Exception):
     """Raised when a payroll snapshot contains an invalid balance."""
     pass
+
+
+class ImmutableRecordError(Exception):
+    """Raised when a saved payroll record is changed or deleted."""
+    pass

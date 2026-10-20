@@ -3,13 +3,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.app.application.ports.payroll_repository import (
+    EmploymentTerms,
     MonthlyRecordInput,
-    PayrollSnapshotInput,
+    RunSnapshot,
     PayslipInput,
     PriorRun,
     SavedPayrollRun,
     WorkEntryInput,
 )
+from src.app.domain.hour_categories import MinuteTotals
 from src.app.domain.errors import DuplicateMonthError, InvalidHolidayBalanceError
 from src.app.infrastructure.orm_models import (
     MonthlyRecordRow,
@@ -24,22 +26,26 @@ class SqlAlchemyPayrollRepository:
         self.engine = engine
 
     def _snapshot_values(
-        self, monthly_record_id: int, snapshot: PayrollSnapshotInput
+        self, monthly_record_id: int, snapshot: RunSnapshot
     ) -> PayrollSnapshotRow:
         if snapshot.holiday_balance_minutes < 0:
             raise InvalidHolidayBalanceError(
                 "Holiday balance cannot be negative."
             )
+        terms = snapshot.employment
+        hours = snapshot.hours
         return PayrollSnapshotRow(
             monthly_record_id=monthly_record_id,
-            hourly_wage_cents=snapshot.hourly_wage_cents,
-            weekly_minutes=snapshot.weekly_minutes,
-            holiday_weeks=snapshot.holiday_weeks,
+            hourly_wage_cents=terms.hourly_wage_cents,
+            weekly_minutes=terms.weekly_minutes,
+            holiday_weeks=terms.holiday_weeks,
+            employment_start_date=terms.employment_start_date,
+            employment_end_date=terms.employment_end_date,
             ruleset_version=snapshot.ruleset_version,
-            worked_minutes=snapshot.worked_minutes,
-            public_holiday_worked_minutes=snapshot.public_holiday_worked_minutes,
-            annual_holiday_taken_minutes=snapshot.annual_holiday_taken_minutes,
-            public_holiday_taken_minutes=snapshot.public_holiday_taken_minutes,
+            worked_minutes=hours.worked,
+            public_holiday_worked_minutes=hours.public_holiday_worked,
+            annual_holiday_taken_minutes=hours.annual_holiday_taken,
+            public_holiday_taken_minutes=hours.public_holiday_taken,
             holiday_balance_minutes=snapshot.holiday_balance_minutes,
         )
 
@@ -54,7 +60,7 @@ class SqlAlchemyPayrollRepository:
         self,
         record: MonthlyRecordInput,
         entries: tuple[WorkEntryInput, ...],
-        snapshot: PayrollSnapshotInput,
+        snapshot: RunSnapshot,
         payslip: PayslipInput,
     ) -> SavedPayrollRun:
         try:
@@ -76,7 +82,7 @@ class SqlAlchemyPayrollRepository:
         except IntegrityError as error:
             raise DuplicateMonthError("Payroll month or snapshot already exists.") from error
 
-    def save_snapshot(self, record_id: int, snapshot: PayrollSnapshotInput) -> int:
+    def save_snapshot(self, record_id: int, snapshot: RunSnapshot) -> int:
         try:
             with Session(self.engine) as session, session.begin():
                 row = self._snapshot_values(record_id, snapshot)
@@ -87,6 +93,33 @@ class SqlAlchemyPayrollRepository:
             raise
         except IntegrityError as error:
             raise DuplicateMonthError("Snapshot already exists.") from error
+
+    def run_snapshot(self, monthly_record_id: int) -> RunSnapshot | None:
+        with Session(self.engine) as session:
+            row = session.scalar(
+                select(PayrollSnapshotRow).where(
+                    PayrollSnapshotRow.monthly_record_id == monthly_record_id
+                )
+            )
+            if row is None:
+                return None
+            return RunSnapshot(
+                employment=EmploymentTerms(
+                    hourly_wage_cents=row.hourly_wage_cents,
+                    weekly_minutes=row.weekly_minutes,
+                    holiday_weeks=row.holiday_weeks,
+                    employment_start_date=row.employment_start_date,
+                    employment_end_date=row.employment_end_date,
+                ),
+                ruleset_version=row.ruleset_version,
+                hours=MinuteTotals(
+                    worked=row.worked_minutes,
+                    public_holiday_worked=row.public_holiday_worked_minutes,
+                    annual_holiday_taken=row.annual_holiday_taken_minutes,
+                    public_holiday_taken=row.public_holiday_taken_minutes,
+                ),
+                holiday_balance_minutes=row.holiday_balance_minutes,
+            )
 
     def employee_gross_to_date(self, employee_id: int, year: int) -> int:
         with Session(self.engine) as session:
@@ -127,7 +160,9 @@ class SqlAlchemyPayrollRepository:
             if row is None:
                 return None
             record, snapshot = row
-            return PriorRun(record.id, record.year, snapshot.holiday_balance_minutes)
+            return PriorRun(
+                record.id, record.year, record.month, snapshot.holiday_balance_minutes
+            )
 
     def count_rows(self, table_name: str) -> int:
         allowed = {
