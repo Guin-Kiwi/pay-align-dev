@@ -16,22 +16,34 @@ class Page(HTMLParser):
         self.tags.append((tag, dict(attrs)))
 
 
-def test_setup_page_is_accessible_and_cannot_submit():
+def test_setup_page_is_accessible_and_initially_cannot_submit():
     client = TestClient(create_app())
     response = client.get('/setup')
     assert response.status_code == 200
     assert response.headers['content-type'].startswith('text/html')
     page = Page(response.text)
     assert ('html', {'lang': 'en'}) in page.tags
-    for text in ('Set up employment', 'Employer', 'Employee', 'Employment', 'API contract'):
+    for text in ('Set up employment', 'Employer', 'Employee', 'Employment', 'ordinary taxation'):
         assert text in response.text
     button = next(attrs for tag, attrs in page.tags if tag == 'button' and attrs.get('id') == 'save-setup')
     assert 'disabled' in button
-    assert button['type'] == 'button'
-    for field in ('weekly-hours', 'holiday-entitlement'):
-        attrs = next(attrs for tag, attrs in page.tags if attrs.get('id') == field)
-        assert 'disabled' in attrs
-        assert attrs['aria-describedby'] == 'contract-note'
+    assert button['type'] == 'submit'
+    fields = {attrs['id']: attrs for _, attrs in page.tags if 'id' in attrs}
+    assert 'disabled' not in fields['weekly-hours']
+    assert fields['weekly-hours']['type'] == 'text'
+    assert fields['weekly-hours']['placeholder'] == '6:30'
+    assert 'disabled' not in fields['holiday-weeks']
+    assert fields['start-date']['min'] == '2026-01-01'
+    assert fields['start-date']['max'] == '2026-12-31'
+    assert 'required' in fields['start-date']
+    assert fields['end-date']['type'] == 'date'
+    assert 'required' not in fields['end-date']
+    assert 'max' not in fields['end-date']
+    assert fields['hourly-wage']['min'] == '22.20'
+    assert fields['hourly-wage']['step'] == '0.01'
+    options = [attrs for tag, attrs in page.tags if tag == 'option']
+    assert options == [{'value': '4', 'selected': None}, {'value': '5'}]
+    assert 'holiday-entitlement' not in fields
     inputs = [attrs for tag, attrs in page.tags if tag == 'input']
     labels = {attrs.get('for') for tag, attrs in page.tags if tag == 'label'}
     assert all(attrs['id'] in labels for attrs in inputs)
@@ -66,7 +78,7 @@ def test_existing_employer_remains_available_after_loading_page():
             'name': 'Maria Muster', 'address': 'Basel',
             'ahv_number': '756.9876.5432.10', 'nationality': 'CH',
         },
-        'employment': {'start_date': '2026-01-01', 'hourly_wage': '28.50', 'weekly_hours': 6},
+        'employment': {'start_date': '2026-01-01', 'hourly_wage': '28.50', 'weekly_hours': '6:00'},
     })
     assert response.status_code == 201
     assert client.get('/setup').status_code == 200
@@ -113,6 +125,12 @@ process.stdin.on('end', async () => {
         disabled: Object.hasOwn(attrs, 'disabled'),
         textContent: '',
         children: [],
+        id: attrs.id,
+        value: attrs.value ?? '',
+        listeners: {},
+        setCustomValidity(message) { this.validationMessage = message; },
+        setAttribute(name, value) { this[name] = value; },
+        addEventListener(event, callback) { this.listeners[event] = callback; },
         append(...children) { this.children.push(...children); },
         set innerHTML(value) { throw new Error('Employer data must be rendered as text'); }
       };
@@ -142,9 +160,35 @@ process.stdin.on('end', async () => {
     assert.equal(elements['employer-fields'].hidden, true);
     assert.equal(elements['employer-fields'].disabled, true);
     assert.equal(elements['employer-error'].hidden, true);
-    for (const id of ['save-setup', 'weekly-hours', 'holiday-entitlement']) {
-      assert.equal(elements[id].disabled, true, id);
+    assert.equal(elements['save-setup'].disabled, true);
+    for (const id of ['weekly-hours', 'holiday-weeks', 'end-date']) {
+      assert.equal(elements[id].disabled, false, id);
     }
+    function check(id, value, valid, event = 'input') {
+      const field = elements[id];
+      field.value = value;
+      field.listeners[event]();
+      assert.equal(field.validationMessage === '', valid, `${id}: ${value}`);
+      assert.equal(field['aria-invalid'], String(!valid));
+    }
+    for (const value of ['0:01', '00:01', '6:30', '30:15', '99:59']) check('weekly-hours', value, true);
+    for (const value of ['', '0:00', '00:00', '6.5', '6:5', '6:60', '100:00', '٦:٣٠', ' 6:30', '6:30\n']) {
+      check('weekly-hours', value, false);
+    }
+    for (const value of ['22.20', '28.5', '28.50', '100']) check('hourly-wage', value, true);
+    for (const value of ['', '22.19', '28.505', '-1', 'NaN']) check('hourly-wage', value, false);
+    for (const value of ['2026-01-01', '2026-12-31']) check('start-date', value, true);
+    for (const value of ['', '2025-12-31', '2027-01-01', '2026-02-30']) check('start-date', value, false);
+    check('start-date', '2026-03-01', true);
+    for (const value of ['', '2026-03-01', '2027-08-31']) check('end-date', value, true);
+    check('end-date', '2026-02-28', false);
+    check('end-date', '2026-03-02', true);
+    check('start-date', '2026-03-03', true);
+    assert.notEqual(elements['end-date'].validationMessage, '');
+    for (const value of ['4', '5']) check('holiday-weeks', value, true, 'change');
+    check('holiday-weeks', '20', false, 'change');
+    assert.equal(calls.length, 1, 'Editing must not submit or fetch');
+    assert.equal(elements['save-setup'].disabled, true);
     console.log('Existing employer UI state verified');
   } catch (error) {
     console.error(error);
@@ -160,3 +204,43 @@ process.stdin.on('end', async () => {
     assert result.returncode == 0, result.stdout + result.stderr
     assert 'Existing employer UI state verified' in result.stdout
     assert client.get('/api/v1/employer').status_code == 404
+
+
+@pytest.mark.parametrize('scenario', [
+    'new', 'existing', 'end-date', 'duplicate', 'loading', 'invalid',
+    'lookup-network', 'lookup-500', 'lookup-malformed', 'lookup-id', 'lookup-404',
+    '400', '409', '422', '500', 'network', 'malformed-success', 'invalid-json',
+    'refresh-failure', 'timeout', '200', 'holiday-five',
+])
+def test_setup_submission_javascript(scenario):
+    import json
+    from pathlib import Path
+    import shutil
+    import subprocess
+
+    node = shutil.which('node')
+    if node is None:
+        candidates = sorted(Path('/vscode/vscode-server/bin').glob('*/*/node'))
+        assert candidates, 'The UI tests require Node.js.'
+        node = str(candidates[-1])
+    client = TestClient(create_app())
+    html = client.get('/setup').text
+    elements = {attrs['id']: attrs for _, attrs in Page(html).tags if 'id' in attrs}
+    result = subprocess.run(
+        [node, 'tests/fixtures/setup_submission.js'],
+        input=json.dumps({'scenario': scenario, 'elements': elements,
+                          'javascript': client.get('/setup-assets/setup.js').text}),
+        text=True, capture_output=True, timeout=10,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    posts = json.loads(result.stdout)
+    if scenario in ('new', 'existing', 'end-date', 'duplicate', 'refresh-failure', 'holiday-five'):
+        if scenario == 'existing':
+            first = {**posts[0], 'employer': {
+                'name': 'Anna', 'address': 'Basel', 'ahv_number': '756.1234.5678.97',
+                'contact_info': 'anna@example.ch',
+            }}
+            assert client.post('/api/v1/setup', json=first).status_code == 201
+        response = client.post('/api/v1/setup', json=posts[0])
+        assert response.status_code == 201
+        assert client.get('/api/v1/employer').status_code == 200

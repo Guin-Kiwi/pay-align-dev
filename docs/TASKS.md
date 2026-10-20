@@ -141,6 +141,74 @@ then start DEVELOP on `uc-002-payroll-saving` with the first failing test for th
 Separately, on `uc-002-payroll-calculation`: implement and run golden payroll tests against `PayrollService` using the workbook-derived cases.
 Resolve the pending `admin_charge` and `total_employer_cost` discrepancy before treating those expected values as final.
 
+## UC-001 UI-Felder — vorherige Teilaufgabe auf `person4-ui-setup`
+
+- Anforderung: Setup-Felder an den zusammengeführten UC-001-API-Vertrag anpassen;
+  in dieser vorherigen Teilaufgabe blieben Übermittlung und Save deaktiviert. Keine Backend-Änderung.
+- Phase 3, Teilaufgabe umgesetzt und geprüft; der gemeinsame Projektstatus bleibt
+  `in-progress`, da UC-001 und UC-002 insgesamt noch nicht abgeschlossen sind.
+- Wochenstunden: editierbares H:MM-Feld, exakt 0:01 bis 99:59; Ferienwochen:
+  Auswahl 4 oder 5, Standard 4. Startdatum nur 2026; optionales Enddatum ab
+  Startdatum, auch nach 2026. Stundenlohn in CHF, mindestens 22.20 und höchstens
+  zwei Nachkommastellen. Hinweis auf gewöhnliche Besteuerung als Standard.
+- Die vorhandene uncommittete Testkorrektur auf `weekly_hours: "6:00"` bleibt erhalten.
+- TDD-Nachweis: neue Feld-/Validierungsprüfungen zuerst rot (3 fehlgeschlagen),
+  danach 7 UI-Tests grün. JavaScript-Grenzfälle, Datumsabhängigkeit und ausbleibende
+  zusätzliche HTTP-Anfragen werden im vorhandenen Node-DOM-Harness geprüft.
+- Prüfungen: `bash scripts/test.sh` mit isolierter Python-Umgebung unter `/tmp`:
+  89 bestanden, 1 erwarteter Fehlschlag, 70 Subtests; 32 Prozess-Tests und
+  Lifecycle-Szenarien bestanden. `bash scripts/check-lifecycle.sh` und
+  `git diff --check` bestanden. Bekannte Starlette/HTTPX-Abkündigungswarnung.
+- Grenze: kein echter Browser-/Layout-Test in dieser Teilaufgabe.
+- Folgeschritt: Formularübermittlung, nachfolgend dokumentiert.
+
+## UC-001 Save Setup — lokale Umsetzung auf `person4-ui-setup`
+
+- Quelle: UC-001, bestehender Setup-API-Vertrag und expliziter Auftrag zur
+  UI-Übermittlung. Phase 3; Teilaufgabe implementiert und lokal geprüft.
+  Der gemeinsame Projektstatus bleibt `in-progress`.
+- Vorhandene uncommittete Feldänderungen und die Testkorrektur bleiben erhalten.
+  Backend, API-Vertrag, andere Branches und Worktrees bleiben unverändert.
+- Save wird erst nach bestätigtem Arbeitgeber-Lookup und gültigen Pflichtfeldern
+  freigegeben. Nur der dokumentierte 404 erlaubt neue Arbeitgeberdaten;
+  bei bestehendem Arbeitgeber entfällt die gesamte `employer`-Eigenschaft.
+- JSON enthält H:MM als String, Ferienwochen als Zahl, CHF-Stundenlohn als
+  Dezimalstring, leeres Enddatum als `null` und `tax_status: "ordinary"`.
+- Formularevent verhindert die native Übermittlung; ein laufender POST sperrt
+  weitere POSTs. Keine automatischen Wiederholungen. Netzwerkfehler, Timeout
+  und unerwartete Antworten sperren erneutes Senden und erklären das ungewisse
+  Ergebnis. HTTP 400/409/422 zeigen sicher als Text gerenderte Fehlermeldungen;
+  alle Eingaben bleiben erhalten.
+- HTTP 201 wird anhand von Nachricht und positiven ganzzahligen IDs geprüft.
+  IDs werden nicht angezeigt. Danach Arbeitgeberstatus neu laden; eine weitere
+  Einrichtung erfordert bewusst ein Neuladen der Seite. Der Hinweis auf den
+  ausschließlich flüchtigen In-Memory-Speicher bleibt sichtbar.
+- TDD: zuerst 20 rote UI-Prüfungen, danach grün; ergänzt um Timeout,
+  unerwartetes HTTP 200 und fünf Ferienwochen. Der Node-DOM-Harness prüft
+  Payloads, Validierungsgrenzen, Lookup-Fehler, Doppelübermittlung,
+  Fehlerantworten, Texte mit HTML-Zeichen und Refresh-Fehler. Erzeugte
+  Erfolgs-Payloads werden zusätzlich gegen die echte API im TestClient geprüft.
+- Nachweise: fokussierte UI/API-Tests 44 bestanden (23 Subtests);
+  vollständiges `bash scripts/test.sh` mit isolierter Python-Umgebung unter
+  `/tmp`: 111 bestanden, 1 erwarteter Fehlschlag, 70 Subtests. 32 Prozess-Tests
+  und Lifecycle-Szenarien bestanden. Lifecycle-Check und `git diff --check`
+  bestanden. Bekannte Starlette/HTTPX-Abkündigungswarnung bleibt bestehen.
+- Person 4 manual browser validation (reported personally by the user):
+  Safari on macOS; these observations are separate from the automated tests above.
+  - The setup page loads correctly.
+  - Saving a new employer and employment displays the success message.
+  - Reloading the page displays the existing employer.
+  - Saving a second employment for that employer succeeds.
+  - Invalid weekly hours `6:60` display a validation error and keep Save disabled.
+  - Tab navigation works and focused fields are visible.
+  - The form remains usable in a narrow Safari window without horizontal scrolling.
+- Validation limits: a full screenreader audit remains unverified. These checks
+  do not establish usability on a physical mobile device or persistence across
+  a server restart. Setup records are stored only in memory and are lost when
+  the server restarts.
+- Alles bleibt uncommittet zur menschlichen Prüfung. Kein Push, Merge,
+  Rebase, Tag oder Release; PR #24 bleibt unverändert Draft.
+
 ## Backlog
 
 - docs/specs/UC-002-Employee-Registration.md

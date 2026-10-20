@@ -11,39 +11,62 @@
 <main>
   <p class="brand">PayAlign</p>
   <h1>Set up employment</h1>
-  <p>Prepare the details for your employment arrangement. No entries are saved yet.</p>
-  <noscript><p>Please enable JavaScript to load the employer status. Saving is not available yet.</p></noscript>
-  <section aria-labelledby="employer-heading">
-    <h2 id="employer-heading">Employer</h2>
-    <p id="employer-status" role="status" aria-live="polite">Loading employer status …</p>
-    <p id="employer-error" role="alert" hidden></p>
-    <dl id="employer-details" hidden></dl>
-    <fieldset id="employer-fields" disabled>
-      <legend>Employer details</legend>
-      <label for="employer-name">Name</label><input id="employer-name" autocomplete="name">
-      <label for="employer-address">Address</label><input id="employer-address" autocomplete="street-address">
-      <label for="employer-ahv">AHV number (756.XXXX.XXXX.XX)</label><input id="employer-ahv">
-      <label for="employer-contact">Contact details</label><input id="employer-contact">
-    </fieldset>
-  </section>
-  <section aria-labelledby="employee-heading">
-    <h2 id="employee-heading">Employee</h2>
-    <label for="employee-name">Name</label><input id="employee-name" autocomplete="name">
-    <label for="employee-address">Address</label><input id="employee-address" autocomplete="street-address">
-    <label for="employee-ahv">AHV number (756.XXXX.XXXX.XX)</label><input id="employee-ahv">
-    <label for="employee-nationality">Nationality</label><input id="employee-nationality">
-  </section>
-  <section aria-labelledby="employment-heading">
-    <h2 id="employment-heading">Employment</h2>
-    <label for="start-date">Start date</label><input id="start-date" type="date">
-    <label for="hourly-wage">Hourly wage in CHF</label><input id="hourly-wage" type="number" step="0.01">
-    <p id="contract-note">Weekly hours and holiday entitlement: the API contract is awaiting confirmation. These fields are not available yet.</p>
-    <label for="weekly-hours">Weekly hours – format pending</label><input id="weekly-hours" disabled aria-describedby="contract-note">
-    <label for="holiday-entitlement">Holiday entitlement – unit pending</label><input id="holiday-entitlement" disabled aria-describedby="contract-note">
-  </section>
-  <p id="save-note">Saving will be enabled once the API contract is confirmed and submission is fully implemented.</p>
-  <button id="save-setup" type="button" disabled aria-describedby="save-note">Save Setup</button>
-  <p class="muted">The current employer data is not stored permanently and may be lost after a restart.</p>
+  <p>Prepare the details for your employment arrangement. Enter your details, then select Save Setup.</p>
+  <noscript><p>Please enable JavaScript to load the employer status. JavaScript is required to save setup.</p></noscript>
+  <form id="setup-form" novalidate>
+    <section aria-labelledby="employer-heading">
+      <h2 id="employer-heading">Employer</h2>
+      <p id="employer-status" role="status" aria-live="polite">Loading employer status …</p>
+      <p id="employer-error" role="alert" hidden></p>
+      <dl id="employer-details" hidden></dl>
+      <fieldset id="employer-fields" disabled>
+        <legend>Employer details</legend>
+        <label for="employer-name">Name</label><input id="employer-name" autocomplete="name" required aria-describedby="employer-name-error">
+        <p id="employer-name-error" role="alert" hidden></p>
+        <label for="employer-address">Address</label><input id="employer-address" autocomplete="street-address" required aria-describedby="employer-address-error">
+        <p id="employer-address-error" role="alert" hidden></p>
+        <label for="employer-ahv">AHV number (756.XXXX.XXXX.XX)</label><input id="employer-ahv" required aria-describedby="employer-ahv-error">
+        <p id="employer-ahv-error" role="alert" hidden></p>
+        <label for="employer-contact">Contact details</label><input id="employer-contact" required aria-describedby="employer-contact-error">
+        <p id="employer-contact-error" role="alert" hidden></p>
+      </fieldset>
+    </section>
+    <section aria-labelledby="employee-heading">
+      <h2 id="employee-heading">Employee</h2>
+      <label for="employee-name">Name</label><input id="employee-name" autocomplete="name" required aria-describedby="employee-name-error">
+        <p id="employee-name-error" role="alert" hidden></p>
+      <label for="employee-address">Address</label><input id="employee-address" autocomplete="street-address" required aria-describedby="employee-address-error">
+        <p id="employee-address-error" role="alert" hidden></p>
+      <label for="employee-ahv">AHV number (756.XXXX.XXXX.XX)</label><input id="employee-ahv" required aria-describedby="employee-ahv-error">
+        <p id="employee-ahv-error" role="alert" hidden></p>
+      <label for="employee-nationality">Nationality</label><input id="employee-nationality" required aria-describedby="employee-nationality-error">
+        <p id="employee-nationality-error" role="alert" hidden></p>
+      <p>Employee tax status defaults to ordinary taxation.</p>
+    </section>
+    <section aria-labelledby="employment-heading">
+      <h2 id="employment-heading">Employment</h2>
+      <label for="start-date">Start date (2026)</label><input id="start-date" type="date" min="2026-01-01" max="2026-12-31" required aria-describedby="start-date-error">
+      <p id="start-date-error" role="alert" hidden></p>
+      <label for="end-date">End date (optional)</label><input id="end-date" type="date" aria-describedby="end-date-note end-date-error">
+      <p id="end-date-note">Leave blank for an open-ended contract. The end date may extend beyond 2026.</p>
+      <p id="end-date-error" role="alert" hidden></p>
+      <label for="hourly-wage">Hourly wage in CHF per hour</label><input id="hourly-wage" type="number" min="22.20" step="0.01" required aria-describedby="wage-note hourly-wage-error">
+      <p id="wage-note">Minimum CHF 22.20 per hour, with at most two decimal places.</p>
+      <p id="hourly-wage-error" role="alert" hidden></p>
+      <label for="weekly-hours">Weekly hours (H:MM)</label><input id="weekly-hours" type="text" placeholder="6:30" pattern="[0-9]{1,2}:[0-5][0-9]" required aria-describedby="hours-note weekly-hours-error">
+      <p id="hours-note">Use H:MM, for example 6:30. Allowed range: 0:01 to 99:59.</p>
+      <p id="weekly-hours-error" role="alert" hidden></p>
+      <label for="holiday-weeks">Holiday weeks per year</label>
+      <select id="holiday-weeks" aria-describedby="holiday-weeks-error"><option value="4" selected>4</option><option value="5">5</option></select>
+      <p id="holiday-weeks-error" role="alert" hidden></p>
+    </section>
+    <p id="save-note">Save becomes available after the employer status has loaded and all required fields are valid.</p>
+    <button id="save-setup" type="submit" disabled aria-describedby="save-note">Save Setup</button>
+    <p id="setup-status" role="status" aria-live="polite"></p>
+    <p id="setup-success" role="status" aria-live="polite" hidden></p>
+    <p id="setup-error" role="alert" hidden></p>
+  </form>
+  <p class="muted">Setup records exist only in memory and are lost after a server restart.</p>
 </main>
 </body>
 </html>
