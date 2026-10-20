@@ -59,12 +59,35 @@ UC-001 setup saving sub-slice (Nano, `uc-001-employment-setup`): setup data surv
   (`test_setup_survives_a_restart`, `test_app_does_not_start_without_database_url`),
   `tests/unit/test_setup_service.py`; `bash scripts/test.sh` passed (96 passed, 1 xfailed). Manual check
   with uvicorn on a SQLite file: the employer was still there after a restart, and a second setup reused employee 1.
-- Review: [PR #28](https://github.com/Guin-Kiwi/pay-align-dev/pull/28) is open, waiting for Assvinth's review.
+- Review: merged into `main` as [PR #28](https://github.com/Guin-Kiwi/pay-align-dev/pull/28) on 20 October 2026.
   Review fix: tests always use an in-memory database, even when the developer has `DATABASE_URL` set
   (`tests/conftest.py`; `tests/integration/test_test_database_isolation.py` failed before the fix).
 - Open, owned by others: Ayla's payroll repository can use `app.state.engine`; `PRAGMA foreign_keys=ON` in
   `database.py` is due now that UC-001 persists employers and employments (ADR-005 item 6); the payroll router
   can look up the employment with `get_employment(id)` (Aaron).
+
+AKBS alignment check (Nano, `docs-uc-001-akbs-alignment`, Fast Track): on 20 October 2026, UC-001,
+`calculations.md` and the code on PRs #28 and #29 were checked against the 2026 AKBS household-help pages, the
+[AKBS 2026 gross-to-net example](https://cms.ak-bs.ch/fileadmin/downloads/2026hd-beispiel-bruttonetto.pdf),
+[Merkblatt 2.07](https://www.ahv-iv.ch/p/2.07.d) and the Basel-Stadt minimum-wage FAQ. The contribution and tax
+rates, FAK, BU, NBU from 8 hours a week, the annual limits and the 30 January report match.
+- Admin fee (open, payroll calculation, before the 24 October freeze): AKBS charges 5% of the whole AHV/IV/EO
+  contribution (gross × 10.6% × 5%; on CHF 880 the example shows 4.70). `calculations.md` and
+  `calculate_employer_costs` take the employer half (gross × 5.3% × 5%), so the fee is half. This settles the
+  pending `admin_charge` discrepancy above in favour of the workbook.
+- Minimum wage (work in progress, UC-001): CHF 22.20 is the legal minimum only below 5 hours a week; see the
+  UC-001 open questions.
+- Age rules (not applied in v0.1.0): no birth date is stored, so the AHV rules from reference age (CHF 1,400 a
+  month allowance, no ALV) and up to age 25 (no contributions up to CHF 750 a year) are not applied. UC-001 lists
+  them as out of scope; UC-002 should say the same (UC-002 owners).
+- Annual wage report (team decision): `docs/PROJECT.md` lists the annual aggregation for the AKBS wage
+  declaration as in scope, but no use case covers it. Options: a small UC-003, or out of scope for v0.1.0.
+- Exclusions (not checked): the employer's spouse or children, and cross-border workers living in France;
+  listed in UC-001.
+- Monthly CHF 1,890 (open question for AKBS, 061 685 22 22): the AKBS page names it as a monthly limit, while
+  Merkblatt 2.07 ties it to the pension-fund rule for jobs shorter than a year.
+- Rounding (no change): AKBS rounds its example to 5 Rappen; ADR-003 keeps 1 Rappen, and AKBS bills from the
+  annual gross.
 
 Design sub-slice (phase 2): the persistence adapter for UC-002 saving, proposed in
 [ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md). It touches infrastructure

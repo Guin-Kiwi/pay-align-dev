@@ -19,10 +19,11 @@ This use case simplifies the onboarding process for private household employers 
 - PDF generation for contracts or registration summaries.
 - Email notifications to the employer or employee.
 - Pre-filling employer or employee details from external sources.
-- Legal compliance checks beyond format validation and the Basel-Stadt minimum wage.
-- Support for cross-border employers or underage employees.
+- Legal compliance checks beyond format validation and the CHF 22.20 wage floor.
+- Cross-border workers living in France and the employer's spouse or children, whom the simplified procedure excludes in Basel-Stadt ([Merkblatt 2.07](https://www.ahv-iv.ch/p/2.07.d)); setup does not check either.
+- Underage employees; setup does not check it.
 - Changing or ending an employment after setup (termination workflows are out of scope in `docs/PROJECT.md`).
-- Checking the employee's age for the five-week holiday rule; no birth date is stored.
+- Rules that depend on the employee's age, because no birth date is stored: the five-week holiday rule, and the AHV rules from reference age (AHV/IV/EO only above CHF 1,400 a month, no ALV) and up to age 25 (no contributions on wages up to CHF 750 a year). UC-002 deducts full contributions, so these employees are not supported in v0.1.0.
 - Calculating or pro-rating the holiday entitlement (UC-002, ADR-004).
 
 ## Actors
@@ -59,7 +60,7 @@ The employer selects **"Set Up Employment"** in the application.
 - Invalid AHV number format.
 - Missing required fields (e.g., employee address).
 - Duplicate `Employer` record.
-- Hourly wage below the Basel-Stadt minimum wage (CHF 22.20 in 2026) or with more than two decimal places.
+- Hourly wage below the CHF 22.20 floor (the Basel-Stadt minimum wage in 2026) or with more than two decimal places.
 - Weekly hours not in H:MM format, or `0:00`.
 - Holiday weeks other than 4 or 5.
 - End date before the start date.
@@ -100,6 +101,7 @@ The employer selects **"Set Up Employment"** in the application.
 - Assumption: the end date may fall after 2026, because setup calculates nothing for later years.
 - Decided on 20 October 2026: a second employment for an AHV number that is already saved reuses that employee. The app has one employer, and the UC-002 annual limit adds up all employments of one employee, so one person keeps one record. Not chosen: rejecting the duplicate (no second contract possible) and dropping the unique AHV column (one person saved twice, which splits the annual limit check).
 - Assumption: when an employee is reused, the saved details stay as they are and the newly entered details are ignored; changing employee details is not part of setup.
+- Work in progress (20 October 2026): the CHF 22.20 minimum wage in UC-001 is only the legal minimum below 5 hours a week. The Basel-Stadt minimum wage does not apply where a standard contract with minimum wages does ([Basel-Stadt minimum-wage FAQ](https://media.bs.ch/original_file_download/e7ce0ad1ebb1a946f5c6aab2ce99db95762ecfa2/2026-01-01-merkblatt-faq-homepage-deutsch.docx), § 2 Abs. 2 lit. h MiLoG). From 5 hours a week with one employer, the federal NAV Hauswirtschaft applies, with 2026 minimums of CHF 20.35 (unskilled), 22.30 (4 years' experience, or EBA) and 24.55 (EFZ) (`docs/reference/Employing_Household_Help_Basel.md`). Until this is settled, setup keeps CHF 22.20 as a single floor: it rejects some lawful wages from CHF 20.35 to 22.19, and does not check that trained or experienced staff get CHF 22.30 or 24.55. Open: keep the single floor, or check the minimum per NAV category, which needs the employee's training and experience.
 
 ## Notes for implementation
 - The API takes weekly hours as the string `"6:30"`; the setup router converts it to minutes, so the domain only sees whole minutes. The wage stays a decimal and the database keeps it in centimes.
@@ -114,3 +116,10 @@ The employer selects **"Set Up Employment"** in the application.
 - **Reason:** merging `main` into `uc-001-employment-setup` (cb4e085) brought old code back. PR #15 disabled it and left the decision to the UC-001 owner.
 - **Acceptance:** the minimum wage rule lives only in `Employment`; a low wage error shows both amounts with two decimals; no `TODO(PR #13 merge)` is left.
 - **Checks (phase 3):** regression test `test_low_wage_error_shows_both_amounts_with_two_decimals` failed before the fix and passes after it; `bash scripts/test.sh` passed (51 passed, 29 subtests); `git diff --check` clean. Required CI and review remain.
+
+## Fast Track: AKBS alignment notes
+
+- **Scope:** documentation only, on `docs-uc-001-akbs-alignment`. UC-001 marks the CHF 22.20 floor as work in progress, since it is the legal minimum only below 5 hours a week; lists the simplified-procedure exclusions and age-dependent AHV rules that setup does not check; and replaces "cross-border employers" with the actual exclusion (workers living in France). `docs/TASKS.md` marks PR #28 merged and records the findings that concern other files. No feature, API, data or code change; DESIGN skipped because nothing is built.
+- **Reason:** checking UC-001 against the 2026 AKBS, federal and Basel-Stadt sources on 20 October 2026 found rules the specification did not mention.
+- **Acceptance:** UC-001 no longer presents CHF 22.20 as the legal minimum for every employment; each rule found and not checked is listed as out of scope; nothing in UC-001 contradicts Merkblatt 2.07 or the Basel-Stadt minimum-wage FAQ.
+- **Checks:** `bash scripts/test.sh` passed (112 passed, 1 xfailed, 70 subtests); `git diff --check` clean. Required CI and review remain.
