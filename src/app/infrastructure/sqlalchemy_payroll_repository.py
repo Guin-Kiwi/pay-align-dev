@@ -119,35 +119,34 @@ class SqlAlchemyPayrollRepository:
                 holiday_balance_minutes=row.holiday_balance_minutes,
             )
 
-    def employee_gross_to_date(
-        self, employee_id: int, year: int, before_month: int
+    def _gross_before(
+        self, owner_column, owner_id: int, year: int, before_month: int
     ) -> int:
         with Session(self.engine) as session:
             value = session.scalar(
                 select(func.coalesce(func.sum(PayslipRow.gross_wage_cents), 0))
                 .join(MonthlyRecordRow)
                 .where(
-                    MonthlyRecordRow.employee_id == employee_id,
+                    owner_column == owner_id,
                     MonthlyRecordRow.year == year,
                     MonthlyRecordRow.month < before_month,
                 )
             )
             return int(value)
 
+    def employee_gross_to_date(
+        self, employee_id: int, year: int, before_month: int
+    ) -> int:
+        return self._gross_before(
+            MonthlyRecordRow.employee_id, employee_id, year, before_month
+        )
+
     def employer_gross_to_date(
         self, employer_id: int, year: int, before_month: int
     ) -> int:
-        with Session(self.engine) as session:
-            value = session.scalar(
-                select(func.coalesce(func.sum(PayslipRow.gross_wage_cents), 0))
-                .join(MonthlyRecordRow)
-                .where(
-                    MonthlyRecordRow.employer_id == employer_id,
-                    MonthlyRecordRow.year == year,
-                    MonthlyRecordRow.month < before_month,
-                )
-            )
-            return int(value)
+        return self._gross_before(
+            MonthlyRecordRow.employer_id, employer_id, year, before_month
+        )
 
     def prior_run(self, employment_id: int) -> PriorRun | None:
         with Session(self.engine) as session:
