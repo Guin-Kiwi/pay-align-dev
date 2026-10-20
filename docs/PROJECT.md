@@ -63,6 +63,10 @@ Tests werden ausserhalb des Laufzeitcontainers in der lokalen Python-Umgebung `.
 
 Der Health-Check wird bei laufender Anwendung ausgeführt und soll HTTP 200 sowie `{"status":"ok"}` liefern. Er beweist noch keine dauerhafte Datenspeicherung.
 
+The release workflow runs the existing tests, builds and starts a Docker image for `linux/amd64` using an isolated in-memory database, and provides the verified image as `payalign-<Commit-ID>-linux-amd64.tar.gz`. The archive contains the image, not running containers or payroll data. After downloading it, load it with `docker load --input payalign-<Commit-ID>-linux-amd64.tar.gz`, replacing `<Commit-ID>` with the actual ID in the filename. The resulting image name is `payalign:<Commit-ID>`. This image is not native to ARM Macs; Docker requires support for running `linux/amd64` images.
+
+Pushes of version tags matching `v*` publish the archive to a GitHub Release after successful checks. Manual runs only validate and store the archive as an Actions artifact by default. Manual publication requires explicitly selecting `publish_release` and running from a `v*` tag.
+
 ## Dependencies
 
 * **Runtime:** Docker, Python 3.11+
