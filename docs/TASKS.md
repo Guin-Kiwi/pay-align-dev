@@ -62,9 +62,9 @@ UC-001 setup saving sub-slice (Nano, `uc-001-employment-setup`): setup data surv
 - Review: [PR #28](https://github.com/Guin-Kiwi/pay-align-dev/pull/28) is open, waiting for Assvinth's review.
   Review fix: tests always use an in-memory database, even when the developer has `DATABASE_URL` set
   (`tests/conftest.py`; `tests/integration/test_test_database_isolation.py` failed before the fix).
-- Open, owned by others: Ayla's payroll repository can use `app.state.engine`; `PRAGMA foreign_keys=ON` in
-  `database.py` is due now that UC-001 persists employers and employments (ADR-005 item 6); the payroll router
-  can look up the employment with `get_employment(id)` (Aaron).
+- Done on `uc-002-wiring-stage2`: the payroll repository uses the app's one engine; `PRAGMA foreign_keys=ON` is set
+  in `database.py` (ADR-005 item 6); the payroll request takes only an `employment_id` and `PayrollService` looks
+  the employment up with `get_employment(id)`.
 
 Design sub-slice (phase 2): the persistence adapter for UC-002 saving, proposed in
 [ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md). It touches infrastructure
@@ -80,8 +80,8 @@ UC-002 saving sub-slice (phase 3, `uc-002-payroll-saving`): implemented end to e
 - `create_app()` builds the engine from `DATABASE_URL`, creates the schema, injects
   the repository and disposes the engine on shutdown (ADR-006 wiring).
 - The payroll router maps `AnnualLimitExceededError`, `InvalidPayrollInputError`,
-  `DuplicateMonthError` and `InvalidHolidayBalanceError` to 4xx and imports no
-  infrastructure.
+  `DuplicateMonthError` and `InvalidHolidayBalanceError` to 4xx, maps
+  `EmploymentNotFoundError` to 404 and imports no infrastructure.
 - `WorkEntry` now carries `category` and `paid_minutes`; `MonthlyRecord` dropped its
   hour fields and gained `employee_id`; money is `Decimal` in domain and application.
 - Review fixes (human decisions of 20 October 2026, not yet in UC-002): an employment's
@@ -133,8 +133,8 @@ UC-002 saving sub-slice (phase 3, `uc-002-payroll-saving`): implemented end to e
 - Replacing the sqlite3 repository with a SQLAlchemy adapter (ADR-005) removes
   the duplicate schema and the SQLite-only coupling, but means rewriting a
   repository that already has tests.
-- Foreign keys are declared but not enforced until UC-001 persists employers
-  and employments, so payroll rows can reference missing parents in the meantime.
+- Foreign keys are enforced now that UC-001 persists employers and employments,
+  so a payroll row cannot reference a missing employment.
 
 ## Validation approach
 
