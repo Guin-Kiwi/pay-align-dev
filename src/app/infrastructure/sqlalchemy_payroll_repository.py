@@ -10,13 +10,21 @@ from src.app.application.ports.payroll_repository import (
     SavedPayrollRun,
     WorkEntryInput,
 )
-from src.app.domain.errors import DuplicateMonthError, InvalidHolidayBalanceError
+from src.app.domain.errors import (
+    DuplicateMonthError,
+    InvalidHolidayBalanceError,
+    InvalidPayrollInputError,
+)
 from src.app.infrastructure.orm_models import (
     MonthlyRecordRow,
     PayrollSnapshotRow,
     PayslipRow,
     WorkEntryRow,
 )
+
+
+def _is_unique_violation(error: IntegrityError) -> bool:
+    return "UNIQUE constraint failed" in str(error.orig)
 
 
 class SqlAlchemyPayrollRepository:
@@ -74,7 +82,11 @@ class SqlAlchemyPayrollRepository:
         except InvalidHolidayBalanceError:
             raise
         except IntegrityError as error:
-            raise DuplicateMonthError("Payroll month or snapshot already exists.") from error
+            if _is_unique_violation(error):
+                raise DuplicateMonthError(
+                    "Payroll month or snapshot already exists."
+                ) from error
+            raise InvalidPayrollInputError(str(error.orig)) from error
 
     def save_snapshot(self, record_id: int, snapshot: PayrollSnapshotInput) -> int:
         try:
@@ -86,7 +98,9 @@ class SqlAlchemyPayrollRepository:
         except InvalidHolidayBalanceError:
             raise
         except IntegrityError as error:
-            raise DuplicateMonthError("Snapshot already exists.") from error
+            if _is_unique_violation(error):
+                raise DuplicateMonthError("Snapshot already exists.") from error
+            raise InvalidPayrollInputError(str(error.orig)) from error
 
     def employee_gross_to_date(self, employee_id: int, year: int) -> int:
         with Session(self.engine) as session:
