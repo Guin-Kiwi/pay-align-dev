@@ -53,6 +53,7 @@ The employer selects **"Set Up Employment"** in the application.
 - If the weekly hours are not in H:MM format, the system names the field, displays the example `6:30` and prompts the employer to retry.
 - If no end date is entered, the employment has no end date.
 - An end date equal to the start date is valid; the employment lasts one day.
+- If the employee's AHV number is already saved, the system reuses that employee and links the new employment to them.
 
 ## Errors / failure cases
 - Invalid AHV number format.
@@ -75,6 +76,7 @@ The employer selects **"Set Up Employment"** in the application.
 - The system must accept a missing end date and an end date equal to the start date, and reject an end date before the start date.
 - The system must reject an hourly wage below CHF 22.20 or with more than two decimal places.
 - The system must reject a start date outside 2026.
+- The system must reuse the saved employee when the employee's AHV number already exists, and link the new employment to that employee instead of saving a second employee.
 
 ## Security / trust-boundary notes
 - All data is stored locally and not shared with external systems.
@@ -92,10 +94,12 @@ The employer selects **"Set Up Employment"** in the application.
 - Assumption: The employer has all required details (e.g., AHV number) at hand.
 - Open question: Should the system support bulk import of employees in the future?
 - Decided on 16 October 2026: weekly hours are kept as minutes, holiday weeks replace holiday days, and the end date is optional. Not yet confirmed for the UI and for the UC-002 NBU check, which becomes `weekly_minutes >= 480`.
-- Assumption: Ayla's database PR (due Monday 19 October 2026) changes `employments` to integer `weekly_minutes` and `holiday_weeks` and a nullable `end_date`; until it merges, the in-memory setup repository holds them.
-- Decided on 16 October 2026 (for UC-002, ADR-004): holiday for an employment that starts or ends during the year is pro-rated by days under contract (OR 329a para. 3): holiday weeks × weekly minutes × contract days in 2026 ÷ 365, counting the start and end dates, rounded once to whole minutes. Still open: the rounding mode.
+- The `employments` table keeps integer `weekly_minutes` and `holiday_weeks` and a nullable `end_date` (PR #18); setup saves them there.
+- Decided on 16 October 2026 (for UC-002, ADR-004): holiday for an employment that starts or ends during the year is pro-rated by days under contract (OR 329a para. 3): holiday weeks × weekly minutes × contract days in 2026 ÷ 365, counting the start and end dates, rounded half-up once to whole minutes (rounding mode decided on 17 October 2026 in ADR-004).
 - Decided on 16 October 2026: the app accepts only 2026. ADR-002 gives each year its own reviewed ruleset, and 2026 is the only one, so "2026 or later" would apply 2026 rates to 2027 without warning. A later year is added as a new ruleset with its own golden tests; employers do not enter legal rates.
 - Assumption: the end date may fall after 2026, because setup calculates nothing for later years.
+- Decided on 20 October 2026: a second employment for an AHV number that is already saved reuses that employee. The app has one employer, and the UC-002 annual limit adds up all employments of one employee, so one person keeps one record. Not chosen: rejecting the duplicate (no second contract possible) and dropping the unique AHV column (one person saved twice, which splits the annual limit check).
+- Assumption: when an employee is reused, the saved details stay as they are and the newly entered details are ignored; changing employee details is not part of setup.
 
 ## Notes for implementation
 - The API takes weekly hours as the string `"6:30"`; the setup router converts it to minutes, so the domain only sees whole minutes. The wage stays a decimal and the database keeps it in centimes.
