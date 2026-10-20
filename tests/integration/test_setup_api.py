@@ -17,7 +17,17 @@ EMPLOYEE = {
     "ahv_number": "756.9876.5432.10",
     "nationality": "Italy",
 }
-EMPLOYMENT = {"start_date": "2026-01-01", "hourly_wage": 28.50, "weekly_hours": 6}
+EMPLOYMENT = {"start_date": "2026-01-01", "hourly_wage": 28.50, "weekly_hours": "6:00"}
+
+
+def set_up_fresh(**employment):
+    repository = InMemorySetupRepository()
+    client = TestClient(create_app(setup_repository=repository))
+    response = client.post(
+        "/api/v1/setup",
+        json={"employer": EMPLOYER, "employee": EMPLOYEE, "employment": {**EMPLOYMENT, **employment}},
+    )
+    return response, repository
 
 
 class TestSetupApi(unittest.TestCase):
@@ -102,3 +112,67 @@ class TestSetupApi(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 422)
+
+    def test_weekly_hours_typed_as_h_mm_are_accepted(self):
+        for text, hours in (("6:30", 6.5), ("30:15", 30.25)):
+            with self.subTest(text=text):
+                response, repository = set_up_fresh(weekly_hours=text)
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(repository.employments[0].weekly_hours, hours)
+
+    def test_weekly_hours_in_another_format_are_rejected_with_an_example(self):
+        for text in ("6.5", "6,5", "6h30", "6:75", "6:5", "0:00", "1 hour 43 minutes", "٦:٣٠"):
+            with self.subTest(text=text):
+                response = self.set_up(
+                    employer=EMPLOYER, employee=EMPLOYEE,
+                    employment={**EMPLOYMENT, "weekly_hours": text},
+                )
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(
+                    response.json()["detail"],
+                    "Employment: Invalid weekly hours. Use H:MM above 0:00, for example 6:30.",
+                )
+        self.assertEqual(self.client.get("/api/v1/employer").status_code, 404)
+
+    def test_holiday_weeks_are_4_or_5_and_default_to_4(self):
+        for weeks in (4, 5):
+            with self.subTest(weeks=weeks):
+                response, repository = set_up_fresh(holiday_weeks=weeks)
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(repository.employments[0].holiday_weeks, weeks)
+        _, repository = set_up_fresh()
+        self.assertEqual(repository.employments[0].holiday_weeks, 4)
+
+    def test_other_holiday_weeks_are_rejected(self):
+        for weeks in (3, 6, 20):
+            with self.subTest(weeks=weeks):
+                response, repository = set_up_fresh(holiday_weeks=weeks)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json()["detail"], "Employment: Holiday weeks must be 4 or 5.")
+                self.assertEqual(repository.employments, [])
+
+    def test_end_date_is_optional_and_may_equal_the_start_date_or_fall_after_2026(self):
+        for end_date in (None, "2026-01-01", "2027-08-31"):
+            with self.subTest(end_date=end_date):
+                response, repository = set_up_fresh(end_date=end_date)
+                self.assertEqual(response.status_code, 201)
+                saved = repository.employments[0].end_date
+                self.assertEqual(saved and saved.isoformat(), end_date)
+
+    def test_end_date_before_the_start_date_is_rejected(self):
+        response, repository = set_up_fresh(start_date="2026-03-01", end_date="2026-02-28")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["detail"], "Employment: End date cannot be before the start date.")
+        self.assertEqual(repository.employments, [])
+
+    def test_start_date_must_be_in_2026(self):
+        for start_date, status in (("2025-12-31", 400), ("2026-12-31", 201), ("2027-01-01", 400)):
+            with self.subTest(start_date=start_date):
+                response, _ = set_up_fresh(start_date=start_date)
+                self.assertEqual(response.status_code, status)
+        response, _ = set_up_fresh(start_date="2027-01-01")
+        self.assertEqual(
+            response.json()["detail"],
+            "Employment: Start date must be in 2026; PayAlign has payroll rules for 2026 only.",
+        )
