@@ -1,7 +1,7 @@
 # src/app/domain/hour_categories.py
 """The four hour categories of a payroll run and their minute totals.
 
-Time is counted in whole minutes (ADR-004, Amendment 1, items 6 and 7).
+Rules: ADR-004 (with Amendment 1).
 """
 
 from dataclasses import dataclass
@@ -15,9 +15,9 @@ class HourCategory(str, Enum):
     """Category of a daily work entry."""
 
     WORKED = "worked"
-    WORKED_PUBLIC_HOLIDAY = "worked_public_holiday"  # worked on a public holiday, +50% premium
-    PAID_HOLIDAY = "paid_holiday"  # paid holiday taken, no work done
-    PUBLIC_HOLIDAY_LEAVE = "public_holiday_leave"  # paid public-holiday leave, no work done
+    PUBLIC_HOLIDAY_WORKED = "public_holiday_worked"
+    ANNUAL_HOLIDAY_TAKEN = "annual_holiday_taken"
+    PUBLIC_HOLIDAY_TAKEN = "public_holiday_taken"
 
 
 @dataclass(frozen=True)
@@ -25,12 +25,12 @@ class MinuteTotals:
     """Whole-minute totals per hour category for one monthly run."""
 
     worked: int = 0
-    worked_public_holiday: int = 0
-    paid_holiday: int = 0
-    public_holiday_leave: int = 0
+    public_holiday_worked: int = 0
+    annual_holiday_taken: int = 0
+    public_holiday_taken: int = 0
 
     def __post_init__(self) -> None:
-        for name in ("worked", "worked_public_holiday", "paid_holiday", "public_holiday_leave"):
+        for name in ("worked", "public_holiday_worked", "annual_holiday_taken", "public_holiday_taken"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int):
                 raise InvalidPayrollInputError(f"{name} minutes must be a whole number.")
@@ -41,9 +41,9 @@ class MinuteTotals:
     def total(self) -> int:
         return (
             self.worked
-            + self.worked_public_holiday
-            + self.paid_holiday
-            + self.public_holiday_leave
+            + self.public_holiday_worked
+            + self.annual_holiday_taken
+            + self.public_holiday_taken
         )
 
 
@@ -58,7 +58,7 @@ def sum_minutes_by_category(items: Iterable[tuple[HourCategory, int]]) -> Minute
         sums[HourCategory(category)] += minutes
     return MinuteTotals(
         worked=sums[HourCategory.WORKED],
-        worked_public_holiday=sums[HourCategory.WORKED_PUBLIC_HOLIDAY],
-        paid_holiday=sums[HourCategory.PAID_HOLIDAY],
-        public_holiday_leave=sums[HourCategory.PUBLIC_HOLIDAY_LEAVE],
+        public_holiday_worked=sums[HourCategory.PUBLIC_HOLIDAY_WORKED],
+        annual_holiday_taken=sums[HourCategory.ANNUAL_HOLIDAY_TAKEN],
+        public_holiday_taken=sums[HourCategory.PUBLIC_HOLIDAY_TAKEN],
     )
