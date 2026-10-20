@@ -37,12 +37,24 @@ UC-001 employment input sub-slice (Nano, `uc-001-employment-setup`): weekly hour
 holiday weeks (4 or 5) instead of days, an optional end date and 2026-only start dates.
 See [UC-001](specs/UC-001-Set-Up-an-Employment.md).
 - Specify (phase 1): done.
-- Develop (phase 3): in-progress. Done: `POST /api/v1/setup` takes weekly hours as H:MM, holiday weeks
+- Develop (phase 3): done, merged into `main` as PR #17. `POST /api/v1/setup` takes weekly hours as H:MM, holiday weeks
   (4 or 5, default 4) and an optional end date, and accepts only 2026 start dates
-  (`tests/integration/test_setup_api.py`, `tests/unit/test_setup_service.py`). The branch includes the
-  PR #16 commits. Weekly hours are whole minutes at the API and in the `weekly_minutes` column, and float
+  (`tests/integration/test_setup_api.py`, `tests/unit/test_setup_service.py`). Weekly hours are whole minutes at the API
+  and in the `weekly_minutes` column, and float
   hours inside `Employment`; `round(weekly_hours * 60)` converts exactly for every H:MM up to 99:59. Later:
   move all hour fields (weekly, worked, holiday) to whole minutes together, when the holiday balance is built.
+
+UC-001 setup saving sub-slice (Nano, `uc-001-employment-setup`): setup data survives a restart.
+- Specify (phase 1): done. Decided on 20 October 2026: an AHV number that is already saved reuses that employee
+  (see [UC-001](specs/UC-001-Set-Up-an-Employment.md)).
+- Develop (phase 3): ready. A SQLAlchemy setup repository on the `employers`, `employees` and `employments`
+  tables replaces `InMemorySetupRepository` in `create_app()`, which builds the engine from `DATABASE_URL`.
+  It also offers `get_employment(id)` so payroll can read the saved employment.
+- Acceptance: the three rows are saved together or not at all; `6:30` is kept as 390 minutes and CHF 28.50
+  as 2850 centimes; a second setup with the same employee AHV number links a new employment to the saved
+  employee; data is still there after the app is created again on the same database file.
+- To agree with Ayla before wiring: one engine in `create_app()` shared with the payroll repository, and
+  `PRAGMA foreign_keys=ON` in `database.py` (her file).
 
 Design sub-slice (phase 2): the persistence adapter for UC-002 saving, proposed in
 [ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md). It touches infrastructure
