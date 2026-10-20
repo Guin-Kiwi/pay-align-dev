@@ -6,16 +6,15 @@ from pydantic import BaseModel, Field
 
 from src.app.application.payroll_service import PayrollService
 from src.app.application.ports.payroll_repository import PayrollRepositoryPort
-from src.app.domain.employment import Employment
 from src.app.domain.errors import (
     AnnualLimitExceededError,
     DuplicateMonthError,
+    EmploymentNotFoundError,
     InvalidHolidayBalanceError,
     InvalidPayrollInputError,
 )
 from src.app.domain.hour_categories import HourCategory
 from src.app.domain.work_entry import WorkEntry, calculate_paid_minutes
-from src.app.interfaces.hours import parse_hours
 
 payroll_router = APIRouter()
 
@@ -31,13 +30,6 @@ class WorkEntryRequest(BaseModel):
 
 class MonthlyPayrollRequest(BaseModel):
     employment_id: int
-    employer_id: int
-    employee_id: int
-    hourly_wage: Decimal = Field(..., gt=0)
-    weekly_hours: str
-    start_date: date
-    end_date: date | None = None
-    holiday_weeks: int = 4
     year: int
     month: int = Field(..., ge=1, le=12)
     cash_bonus: Decimal = Field(Decimal("0.00"), ge=0)
@@ -100,26 +92,17 @@ def process_monthly_payroll(
     repository: PayrollRepositoryPort = Depends(get_payroll_repository),
 ):
     try:
-        weekly_minutes = parse_hours(payload.weekly_hours)
-        employment = Employment(
-            id=payload.employment_id,
-            employer_id=payload.employer_id,
-            employee_id=payload.employee_id,
-            start_date=payload.start_date,
-            end_date=payload.end_date,
-            hourly_wage=float(payload.hourly_wage),
-            weekly_hours=weekly_minutes / 60,
-            holiday_weeks=payload.holiday_weeks,
-        )
         record, payslip = service.process_monthly_payroll(
             repository=repository,
-            employment=employment,
+            employment_id=payload.employment_id,
             month=payload.month,
             year=payload.year,
             work_entries=[_to_work_entry(entry) for entry in payload.work_entries],
             cash_bonus=payload.cash_bonus,
             expense_reimbursements=payload.expense_reimbursements,
         )
+    except EmploymentNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
     except (
         AnnualLimitExceededError,
         DuplicateMonthError,

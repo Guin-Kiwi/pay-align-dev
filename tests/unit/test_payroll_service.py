@@ -15,6 +15,7 @@ from src.app.domain.employment import Employment
 from src.app.domain.errors import (
     AnnualLimitExceededError,
     DuplicateMonthError,
+    EmploymentNotFoundError,
     InvalidHolidayBalanceError,
     InvalidPayrollInputError,
 )
@@ -52,6 +53,18 @@ class FakePayrollRepository:
         return self.prior
 
 
+class FakeSetupRepository:
+    """In-memory stand-in for SetupRepository: holds one employment."""
+
+    def __init__(self, employment=None):
+        self.employment = employment
+
+    def get_employment(self, employment_id):
+        if self.employment is not None and self.employment.id == employment_id:
+            return self.employment
+        return None
+
+
 def make_employment(**overrides):
     values = dict(
         id=7,
@@ -70,15 +83,16 @@ class TestPayrollService(unittest.TestCase):
     """Unit tests for PayrollService."""
 
     def setUp(self):
-        self.service = PayrollService()
         self.employment = make_employment()
+        self.setup_repository = FakeSetupRepository(self.employment)
+        self.service = PayrollService(self.setup_repository)
 
     def test_processes_a_month_and_saves_one_run(self):
         repository = FakePayrollRepository()
 
         record, payslip = self.service.process_monthly_payroll(
             repository=repository,
-            employment=self.employment,
+            employment_id=7,
             month=10,
             year=2026,
             work_entries=[
@@ -98,12 +112,26 @@ class TestPayrollService(unittest.TestCase):
         self.assertEqual(repository.saved[0].month, 10)
         self.assertEqual(repository.saved[0].year, 2026)
 
+    def test_an_unknown_employment_is_rejected_and_nothing_is_saved(self):
+        repository = FakePayrollRepository()
+
+        with self.assertRaises(EmploymentNotFoundError):
+            self.service.process_monthly_payroll(
+                repository=repository,
+                employment_id=999,
+                month=10,
+                year=2026,
+                work_entries=[],
+            )
+
+        self.assertIsNone(repository.saved)
+
     def test_snapshot_freezes_employment_values_and_minute_totals(self):
         repository = FakePayrollRepository()
 
         self.service.process_monthly_payroll(
             repository=repository,
-            employment=self.employment,
+            employment_id=7,
             month=10,
             year=2026,
             work_entries=[
@@ -135,7 +163,7 @@ class TestPayrollService(unittest.TestCase):
 
         self.service.process_monthly_payroll(
             repository=repository,
-            employment=self.employment,
+            employment_id=7,
             month=10,
             year=2026,
             work_entries=[
@@ -152,7 +180,7 @@ class TestPayrollService(unittest.TestCase):
 
         self.service.process_monthly_payroll(
             repository=repository,
-            employment=self.employment,
+            employment_id=7,
             month=10,
             year=2026,
             work_entries=[
@@ -168,7 +196,7 @@ class TestPayrollService(unittest.TestCase):
         with self.assertRaises(AnnualLimitExceededError):
             self.service.process_monthly_payroll(
                 repository=repository,
-                employment=self.employment,
+                employment_id=7,
                 month=10,
                 year=2026,
                 work_entries=[
@@ -184,7 +212,7 @@ class TestPayrollService(unittest.TestCase):
         with self.assertRaises(AnnualLimitExceededError):
             self.service.process_monthly_payroll(
                 repository=repository,
-                employment=self.employment,
+                employment_id=7,
                 month=10,
                 year=2026,
                 work_entries=[
@@ -200,7 +228,7 @@ class TestPayrollService(unittest.TestCase):
         with self.assertRaises(InvalidHolidayBalanceError):
             self.service.process_monthly_payroll(
                 repository=repository,
-                employment=self.employment,
+                employment_id=7,
                 month=10,
                 year=2026,
                 work_entries=[
@@ -215,7 +243,7 @@ class TestPayrollService(unittest.TestCase):
 
         record, payslip = self.service.process_monthly_payroll(
             repository=repository,
-            employment=self.employment,
+            employment_id=7,
             month=10,
             year=2026,
             work_entries=[],
@@ -234,7 +262,7 @@ class TestPayrollService(unittest.TestCase):
 
         self.service.process_monthly_payroll(
             repository=repository,
-            employment=self.employment,
+            employment_id=7,
             month=10,
             year=2026,
             work_entries=[],
@@ -248,7 +276,7 @@ class TestPayrollService(unittest.TestCase):
         with self.assertRaises(InvalidPayrollInputError):
             self.service.process_monthly_payroll(
                 repository=repository,
-                employment=self.employment,
+                employment_id=7,
                 month=10,
                 year=2026,
                 work_entries=[
@@ -265,7 +293,7 @@ class TestPayrollService(unittest.TestCase):
         with self.assertRaises(DuplicateMonthError):
             self.service.process_monthly_payroll(
                 repository=repository,
-                employment=self.employment,
+                employment_id=7,
                 month=10,
                 year=2026,
                 work_entries=[
@@ -277,9 +305,11 @@ class TestPayrollService(unittest.TestCase):
 
 
     def run_month(self, repository, month, year=2026, entries=None, **overrides):
+        if "employment" in overrides:
+            self.setup_repository.employment = overrides.pop("employment")
         return self.service.process_monthly_payroll(
             repository=repository,
-            employment=overrides.pop("employment", self.employment),
+            employment_id=7,
             month=month,
             year=year,
             work_entries=entries or [],

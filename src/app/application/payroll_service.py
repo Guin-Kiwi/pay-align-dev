@@ -11,10 +11,12 @@ from src.app.application.ports.payroll_repository import (
     RunSnapshot,
     WorkEntryInput,
 )
+from src.app.application.ports.setup_repository import SetupRepository
 from src.app.domain.constants import RULES_YEAR
 from src.app.domain.employment import Employment
 from src.app.domain.errors import (
     DuplicateMonthError,
+    EmploymentNotFoundError,
     InvalidHolidayBalanceError,
     InvalidPayrollInputError,
 )
@@ -48,10 +50,13 @@ def _following_month(year: int, month: int) -> tuple[int, int]:
 class PayrollService:
     """Handles monthly payroll processing for household employment."""
 
+    def __init__(self, setup_repository: SetupRepository):
+        self.setup_repository = setup_repository
+
     def process_monthly_payroll(
         self,
         repository: PayrollRepositoryPort,
-        employment: Employment,
+        employment_id: int,
         month: int,
         year: int,
         work_entries: list[WorkEntry],
@@ -59,6 +64,10 @@ class PayrollService:
         expense_reimbursements: Decimal = Decimal("0.00"),
     ) -> tuple[MonthlyRecord, Payslip]:
         """Calculate, validate and persist one monthly payroll run."""
+        employment = self.setup_repository.get_employment(employment_id)
+        if employment is None:
+            raise EmploymentNotFoundError(f"Employment {employment_id} not found.")
+
         if year != RULES_YEAR:
             raise InvalidPayrollInputError(
                 f"Payroll rules exist for {RULES_YEAR} only."
