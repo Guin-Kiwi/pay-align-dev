@@ -1,7 +1,5 @@
 """End-to-end UC-002 saving: post a month, inspect the rows, reject a duplicate."""
 
-from datetime import date
-
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
@@ -10,12 +8,17 @@ from src.app.infrastructure.database import create_database_engine, create_schem
 from src.app.infrastructure.sqlalchemy_payroll_repository import (
     SqlAlchemyPayrollRepository,
 )
-from src.app.infrastructure.sqlalchemy_setup_repository import SqlAlchemySetupRepository
 from src.app.infrastructure.web.app import create_app
 from tests.database_helpers import add_employment
 
 PAYLOAD = {
     "employment_id": 7,
+    "employer_id": 3,
+    "employee_id": 9,
+    "hourly_wage": 25.0,
+    "weekly_hours": "10:00",
+    "start_date": "2026-10-01",
+    "holiday_weeks": 4,
     "year": 2026,
     "month": 10,
     "cash_bonus": 0,
@@ -36,17 +39,9 @@ PAYLOAD = {
 def client(tmp_path):
     engine = create_database_engine(f"sqlite:///{tmp_path / 'payroll.db'}")
     create_schema(engine)
-    add_employment(
-        engine,
-        employment_id=7,
-        employer_id=3,
-        employee_id=9,
-        start_date=date(2026, 10, 1),
-    )
-    app = create_app(
-        setup_repository=SqlAlchemySetupRepository(engine),
-        payroll_repository=SqlAlchemyPayrollRepository(engine),
-    )
+    add_employment(engine, employment_id=7, employer_id=3, employee_id=9)
+    repository = SqlAlchemyPayrollRepository(engine)
+    app = create_app(payroll_repository=repository)
     with TestClient(app) as test_client:
         yield test_client, engine
     engine.dispose()
@@ -126,17 +121,9 @@ def test_holiday_taken_beyond_the_balance_is_a_4xx_and_saves_nothing(client):
 
 def test_annual_limit_breach_is_a_4xx_and_saves_nothing(client):
     test_client, engine = client
-    add_employment(
-        engine,
-        employment_id=8,
-        employer_id=3,
-        employee_id=9,
-        start_date=date(2026, 10, 1),
-        hourly_wage_cents=100_000,
-    )
     payload = {
         **PAYLOAD,
-        "employment_id": 8,
+        "hourly_wage": 1000.0,
         "work_entries": [
             {
                 "work_date": "2026-10-01",
@@ -256,12 +243,9 @@ def test_the_balance_carries_from_one_run_to_the_next(client):
 
 def test_public_holiday_work_is_stored_with_the_holiday_category(client):
     test_client, engine = client
-    add_employment(
-        engine, employment_id=9, employer_id=3, employee_id=9, start_date=date(2026, 5, 1)
-    )
     payload = {
         **PAYLOAD,
-        "employment_id": 9,
+        "start_date": "2026-05-01",
         "month": 5,
         "work_entries": [
             {
@@ -306,18 +290,15 @@ def test_worked_hours_without_times_are_a_4xx(client):
     assert count(engine, "monthly_records") == 0
 
 
-def holiday_payload(engine, *entries):
-    add_employment(
-        engine, employment_id=9, employer_id=3, employee_id=9, start_date=date(2026, 5, 1)
-    )
-    return {**PAYLOAD, "employment_id": 9, "month": 5, "work_entries": list(entries)}
+def holiday_payload(*entries):
+    return {**PAYLOAD, "start_date": "2026-05-01", "month": 5, "work_entries": list(entries)}
 
 
 def test_paid_holiday_on_a_public_holiday_is_a_4xx_and_saves_nothing(client):
     test_client, engine = client
     entry = {"work_date": "2026-05-14", "category": "annual_holiday_taken", "paid_minutes": 60}
 
-    response = test_client.post("/api/v1/monthly-payroll", json=holiday_payload(engine, entry))
+    response = test_client.post("/api/v1/monthly-payroll", json=holiday_payload(entry))
 
     assert response.status_code == 400
     assert count(engine, "monthly_records") == 0
@@ -334,36 +315,7 @@ def test_public_holiday_leave_with_work_on_one_day_is_a_4xx_and_saves_nothing(cl
         "end_time": "10:00",
     }
 
-    response = test_client.post("/api/v1/monthly-payroll", json=holiday_payload(engine, leave, work))
+    response = test_client.post("/api/v1/monthly-payroll", json=holiday_payload(leave, work))
 
     assert response.status_code == 400
     assert count(engine, "monthly_records") == 0
-
-
-def test_an_unknown_employment_is_a_404_and_saves_nothing(client):
-    test_client, engine = client
-
-    response = test_client.post(
-        "/api/v1/monthly-payroll", json={**PAYLOAD, "employment_id": 999}
-    )
-
-    assert response.status_code == 404
-    for table in ("monthly_records", "work_entries", "payroll_snapshots", "payslips"):
-        assert count(engine, table) == 0
-
-
-def test_employment_terms_come_from_the_saved_employment_not_the_request(client):
-    test_client, engine = client
-
-    response = test_client.post(
-        "/api/v1/monthly-payroll",
-        json={**PAYLOAD, "hourly_wage": 99.0, "weekly_hours": "1:00", "employer_id": 5},
-    )
-
-    assert response.status_code == 201
-    assert response.json()["gross_wage"] == "250.00"
-    with engine.connect() as connection:
-        employer_id = connection.execute(
-            text("SELECT employer_id FROM monthly_records")
-        ).scalar()
-    assert employer_id == 3

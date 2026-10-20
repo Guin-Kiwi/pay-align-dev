@@ -24,8 +24,3 @@ class InvalidHolidayBalanceError(Exception):
 class ImmutableRecordError(Exception):
     """Raised when a saved payroll record is changed or deleted."""
     pass
-
-
-class EmploymentNotFoundError(Exception):
-    """Raised when a payroll run names an employment that is not saved."""
-    pass

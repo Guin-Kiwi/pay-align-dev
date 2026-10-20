@@ -37,7 +37,7 @@ def create_app(
     app = FastAPI(lifespan=lifespan)
     app.state.engine = engine
     app.state.setup_service = SetupService(setup_repository)
-    app.state.payroll_service = PayrollService(setup_repository)
+    app.state.payroll_service = PayrollService()
     app.state.payroll_repository = payroll_repository
     app.include_router(setup_router, prefix="/api/v1")
     app.include_router(payroll_router, prefix="/api/v1")
