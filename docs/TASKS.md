@@ -59,6 +59,7 @@ UC-001 setup saving sub-slice (Nano, `uc-001-employment-setup`): setup data surv
   (`test_setup_survives_a_restart`, `test_app_does_not_start_without_database_url`),
   `tests/unit/test_setup_service.py`; `bash scripts/test.sh` passed (96 passed, 1 xfailed). Manual check
   with uvicorn on a SQLite file: the employer was still there after a restart, and a second setup reused employee 1.
+- Review: [PR #28](https://github.com/Guin-Kiwi/pay-align-dev/pull/28) is open, waiting for Assvinth's review.
 - Open, owned by others: Ayla's payroll repository can use `app.state.engine`; `PRAGMA foreign_keys=ON` in
   `database.py` is due now that UC-001 persists employers and employments (ADR-005 item 6); the payroll router
   can look up the employment with `get_employment(id)` (Aaron).
