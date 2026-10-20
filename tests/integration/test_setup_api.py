@@ -1,7 +1,9 @@
 import unittest
 
+import pytest
 from fastapi.testclient import TestClient
 
+from src.app.infrastructure.database import DatabaseConfigurationError
 from src.app.infrastructure.in_memory_setup_repository import InMemorySetupRepository
 from src.app.infrastructure.web.app import create_app
 
@@ -28,6 +30,22 @@ def set_up_fresh(**employment):
         json={"employer": EMPLOYER, "employee": EMPLOYEE, "employment": {**EMPLOYMENT, **employment}},
     )
     return response, repository
+
+
+def test_setup_survives_a_restart(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'payroll.db'}")
+    with TestClient(create_app()) as client:
+        client.post("/api/v1/setup", json={"employer": EMPLOYER, "employee": EMPLOYEE, "employment": EMPLOYMENT})
+
+    with TestClient(create_app()) as client:
+        assert client.get("/api/v1/employer").json() == {"id": 1, **EMPLOYER}
+
+
+def test_app_does_not_start_without_database_url(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    with pytest.raises(DatabaseConfigurationError, match="DATABASE_URL"):
+        create_app()
 
 
 class TestSetupApi(unittest.TestCase):
