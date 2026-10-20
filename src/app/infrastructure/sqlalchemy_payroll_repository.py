@@ -21,6 +21,11 @@ from src.app.infrastructure.orm_models import (
 )
 
 
+def _is_unique_violation(error: IntegrityError, table: str) -> bool:
+    message = str(error.orig)
+    return message.startswith("UNIQUE constraint failed") and f" {table}." in f" {message}"
+
+
 class SqlAlchemyPayrollRepository:
     def __init__(self, engine) -> None:
         self.engine = engine
@@ -80,7 +85,9 @@ class SqlAlchemyPayrollRepository:
         except InvalidHolidayBalanceError:
             raise
         except IntegrityError as error:
-            raise DuplicateMonthError("Payroll month or snapshot already exists.") from error
+            if _is_unique_violation(error, MonthlyRecordRow.__tablename__):
+                raise DuplicateMonthError("Payroll month already exists.") from error
+            raise
 
     def save_snapshot(self, record_id: int, snapshot: RunSnapshot) -> int:
         try:
@@ -92,7 +99,9 @@ class SqlAlchemyPayrollRepository:
         except InvalidHolidayBalanceError:
             raise
         except IntegrityError as error:
-            raise DuplicateMonthError("Snapshot already exists.") from error
+            if _is_unique_violation(error, PayrollSnapshotRow.__tablename__):
+                raise DuplicateMonthError("Snapshot already exists.") from error
+            raise
 
     def run_snapshot(self, monthly_record_id: int) -> RunSnapshot | None:
         with Session(self.engine) as session:

@@ -3,6 +3,7 @@ from datetime import date, time
 
 import pytest
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.app.application.ports.payroll_repository import (
@@ -17,6 +18,7 @@ from src.app.domain.errors import (
 )
 from src.app.infrastructure.database import create_database_engine, create_schema
 from src.app.infrastructure.orm_models import PayrollSnapshotRow, WorkEntryRow
+from tests.database_helpers import add_employment
 from src.app.infrastructure.sqlalchemy_payroll_repository import (
     MonthlyRecordInput,
     PayslipInput,
@@ -29,6 +31,8 @@ from src.app.infrastructure.sqlalchemy_payroll_repository import (
 def repository(tmp_path):
     engine = create_database_engine(f"sqlite:///{tmp_path / 'payroll.db'}")
     create_schema(engine)
+    add_employment(engine, employment_id=7, employer_id=3, employee_id=9)
+    add_employment(engine, employment_id=8, employer_id=3, employee_id=9)
     yield SqlAlchemyPayrollRepository(engine)
     engine.dispose()
 
@@ -203,9 +207,10 @@ def test_unknown_category_is_rejected_by_the_constraint(repository):
         ),
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(IntegrityError) as raised:
         repository.save_payroll_run(record, entries, snapshot, payslip)
 
+    assert not isinstance(raised.value, DuplicateMonthError)
     assert repository.count_rows("monthly_records") == 0
 
 
@@ -362,3 +367,23 @@ def test_deleting_a_saved_work_entry_raises(repository):
         session.rollback()
 
     assert repository.count_rows("work_entries") == 1
+
+
+def test_a_run_for_an_unknown_employment_is_not_reported_as_a_duplicate_month(repository):
+    record, entries, snapshot, payslip = make_run(employment_id=99)
+
+    with pytest.raises(IntegrityError) as raised:
+        repository.save_payroll_run(record, entries, snapshot, payslip)
+
+    assert not isinstance(raised.value, DuplicateMonthError)
+    for table in ("monthly_records", "work_entries", "payroll_snapshots", "payslips"):
+        assert repository.count_rows(table) == 0
+
+
+def test_a_snapshot_for_an_unknown_record_is_not_reported_as_a_duplicate(repository):
+    _, _, snapshot, _ = make_run()
+
+    with pytest.raises(IntegrityError) as raised:
+        repository.save_snapshot(record_id=99, snapshot=snapshot)
+
+    assert not isinstance(raised.value, DuplicateMonthError)

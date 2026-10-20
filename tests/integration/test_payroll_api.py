@@ -9,6 +9,7 @@ from src.app.infrastructure.sqlalchemy_payroll_repository import (
     SqlAlchemyPayrollRepository,
 )
 from src.app.infrastructure.web.app import create_app
+from tests.database_helpers import add_employment
 
 PAYLOAD = {
     "employment_id": 7,
@@ -38,6 +39,7 @@ PAYLOAD = {
 def client(tmp_path):
     engine = create_database_engine(f"sqlite:///{tmp_path / 'payroll.db'}")
     create_schema(engine)
+    add_employment(engine, employment_id=7, employer_id=3, employee_id=9)
     repository = SqlAlchemyPayrollRepository(engine)
     app = create_app(payroll_repository=repository)
     with TestClient(app) as test_client:
