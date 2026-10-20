@@ -133,6 +133,58 @@ configuration), the application port and errors, and the payroll router error ma
 - [ADR-005 SQLAlchemy persistence adapter (Proposed)](adr/ADR-005-sqlalchemy-persistence-adapter.md)
 - [PROJECT architecture](PROJECT.md)
 
+## Person 4 — CI, Docker, Release and architecture tests
+
+Documentation baseline: `origin/main` at `f6fdc84`.
+The shared status remains `PHASE: 3`, `STATUS: in-progress`.
+
+- **CI:** [PR #10](https://github.com/Guin-Kiwi/pay-align-dev/pull/10)
+  is merged. The whitespace check covers changes in PRs
+  and pushes; syntax and Git comparison tests are documented in the PR.
+- **Docker:** [PR #11](https://github.com/Guin-Kiwi/pay-align-dev/pull/11)
+  is merged. Image build, container startup and health checks
+  passed. This does not verify persistent data storage.
+- **Release workflow:** [PR #12](https://github.com/Guin-Kiwi/pay-align-dev/pull/12)
+  was successfully validated manually at commit
+  `7eeb7fb8fb26c734c8c607a61ec0f973dabffb7b`:
+  [Release #3](https://github.com/Guin-Kiwi/pay-align-dev/actions/runs/39240966965).
+  `verify` succeeded, the image artifact was uploaded,
+  and `publish` was skipped as expected.
+  The PR is not merged; human review and acceptance of the
+  fixed integration baseline remain pending. Actual publication
+  through a `v*` tag has not been tested.
+- **Documentation cleanup:**
+  [PR #22](https://github.com/Guin-Kiwi/pay-align-dev/pull/22)
+  is merged. Commit `39ffed463d711ca4cf295f220fe5eb5c895e736b`
+  removes exactly three trailing spaces.
+- **Architecture tests:** Branch `delivery-architecture-tests` contains
+  the local commits `b188fc8eb8b7ff4a58836f593c1d1b1acc57899b`
+  (relative imports and package imports) and
+  `02421b8ae6dd1014a32c09bc5d70e2f1a6492ad1`
+  (literal dynamic imports). Together they add 58
+  regression cases, all passing. They have not been pushed.
+
+### Local architecture validation evidence
+
+- Architecture tests: **75 passed, 1 failed**.
+- `bash scripts/test.sh`: lifecycle tests and 32 tooling tests passed;
+  pytest: **145 passed, 1 failed, 1 xfailed,
+  41 subtests passed**, with one Starlette/HTTPX deprecation warning.
+- `git diff --check`: passed.
+- Only failing test:
+  `test_project_follows_the_dependency_rule`.
+  `src/app/interfaces/payroll.py` directly imports
+  `src.app.infrastructure.sqlite_payroll_repository`.
+  Ayla and Aaron are handling the payroll wiring.
+- The architecture tests and the full suite on the
+  architecture branch therefore still have a failure.
+  The test remains enabled and unchanged.
+
+Next steps for Person 4: support the review of PR #12,
+coordinate architecture work with the payroll correction, and then
+rerun the tests. Prepare presentation evidence from these results;
+the presentation is not marked complete here.
+
 ## Next smallest step
 
 A human reviews ADR-005. On acceptance, update `docs/PROJECT.md`,
