@@ -33,6 +33,17 @@ Initial implementation of the domain models, `SetupService`, and `PayrollService
 The implementation must remain consistent with ADR-001 through ADR-004. Workbook-derived golden payroll cases
 should be used to verify the calculated values. The discrepancy in `admin_charge` and `total_employer_cost` remains pending confirmation.
 
+UC-001 employment input sub-slice (Nano, `uc-001-employment-setup`): weekly hours as H:MM kept as minutes,
+holiday weeks (4 or 5) instead of days, an optional end date and 2026-only start dates.
+See [UC-001](specs/UC-001-Set-Up-an-Employment.md).
+- Specify (phase 1): done.
+- Develop (phase 3): in-progress. Done: `POST /api/v1/setup` takes weekly hours as H:MM, holiday weeks
+  (4 or 5, default 4) and an optional end date, and accepts only 2026 start dates
+  (`tests/integration/test_setup_api.py`, `tests/unit/test_setup_service.py`). The branch includes the
+  PR #16 commits. Weekly hours are whole minutes at the API and in the `weekly_minutes` column, and float
+  hours inside `Employment`; `round(weekly_hours * 60)` converts exactly for every H:MM up to 99:59. Later:
+  move all hour fields (weekly, worked, holiday) to whole minutes together, when the holiday balance is built.
+
 Design sub-slice (phase 2): the persistence adapter for UC-002 saving, proposed in
 [ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md). It touches infrastructure
 (one SQLAlchemy adapter, `work_entries` and `payroll_snapshots` tables, start-up
@@ -99,8 +110,14 @@ configuration), the application port and errors, and the payroll router error ma
 - Proposed: ADR-005 (single SQLAlchemy persistence adapter). Status stays
   Proposed until a human accepts it; `docs/PROJECT.md` is updated on acceptance,
   not before.
-- Open question for a human: how `holiday_entitlement` (days) converts to the
-  hours used by the derived holiday balance in ADR-004. Not decided by ADR-005.
+- Decided on 16 October 2026: `holiday_weeks` (4 or 5) replaces
+  the `holiday_entitlement` days, and yearly holiday time is
+  `holiday_weeks × weekly_minutes`. Still open: pro-rating for an employment
+  that starts or ends during the year (see the UC-001 open questions).
+- Decided on 16 October 2026: the app accepts only
+  2026, the only year with a ruleset (ADR-002); the holiday pro-rating divides
+  by 365. The payroll year check (`year >= 2026` in `interfaces/payroll.py` and
+  `domain/monthly_record.py`) still has to change; Aaron owns those files.
 - Assumption: the earlier float-column SQLite schema was never deployed, so the
   repository's legacy migration can be dropped.
 - Human review remains required for the review-gated use-case specifications.
@@ -116,9 +133,61 @@ configuration), the application port and errors, and the payroll router error ma
 - [ADR-005 SQLAlchemy persistence adapter (Proposed)](adr/ADR-005-sqlalchemy-persistence-adapter.md)
 - [PROJECT architecture](PROJECT.md)
 
+## Person 4 — CI, Docker, Release and architecture tests
+
+Documentation baseline: `origin/main` at `f6fdc84`.
+The shared status remains `PHASE: 3`, `STATUS: in-progress`.
+
+- **CI:** [PR #10](https://github.com/Guin-Kiwi/pay-align-dev/pull/10)
+  is merged. The whitespace check covers changes in PRs
+  and pushes; syntax and Git comparison tests are documented in the PR.
+- **Docker:** [PR #11](https://github.com/Guin-Kiwi/pay-align-dev/pull/11)
+  is merged. Image build, container startup and health checks
+  passed. This does not verify persistent data storage.
+- **Release workflow:** [PR #12](https://github.com/Guin-Kiwi/pay-align-dev/pull/12)
+  was successfully validated manually at commit
+  `7eeb7fb8fb26c734c8c607a61ec0f973dabffb7b`:
+  [Release #3](https://github.com/Guin-Kiwi/pay-align-dev/actions/runs/39240966965).
+  `verify` succeeded, the image artifact was uploaded,
+  and `publish` was skipped as expected.
+  The PR is not merged; human review and acceptance of the
+  fixed integration baseline remain pending. Actual publication
+  through a `v*` tag has not been tested.
+- **Documentation cleanup:**
+  [PR #22](https://github.com/Guin-Kiwi/pay-align-dev/pull/22)
+  is merged. Commit `39ffed463d711ca4cf295f220fe5eb5c895e736b`
+  removes exactly three trailing spaces.
+- **Architecture tests:** Branch `delivery-architecture-tests` contains
+  the local commits `b188fc8eb8b7ff4a58836f593c1d1b1acc57899b`
+  (relative imports and package imports) and
+  `02421b8ae6dd1014a32c09bc5d70e2f1a6492ad1`
+  (literal dynamic imports). Together they add 58
+  regression cases, all passing. They have not been pushed.
+
+### Local architecture validation evidence
+
+- Architecture tests: **75 passed, 1 failed**.
+- `bash scripts/test.sh`: lifecycle tests and 32 tooling tests passed;
+  pytest: **145 passed, 1 failed, 1 xfailed,
+  41 subtests passed**, with one Starlette/HTTPX deprecation warning.
+- `git diff --check`: passed.
+- Only failing test:
+  `test_project_follows_the_dependency_rule`.
+  `src/app/interfaces/payroll.py` directly imports
+  `src.app.infrastructure.sqlite_payroll_repository`.
+  Ayla and Aaron are handling the payroll wiring.
+- The architecture tests and the full suite on the
+  architecture branch therefore still have a failure.
+  The test remains enabled and unchanged.
+
+Next steps for Person 4: support the review of PR #12,
+coordinate architecture work with the payroll correction, and then
+rerun the tests. Prepare presentation evidence from these results;
+the presentation is not marked complete here.
+
 ## Next smallest step
 
-A human reviews ADR-005 and answers the days-to-hours question. On acceptance, update `docs/PROJECT.md`,
+A human reviews ADR-005. On acceptance, update `docs/PROJECT.md`,
 then start DEVELOP on `uc-002-payroll-saving` with the first failing test for the new adapter.
 
 Separately, on `uc-002-payroll-calculation`: implement and run golden payroll tests against `PayrollService` using the workbook-derived cases.
