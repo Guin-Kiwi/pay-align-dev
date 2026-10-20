@@ -87,10 +87,14 @@ class PayrollRepositoryPort:
     def run_snapshot(self, monthly_record_id: int) -> RunSnapshot | None:
         raise NotImplementedError
 
-    def employee_gross_to_date(self, employee_id: int, year: int) -> int:
+    def employee_gross_to_date(
+        self, employee_id: int, year: int, before_month: int
+    ) -> int:
         raise NotImplementedError
 
-    def employer_gross_to_date(self, employer_id: int, year: int) -> int:
+    def employer_gross_to_date(
+        self, employer_id: int, year: int, before_month: int
+    ) -> int:
         raise NotImplementedError
 
     def prior_run(self, employment_id: int) -> PriorRun | None:

@@ -119,7 +119,9 @@ class SqlAlchemyPayrollRepository:
                 holiday_balance_minutes=row.holiday_balance_minutes,
             )
 
-    def employee_gross_to_date(self, employee_id: int, year: int) -> int:
+    def employee_gross_to_date(
+        self, employee_id: int, year: int, before_month: int
+    ) -> int:
         with Session(self.engine) as session:
             value = session.scalar(
                 select(func.coalesce(func.sum(PayslipRow.gross_wage_cents), 0))
@@ -127,11 +129,14 @@ class SqlAlchemyPayrollRepository:
                 .where(
                     MonthlyRecordRow.employee_id == employee_id,
                     MonthlyRecordRow.year == year,
+                    MonthlyRecordRow.month < before_month,
                 )
             )
             return int(value)
 
-    def employer_gross_to_date(self, employer_id: int, year: int) -> int:
+    def employer_gross_to_date(
+        self, employer_id: int, year: int, before_month: int
+    ) -> int:
         with Session(self.engine) as session:
             value = session.scalar(
                 select(func.coalesce(func.sum(PayslipRow.gross_wage_cents), 0))
@@ -139,6 +144,7 @@ class SqlAlchemyPayrollRepository:
                 .where(
                     MonthlyRecordRow.employer_id == employer_id,
                     MonthlyRecordRow.year == year,
+                    MonthlyRecordRow.month < before_month,
                 )
             )
             return int(value)

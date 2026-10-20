@@ -32,6 +32,7 @@ class FakePayrollRepository:
         self.employer_to_date = employer_to_date
         self.saved = None
         self.duplicate = False
+        self.before_months = []
 
     def save_payroll_run(self, record, entries, snapshot, payslip):
         if self.duplicate:
@@ -39,10 +40,12 @@ class FakePayrollRepository:
         self.saved = (record, entries, snapshot, payslip)
         return SavedPayrollRun(monthly_record_id=1, payslip_id=1)
 
-    def employee_gross_to_date(self, employee_id, year):
+    def employee_gross_to_date(self, employee_id, year, before_month):
+        self.before_months.append(before_month)
         return self.employee_to_date
 
-    def employer_gross_to_date(self, employer_id, year):
+    def employer_gross_to_date(self, employer_id, year, before_month):
+        self.before_months.append(before_month)
         return self.employer_to_date
 
     def prior_run(self, employment_id):
@@ -94,6 +97,19 @@ class TestPayrollService(unittest.TestCase):
         self.assertEqual(repository.saved[0].employer_id, 3)
         self.assertEqual(repository.saved[0].month, 10)
         self.assertEqual(repository.saved[0].year, 2026)
+
+    def test_gross_to_date_is_read_before_the_processed_month(self):
+        repository = FakePayrollRepository()
+
+        self.service.process_monthly_payroll(
+            repository=repository,
+            employment=self.employment,
+            month=10,
+            year=2026,
+            work_entries=[WorkEntry(date(2026, 10, 1), HourCategory.WORKED, 600)],
+        )
+
+        self.assertEqual(repository.before_months, [10, 10])
 
     def test_snapshot_freezes_employment_values_and_minute_totals(self):
         repository = FakePayrollRepository()

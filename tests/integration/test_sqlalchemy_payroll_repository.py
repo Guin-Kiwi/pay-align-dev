@@ -88,8 +88,8 @@ def test_saves_explicit_run_inputs_atomically(repository):
     saved = repository.save_payroll_run(record, entries, snapshot, payslip)
 
     assert saved.monthly_record_id == 1
-    assert repository.employee_gross_to_date(employee_id=9, year=2026) == 25000
-    assert repository.employer_gross_to_date(employer_id=3, year=2026) == 25000
+    assert repository.employee_gross_to_date(employee_id=9, year=2026, before_month=12) == 25000
+    assert repository.employer_gross_to_date(employer_id=3, year=2026, before_month=12) == 25000
 
 
 def test_duplicate_month_raises_domain_error_and_keeps_one_run(repository):
@@ -115,7 +115,7 @@ def test_employee_limit_sums_across_employments(repository):
         *make_run(employment_id=8, month=11, employee_id=9)
     )
 
-    assert repository.employee_gross_to_date(employee_id=9, year=2026) == 50000
+    assert repository.employee_gross_to_date(employee_id=9, year=2026, before_month=12) == 50000
 
 
 def test_employer_limit_sums_across_employments(repository):
@@ -124,7 +124,7 @@ def test_employer_limit_sums_across_employments(repository):
         *make_run(employment_id=8, month=11, employer_id=3)
     )
 
-    assert repository.employer_gross_to_date(employer_id=3, year=2026) == 50000
+    assert repository.employer_gross_to_date(employer_id=3, year=2026, before_month=12) == 50000
 
 
 def test_prior_run_is_read_across_years(repository):
@@ -267,11 +267,19 @@ def test_prior_run_returns_the_latest_month(repository):
     assert prior.monthly_record_id == 2
 
 
+def test_gross_to_date_ignores_months_from_the_given_month_on(repository):
+    repository.save_payroll_run(*make_run(month=9))
+    repository.save_payroll_run(*make_run(month=11))
+
+    assert repository.employee_gross_to_date(9, 2026, before_month=10) == 25000
+    assert repository.employer_gross_to_date(3, 2026, before_month=10) == 25000
+
+
 def test_gross_to_date_ignores_other_years(repository):
     repository.save_payroll_run(*make_run(year=2025, month=12))
 
-    assert repository.employee_gross_to_date(employee_id=9, year=2026) == 0
-    assert repository.employer_gross_to_date(employer_id=3, year=2026) == 0
+    assert repository.employee_gross_to_date(employee_id=9, year=2026, before_month=12) == 0
+    assert repository.employer_gross_to_date(employer_id=3, year=2026, before_month=12) == 0
 
 
 def test_run_snapshot_round_trips_equal(repository):
