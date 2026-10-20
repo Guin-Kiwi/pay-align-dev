@@ -79,8 +79,6 @@ class SqlAlchemyPayrollRepository:
                 session.add(payroll_payslip)
                 session.flush()
                 return SavedPayrollRun(monthly_record.id, payroll_payslip.id)
-        except InvalidHolidayBalanceError:
-            raise
         except IntegrityError as error:
             if _is_unique_violation(error):
                 raise DuplicateMonthError(
@@ -95,8 +93,6 @@ class SqlAlchemyPayrollRepository:
                 session.add(row)
                 session.flush()
                 return row.id
-        except InvalidHolidayBalanceError:
-            raise
         except IntegrityError as error:
             if _is_unique_violation(error):
                 raise DuplicateMonthError("Snapshot already exists.") from error
