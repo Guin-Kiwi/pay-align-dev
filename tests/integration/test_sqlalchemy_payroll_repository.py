@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from src.app.application.ports.payroll_repository import (
     EmploymentTerms,
     RunSnapshot,
+    StoredEmployment,
 )
 from src.app.domain.hour_categories import MinuteTotals
 from src.app.domain.errors import (
@@ -387,3 +388,39 @@ def test_a_snapshot_for_an_unknown_record_is_not_reported_as_a_duplicate(reposit
         repository.save_snapshot(record_id=99, snapshot=snapshot)
 
     assert not isinstance(raised.value, DuplicateMonthError)
+
+
+def test_employment_terms_reads_the_stored_integers(tmp_path):
+    engine = create_database_engine(f"sqlite:///{tmp_path / 'payroll.db'}")
+    create_schema(engine)
+    add_employment(
+        engine,
+        employment_id=4,
+        employer_id=2,
+        employee_id=5,
+        start_date=date(2026, 5, 1),
+        hourly_wage_cents=2575,
+        weekly_minutes=390,
+        holiday_weeks=5,
+    )
+
+    stored = SqlAlchemyPayrollRepository(engine).employment_terms(4)
+
+    assert stored == StoredEmployment(
+        employer_id=2,
+        employee_id=5,
+        terms=EmploymentTerms(
+            hourly_wage_cents=2575,
+            weekly_minutes=390,
+            holiday_weeks=5,
+            employment_start_date=date(2026, 5, 1),
+            employment_end_date=None,
+        ),
+    )
+    with pytest.raises(FrozenInstanceError):
+        stored.employer_id = 1
+    engine.dispose()
+
+
+def test_employment_terms_is_none_for_an_unknown_id(repository):
+    assert repository.employment_terms(999) is None

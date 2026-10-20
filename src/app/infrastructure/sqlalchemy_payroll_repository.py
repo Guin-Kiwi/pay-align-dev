@@ -9,11 +9,13 @@ from src.app.application.ports.payroll_repository import (
     PayslipInput,
     PriorRun,
     SavedPayrollRun,
+    StoredEmployment,
     WorkEntryInput,
 )
 from src.app.domain.hour_categories import MinuteTotals
 from src.app.domain.errors import DuplicateMonthError, InvalidHolidayBalanceError
 from src.app.infrastructure.orm_models import (
+    EmploymentRow,
     MonthlyRecordRow,
     PayrollSnapshotRow,
     PayslipRow,
@@ -171,6 +173,23 @@ class SqlAlchemyPayrollRepository:
             record, snapshot = row
             return PriorRun(
                 record.id, record.year, record.month, snapshot.holiday_balance_minutes
+            )
+
+    def employment_terms(self, employment_id: int) -> StoredEmployment | None:
+        with Session(self.engine) as session:
+            row = session.get(EmploymentRow, employment_id)
+            if row is None:
+                return None
+            return StoredEmployment(
+                employer_id=row.employer_id,
+                employee_id=row.employee_id,
+                terms=EmploymentTerms(
+                    hourly_wage_cents=row.hourly_wage_cents,
+                    weekly_minutes=row.weekly_minutes,
+                    holiday_weeks=row.holiday_weeks,
+                    employment_start_date=row.start_date,
+                    employment_end_date=row.end_date,
+                ),
             )
 
     def count_rows(self, table_name: str) -> int:

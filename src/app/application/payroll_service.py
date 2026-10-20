@@ -12,9 +12,9 @@ from src.app.application.ports.payroll_repository import (
     WorkEntryInput,
 )
 from src.app.domain.constants import RULES_YEAR
-from src.app.domain.employment import Employment
 from src.app.domain.errors import (
     DuplicateMonthError,
+    EmploymentNotFoundError,
     InvalidHolidayBalanceError,
     InvalidPayrollInputError,
 )
@@ -27,7 +27,7 @@ from src.app.domain.monthly_record import MonthlyRecord
 from src.app.domain.payroll_calculation import (
     calculate_monthly_totals,
     classify_public_holidays,
-    generate_payslip,
+    generate_payslip_from_terms,
     round_money,
     validate_annual_limits,
 )
@@ -51,7 +51,7 @@ class PayrollService:
     def process_monthly_payroll(
         self,
         repository: PayrollRepositoryPort,
-        employment: Employment,
+        employment_id: int,
         month: int,
         year: int,
         work_entries: list[WorkEntry],
@@ -64,11 +64,11 @@ class PayrollService:
                 f"Payroll rules exist for {RULES_YEAR} only."
             )
 
-        hourly_wage = Decimal(str(employment.hourly_wage))
-        if hourly_wage != round_money(hourly_wage):
-            raise InvalidPayrollInputError(
-                "Hourly wage cannot have more than two decimal places."
-            )
+        stored = repository.employment_terms(employment_id)
+        if stored is None:
+            raise EmploymentNotFoundError(f"Employment {employment_id} not found.")
+        terms = stored.terms
+        hourly_wage = Decimal(terms.hourly_wage_cents) / 100
         cash_bonus = round_money(cash_bonus)
         expense_reimbursements = round_money(expense_reimbursements)
 
@@ -83,12 +83,13 @@ class PayrollService:
         work_entries = classify_public_holidays(work_entries)
         totals = calculate_monthly_totals(work_entries)
 
-        prior = repository.prior_run(employment.id)
-        self._check_run_sequence(prior, employment, month, year)
+        prior = repository.prior_run(employment_id)
+        self._check_run_sequence(prior, terms, month, year)
 
-        payslip = generate_payslip(
+        payslip = generate_payslip_from_terms(
             totals=totals,
-            employment=employment,
+            hourly_wage=hourly_wage,
+            weekly_minutes=terms.weekly_minutes,
             cash_bonus=cash_bonus,
             expense_reimbursements=expense_reimbursements,
         )
@@ -96,19 +97,19 @@ class PayrollService:
         validate_annual_limits(
             current_gross_wage=payslip.gross_wage,
             employee_gross_to_date=Decimal(
-                repository.employee_gross_to_date(employment.employee_id, year)
+                repository.employee_gross_to_date(stored.employee_id, year)
             ) / 100,
             employer_gross_to_date=Decimal(
-                repository.employer_gross_to_date(employment.employer_id, year)
+                repository.employer_gross_to_date(stored.employer_id, year)
             ) / 100,
         )
 
-        holiday_balance = self._holiday_balance_after_run(prior, employment, totals)
+        holiday_balance = self._holiday_balance_after_run(prior, terms, totals)
 
         record = MonthlyRecord(
-            employment_id=employment.id,
-            employee_id=employment.employee_id,
-            employer_id=employment.employer_id,
+            employment_id=employment_id,
+            employee_id=stored.employee_id,
+            employer_id=stored.employer_id,
             month=month,
             year=year,
             cash_bonus=cash_bonus,
@@ -117,9 +118,9 @@ class PayrollService:
 
         saved = repository.save_payroll_run(
             record=MonthlyRecordInput(
-                employment_id=employment.id,
-                employee_id=employment.employee_id,
-                employer_id=employment.employer_id,
+                employment_id=employment_id,
+                employee_id=stored.employee_id,
+                employer_id=stored.employer_id,
                 month=month,
                 year=year,
                 cash_bonus_cents=_to_cents(cash_bonus),
@@ -137,13 +138,7 @@ class PayrollService:
                 for entry in work_entries
             ),
             snapshot=RunSnapshot(
-                employment=EmploymentTerms(
-                    hourly_wage_cents=_to_cents(hourly_wage),
-                    weekly_minutes=round(employment.weekly_hours * 60),
-                    holiday_weeks=employment.holiday_weeks,
-                    employment_start_date=employment.start_date,
-                    employment_end_date=employment.end_date,
-                ),
+                employment=terms,
                 ruleset_version=RULESET_VERSION,
                 hours=totals,
                 holiday_balance_minutes=holiday_balance,
@@ -171,11 +166,14 @@ class PayrollService:
 
     @staticmethod
     def _check_run_sequence(
-        prior: PriorRun | None, employment: Employment, month: int, year: int
+        prior: PriorRun | None, terms: EmploymentTerms, month: int, year: int
     ) -> None:
         """First run: the start month. Later runs: the month after the last run."""
         if prior is None:
-            expected = (employment.start_date.year, employment.start_date.month)
+            expected = (
+                terms.employment_start_date.year,
+                terms.employment_start_date.month,
+            )
         else:
             expected = _following_month(prior.year, prior.month)
             if (year, month) < expected:
@@ -188,17 +186,17 @@ class PayrollService:
     @staticmethod
     def _holiday_balance_after_run(
         prior: PriorRun | None,
-        employment: Employment,
+        terms: EmploymentTerms,
         totals: MinuteTotals,
     ) -> int:
         opening_balance = (
             prior.holiday_balance_minutes
             if prior is not None
             else holiday_entitlement_minutes(
-                holiday_weeks=employment.holiday_weeks,
-                weekly_minutes=round(employment.weekly_hours * 60),
-                start_date=employment.start_date,
-                end_date=employment.end_date,
+                holiday_weeks=terms.holiday_weeks,
+                weekly_minutes=terms.weekly_minutes,
+                start_date=terms.employment_start_date,
+                end_date=terms.employment_end_date,
             )
         )
         try:

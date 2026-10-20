@@ -15,6 +15,7 @@ from src.app.domain.payroll_calculation import (
     calculate_paid_minutes,
     classify_public_holidays,
     generate_payslip,
+    generate_payslip_from_terms,
     is_public_holiday,
     round_money,
     validate_annual_limits,
@@ -281,6 +282,25 @@ class TestPayrollCalculation(unittest.TestCase):
         self.assertEqual(employer_fak, Decimal("66.00"))
         self.assertEqual(employer_bu, Decimal("20.20"))
         self.assertEqual(admin_charge, Decimal("10.60"))
+
+    def test_generate_payslip_from_terms_matches_the_employment_version(self):
+        totals = MinuteTotals(worked=9600, annual_holiday_taken=480)
+
+        from_terms = generate_payslip_from_terms(
+            totals=totals,
+            hourly_wage=Decimal(str(self.employment.hourly_wage)),
+            weekly_minutes=round(self.employment.weekly_hours * 60),
+            cash_bonus=Decimal("100.00"),
+            expense_reimbursements=Decimal("50.00"),
+        )
+        from_employment = generate_payslip(
+            totals=totals,
+            employment=self.employment,
+            cash_bonus=Decimal("100.00"),
+            expense_reimbursements=Decimal("50.00"),
+        )
+
+        self.assertEqual(from_terms, from_employment)
 
     def test_generate_payslip(self):
         totals = MinuteTotals(

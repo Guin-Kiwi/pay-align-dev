@@ -148,10 +148,24 @@ def generate_payslip(
     expense_reimbursements: Decimal = Decimal("0"),
 ) -> Payslip:
     """Build the payslip lines from the run's minute totals."""
-    gross_wage = calculate_gross_wage_from_minutes(
-        totals, Decimal(str(employment.hourly_wage)), cash_bonus
+    return generate_payslip_from_terms(
+        totals=totals,
+        hourly_wage=Decimal(str(employment.hourly_wage)),
+        weekly_minutes=round(employment.weekly_hours * 60),
+        cash_bonus=cash_bonus,
+        expense_reimbursements=expense_reimbursements,
     )
-    weekly_minutes = round(employment.weekly_hours * 60)
+
+
+def generate_payslip_from_terms(
+    totals: MinuteTotals,
+    hourly_wage: Decimal,
+    weekly_minutes: int,
+    cash_bonus: Decimal = Decimal("0"),
+    expense_reimbursements: Decimal = Decimal("0"),
+) -> Payslip:
+    """Build the payslip lines from stored wage and weekly minutes."""
+    gross_wage = calculate_gross_wage_from_minutes(totals, hourly_wage, cash_bonus)
 
     ahv_deduction, alv_deduction, tax_deduction, nbu_deduction = (
         calculate_employee_deductions(gross_wage, weekly_minutes)

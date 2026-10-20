@@ -35,6 +35,13 @@ class EmploymentTerms:
 
 
 @dataclass(frozen=True)
+class StoredEmployment:
+    employer_id: int
+    employee_id: int
+    terms: EmploymentTerms
+
+
+@dataclass(frozen=True)
 class RunSnapshot:
     employment: EmploymentTerms
     ruleset_version: str
@@ -99,4 +106,7 @@ class PayrollRepositoryPort:
         raise NotImplementedError
 
     def prior_run(self, employment_id: int) -> PriorRun | None:
+        raise NotImplementedError
+
+    def employment_terms(self, employment_id: int) -> StoredEmployment | None:
         raise NotImplementedError

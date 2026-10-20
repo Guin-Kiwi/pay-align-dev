@@ -1,3 +1,5 @@
+from datetime import date
+
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
@@ -15,6 +17,10 @@ def add_employment(
     employment_id: int = 1,
     employer_id: int = 1,
     employee_id: int = 1,
+    start_date: date = RULES_YEAR_START,
+    hourly_wage_cents: int = 2500,
+    weekly_minutes: int = 600,
+    holiday_weeks: int = 4,
 ) -> int:
     """Create the employer, employee and employment rows a payroll run points at."""
     with Session(engine) as session, session.begin():
@@ -46,11 +52,11 @@ def add_employment(
                     id=employment_id,
                     employer_id=employer_id,
                     employee_id=employee_id,
-                    start_date=RULES_YEAR_START,
+                    start_date=start_date,
                     end_date=None,
-                    hourly_wage_cents=2500,
-                    weekly_minutes=600,
-                    holiday_weeks=4,
+                    hourly_wage_cents=hourly_wage_cents,
+                    weekly_minutes=weekly_minutes,
+                    holiday_weeks=holiday_weeks,
                 )
             )
     return employment_id
