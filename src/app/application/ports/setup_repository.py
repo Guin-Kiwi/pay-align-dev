@@ -19,8 +19,16 @@ class SetupRepository(ABC):
         """Return the one employer, or None if none is saved yet."""
 
     @abstractmethod
+    def get_employee(self, ahv_number: str) -> Employee | None:
+        """Return the saved employee with this AHV number, or None."""
+
+    @abstractmethod
+    def get_employment(self, employment_id: int) -> Employment | None:
+        """Return the saved employment, or None if the id is unknown."""
+
+    @abstractmethod
     def save(self, employer: Employer, employee: Employee, employment: Employment) -> SetupResult:
         """Save all three in one transaction and link the employment to the employer and employee.
 
-        An employer that already has an id is saved already and is only linked.
+        An employer or employee that already has an id is saved already and is only linked.
         """

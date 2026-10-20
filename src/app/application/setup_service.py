@@ -42,7 +42,8 @@ class SetupService:
     ) -> SetupResult:
         """Validate employer, employee and employment, then save all three together.
 
-        Send employer details only when no employer is saved yet.
+        Send employer details only when no employer is saved yet. An employee whose AHV number
+        is saved already is reused with the saved details.
         """
         saved_employer = self.repository.get_employer()
         if saved_employer is not None and employer is not None:
@@ -53,7 +54,8 @@ class SetupService:
         new_employer = saved_employer or _build("Employer", self.create_employer, employer)
         new_employee = _build("Employee", self.create_employee, employee)
         new_employment = _build("Employment", self.create_employment, employment)
-        return self.repository.save(new_employer, new_employee, new_employment)
+        saved_employee = self.repository.get_employee(new_employee.ahv_number)
+        return self.repository.save(new_employer, saved_employee or new_employee, new_employment)
 
     def create_employer(
         self, 

@@ -1,3 +1,4 @@
+import re
 from dataclasses import asdict
 from datetime import date
 from decimal import Decimal
@@ -6,9 +7,19 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from src.app.application.setup_service import EmployerAlreadyExistsError, SetupService
-from src.app.interfaces.hours import parse_hours
 
 setup_router = APIRouter()
+
+HOURS_PATTERN = re.compile(r"([0-9]{1,2}):([0-5][0-9])")
+
+
+def parse_hours(text: str) -> int:
+    """Return whole minutes for hours typed as H:MM, for example 6:30 -> 390."""
+    match = HOURS_PATTERN.fullmatch(text)
+    minutes = int(match[1]) * 60 + int(match[2]) if match else 0
+    if minutes == 0:
+        raise ValueError("Invalid weekly hours. Use H:MM above 0:00, for example 6:30.")
+    return minutes
 
 
 class EmployerDetails(BaseModel):

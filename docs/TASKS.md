@@ -37,12 +37,34 @@ UC-001 employment input sub-slice (Nano, `uc-001-employment-setup`): weekly hour
 holiday weeks (4 or 5) instead of days, an optional end date and 2026-only start dates.
 See [UC-001](specs/UC-001-Set-Up-an-Employment.md).
 - Specify (phase 1): done.
-- Develop (phase 3): in-progress. Done: `POST /api/v1/setup` takes weekly hours as H:MM, holiday weeks
+- Develop (phase 3): done, merged into `main` as PR #17. `POST /api/v1/setup` takes weekly hours as H:MM, holiday weeks
   (4 or 5, default 4) and an optional end date, and accepts only 2026 start dates
-  (`tests/integration/test_setup_api.py`, `tests/unit/test_setup_service.py`). The branch includes the
-  PR #16 commits. Weekly hours are whole minutes at the API and in the `weekly_minutes` column, and float
+  (`tests/integration/test_setup_api.py`, `tests/unit/test_setup_service.py`). Weekly hours are whole minutes at the API
+  and in the `weekly_minutes` column, and float
   hours inside `Employment`; `round(weekly_hours * 60)` converts exactly for every H:MM up to 99:59. Later:
   move all hour fields (weekly, worked, holiday) to whole minutes together, when the holiday balance is built.
+
+UC-001 setup saving sub-slice (Nano, `uc-001-employment-setup`): setup data survives a restart.
+- Specify (phase 1): done. Decided on 20 October 2026: an AHV number that is already saved reuses that employee
+  (see [UC-001](specs/UC-001-Set-Up-an-Employment.md)).
+- Develop (phase 3): done. `SqlAlchemySetupRepository` on the `employers`, `employees` and `employments`
+  tables replaces `InMemorySetupRepository` in `create_app()`, which builds the engine from `DATABASE_URL`,
+  keeps it on `app.state.engine` and disposes it on shutdown; start-up fails with `DatabaseConfigurationError`
+  when the variable is unset. The port offers `get_employment(id)` so payroll can read the saved employment.
+  `tests/conftest.py` gives tests an in-memory `DATABASE_URL` by default.
+- Acceptance: the three rows are saved together or not at all; `6:30` is kept as 390 minutes and CHF 28.50
+  as 2850 centimes; a second setup with the same employee AHV number links a new employment to the saved
+  employee; data is still there after the app is created again on the same database file.
+- Evidence: `tests/integration/test_sqlalchemy_setup_repository.py`, `tests/integration/test_setup_api.py`
+  (`test_setup_survives_a_restart`, `test_app_does_not_start_without_database_url`),
+  `tests/unit/test_setup_service.py`; `bash scripts/test.sh` passed (96 passed, 1 xfailed). Manual check
+  with uvicorn on a SQLite file: the employer was still there after a restart, and a second setup reused employee 1.
+- Review: [PR #28](https://github.com/Guin-Kiwi/pay-align-dev/pull/28) is open, waiting for Assvinth's review.
+  Review fix: tests always use an in-memory database, even when the developer has `DATABASE_URL` set
+  (`tests/conftest.py`; `tests/integration/test_test_database_isolation.py` failed before the fix).
+- Open, owned by others: Ayla's payroll repository can use `app.state.engine`; `PRAGMA foreign_keys=ON` in
+  `database.py` is due now that UC-001 persists employers and employments (ADR-005 item 6); the payroll router
+  can look up the employment with `get_employment(id)` (Aaron).
 
 Design sub-slice (phase 2): the persistence adapter for UC-002 saving, proposed in
 [ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md). It touches infrastructure
