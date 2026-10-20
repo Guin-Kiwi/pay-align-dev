@@ -63,8 +63,8 @@ UC-001 setup saving sub-slice (Nano, `uc-001-employment-setup`): setup data surv
   Review fix: tests always use an in-memory database, even when the developer has `DATABASE_URL` set
   (`tests/conftest.py`; `tests/integration/test_test_database_isolation.py` failed before the fix).
 - Done on `uc-002-wiring-stage2`: the payroll repository uses the app's one engine; `PRAGMA foreign_keys=ON` is set
-  in `database.py` (ADR-005 item 6); the payroll request takes only an `employment_id` and `PayrollService` looks
-  the employment up with `get_employment(id)`.
+  in `database.py` (ADR-005 item 6); the payroll request takes only an `employment_id` and `PayrollService` reads
+  the employment's stored terms up through its own port (`employment_terms(id)`); unknown ids are a 404.
 
 Design sub-slice (phase 2): the persistence adapter for UC-002 saving, proposed in
 [ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md). It touches infrastructure

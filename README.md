@@ -18,7 +18,7 @@
 a run snapshot, the monthly record and the payslip in one transaction.
 The request takes an `employment_id`, the year and month, the cash bonus, the expense
 reimbursements and the work entries; the employment (employer, employee, wage, weekly
-hours, holiday weeks and dates) is looked up from the saved setup, and an unknown
+hours, holiday weeks and dates) is read from the saved setup in the `employments` table, and an unknown
 `employment_id` is a 404 before anything is saved.
 The run snapshot holds the employment terms, the ruleset version, the hour totals and the closing holiday balance of the run (ADR-004 Amendment 2). The application never updates or deletes it or the saved entries, but direct SQL can still edit stored rows.
 
