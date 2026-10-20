@@ -8,7 +8,7 @@ from src.app.application.ports.setup_repository import SetupRepository, SetupRes
 from src.app.domain.employer import Employer
 from src.app.domain.employee import Employee
 from src.app.domain.employment import Employment
-from src.app.domain.constants import MIN_WEEKLY_HOURS
+from src.app.domain.constants import MIN_WEEKLY_HOURS, RULES_YEAR
 
 logger = logging.getLogger(__name__)
 
@@ -93,12 +93,17 @@ class SetupService:
         self, 
         start_date: date, 
         hourly_wage: float, 
-        weekly_hours: float, 
-        holiday_entitlement: int = 20,
+        weekly_hours: float,
+        holiday_weeks: int = 4,
+        end_date: Optional[date] = None,
         employer_id: int = 0,
         employee_id: int = 0,
     ) -> Employment:
         """Create and validate an employment relationship."""
+        if start_date.year != RULES_YEAR:
+            raise ValueError(
+                f"Start date must be in {RULES_YEAR}; PayAlign has payroll rules for {RULES_YEAR} only."
+            )
         if weekly_hours < MIN_WEEKLY_HOURS:
             logger.warning(
                 "Weekly hours (%s) are unusually low (recommended minimum: %s).",
@@ -109,10 +114,11 @@ class SetupService:
         employment = Employment(
             employer_id=employer_id, 
             employee_id=employee_id, 
-            start_date=start_date, 
-            hourly_wage=hourly_wage, 
-            weekly_hours=weekly_hours, 
-            holiday_entitlement=holiday_entitlement,
+            start_date=start_date,
+            end_date=end_date,
+            hourly_wage=hourly_wage,
+            weekly_hours=weekly_hours,
+            holiday_weeks=holiday_weeks,
         )
         return employment
 
@@ -137,6 +143,6 @@ class SetupService:
             f"Start Date: {employment.start_date}\n"
             f"Hourly Wage: CHF {employment.hourly_wage}\n"
             f"Weekly Hours: {employment.weekly_hours}\n"
-            f"Holiday Entitlement: {employment.holiday_entitlement} days/year\n"
+            f"Holiday: {employment.holiday_weeks} weeks/year\n"
         )
         return contract
