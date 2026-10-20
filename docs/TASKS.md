@@ -93,8 +93,8 @@ configuration), the application port and errors, and the payroll router error ma
 - ADR-005 slice: integration tests assert that a duplicate month raises
   `DuplicateMonthError` and persists nothing, that a failed save leaves no
   entries, snapshot, record or payslip, that the employee limit sums across
-  employments of the same employee, that the database foundation is done,
-  wiring next, and that tests dispose their engines.
+  employments of the same employee, that start-up fails clearly when
+  `DATABASE_URL` is unset or unsupported, and that tests dispose their engines.
 
 ## Blockers / assumptions / decisions
 
