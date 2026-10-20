@@ -1,7 +1,7 @@
 # ADR-005-sqlalchemy-persistence-adapter
 
 ## Status
-Accepted
+Proposed
 
 ## Context
 UC-002 must save daily entries, a frozen run snapshot, the `MonthlyRecord` and the `Payslip` in one transaction ([ADR-004](ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). `docs/PROJECT.md` names a relational database reached through an ORM and configured by `DATABASE_URL`.
