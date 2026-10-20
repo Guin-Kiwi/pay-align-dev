@@ -12,13 +12,21 @@ from src.app.application.ports.payroll_repository import (
     WorkEntryInput,
 )
 from src.app.domain.hour_categories import MinuteTotals
-from src.app.domain.errors import DuplicateMonthError, InvalidHolidayBalanceError
+from src.app.domain.errors import (
+    DuplicateMonthError,
+    InvalidHolidayBalanceError,
+    InvalidPayrollInputError,
+)
 from src.app.infrastructure.orm_models import (
     MonthlyRecordRow,
     PayrollSnapshotRow,
     PayslipRow,
     WorkEntryRow,
 )
+
+
+def _is_unique_violation(error: IntegrityError) -> bool:
+    return "UNIQUE constraint failed" in str(error.orig)
 
 
 class SqlAlchemyPayrollRepository:
@@ -77,10 +85,12 @@ class SqlAlchemyPayrollRepository:
                 session.add(payroll_payslip)
                 session.flush()
                 return SavedPayrollRun(monthly_record.id, payroll_payslip.id)
-        except InvalidHolidayBalanceError:
-            raise
         except IntegrityError as error:
-            raise DuplicateMonthError("Payroll month or snapshot already exists.") from error
+            if _is_unique_violation(error):
+                raise DuplicateMonthError(
+                    "Payroll month or snapshot already exists."
+                ) from error
+            raise InvalidPayrollInputError(str(error.orig)) from error
 
     def save_snapshot(self, record_id: int, snapshot: RunSnapshot) -> int:
         try:
@@ -89,10 +99,10 @@ class SqlAlchemyPayrollRepository:
                 session.add(row)
                 session.flush()
                 return row.id
-        except InvalidHolidayBalanceError:
-            raise
         except IntegrityError as error:
-            raise DuplicateMonthError("Snapshot already exists.") from error
+            if _is_unique_violation(error):
+                raise DuplicateMonthError("Snapshot already exists.") from error
+            raise InvalidPayrollInputError(str(error.orig)) from error
 
     def run_snapshot(self, monthly_record_id: int) -> RunSnapshot | None:
         with Session(self.engine) as session:
