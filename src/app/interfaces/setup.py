@@ -1,3 +1,4 @@
+import re
 from dataclasses import asdict
 from datetime import date
 from decimal import Decimal
@@ -8,6 +9,17 @@ from pydantic import BaseModel, Field
 from src.app.application.setup_service import EmployerAlreadyExistsError, SetupService
 
 setup_router = APIRouter()
+
+HOURS_PATTERN = re.compile(r"([0-9]{1,2}):([0-5][0-9])")
+
+
+def parse_hours(text: str) -> int:
+    """Return whole minutes for hours typed as H:MM, for example 6:30 -> 390."""
+    match = HOURS_PATTERN.fullmatch(text)
+    minutes = int(match[1]) * 60 + int(match[2]) if match else 0
+    if minutes == 0:
+        raise ValueError("Invalid weekly hours. Use H:MM above 0:00, for example 6:30.")
+    return minutes
 
 
 class EmployerDetails(BaseModel):
@@ -27,9 +39,10 @@ class EmployeeDetails(BaseModel):
 
 class EmploymentDetails(BaseModel):
     start_date: date
+    end_date: date | None = None
     hourly_wage: Decimal = Field(decimal_places=2)
-    weekly_hours: float
-    holiday_entitlement: int = 20
+    weekly_hours: str
+    holiday_weeks: int = 4
 
 
 class SetupRequest(BaseModel):
@@ -67,11 +80,18 @@ def get_employer(service: SetupService = Depends(get_setup_service)):
 
 @setup_router.post("/setup", response_model=SetupResponse, status_code=201)
 def set_up_employment(payload: SetupRequest, service: SetupService = Depends(get_setup_service)):
+    employment = payload.employment.model_dump()
+    try:
+        weekly_minutes = parse_hours(employment["weekly_hours"])
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=f"Employment: {error}") from error
+    # TODO(UC-001): Employment keeps float hours until all hour fields move to whole minutes. Owner: Nano (@Gedance23).
+    employment["weekly_hours"] = weekly_minutes / 60
     try:
         result = service.set_up_employment(
             employer=payload.employer.model_dump() if payload.employer else None,
             employee=payload.employee.model_dump(),
-            employment=payload.employment.model_dump(),
+            employment=employment,
         )
     except EmployerAlreadyExistsError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
