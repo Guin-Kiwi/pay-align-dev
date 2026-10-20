@@ -39,9 +39,6 @@ class FakePayrollRepository:
         self.saved = (record, entries, snapshot, payslip)
         return SavedPayrollRun(monthly_record_id=1, payslip_id=1)
 
-    def save_snapshot(self, record_id, snapshot):
-        raise NotImplementedError
-
     def employee_gross_to_date(self, employee_id, year):
         return self.employee_to_date
 

@@ -105,13 +105,8 @@ def test_duplicate_month_raises_domain_error_and_keeps_one_run(repository):
     assert repository.count_rows("payslips") == 1
 
 
-def test_snapshot_is_unique_per_monthly_record(repository):
-    values = make_run()
-    repository.save_payroll_run(*values)
-    record, entries, snapshot, payslip = values
-
-    with pytest.raises(DuplicateMonthError):
-        repository.save_snapshot(record_id=1, snapshot=snapshot)
+def test_repository_has_no_separate_snapshot_save(repository):
+    assert not hasattr(repository, "save_snapshot")
 
 
 def test_employee_limit_sums_across_employments(repository):

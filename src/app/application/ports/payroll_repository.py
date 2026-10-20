@@ -84,11 +84,6 @@ class PayrollRepositoryPort:
     ) -> SavedPayrollRun:
         raise NotImplementedError
 
-    def save_snapshot(
-        self, record_id: int, snapshot: RunSnapshot
-    ) -> int:
-        raise NotImplementedError
-
     def run_snapshot(self, monthly_record_id: int) -> RunSnapshot | None:
         raise NotImplementedError
 

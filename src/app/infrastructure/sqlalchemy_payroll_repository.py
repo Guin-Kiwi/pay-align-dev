@@ -92,18 +92,6 @@ class SqlAlchemyPayrollRepository:
                 ) from error
             raise InvalidPayrollInputError(str(error.orig)) from error
 
-    def save_snapshot(self, record_id: int, snapshot: RunSnapshot) -> int:
-        try:
-            with Session(self.engine) as session, session.begin():
-                row = self._snapshot_values(record_id, snapshot)
-                session.add(row)
-                session.flush()
-                return row.id
-        except IntegrityError as error:
-            if _is_unique_violation(error):
-                raise DuplicateMonthError("Snapshot already exists.") from error
-            raise InvalidPayrollInputError(str(error.orig)) from error
-
     def run_snapshot(self, monthly_record_id: int) -> RunSnapshot | None:
         with Session(self.engine) as session:
             row = session.scalar(
