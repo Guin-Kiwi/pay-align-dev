@@ -167,13 +167,3 @@ class SqlAlchemyPayrollRepository:
             return PriorRun(
                 record.id, record.year, record.month, snapshot.holiday_balance_minutes
             )
-
-    def count_rows(self, table_name: str) -> int:
-        allowed = {
-            "monthly_records": MonthlyRecordRow,
-            "work_entries": WorkEntryRow,
-            "payroll_snapshots": PayrollSnapshotRow,
-            "payslips": PayslipRow,
-        }
-        with Session(self.engine) as session:
-            return int(session.scalar(select(func.count()).select_from(allowed[table_name])))

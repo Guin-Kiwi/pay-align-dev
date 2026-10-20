@@ -15,6 +15,7 @@ from src.app.domain.errors import (
     ImmutableRecordError,
     InvalidHolidayBalanceError,
 )
+from tests.db_helpers import count_rows
 from src.app.infrastructure.database import create_database_engine, create_schema
 from src.app.infrastructure.orm_models import PayrollSnapshotRow, WorkEntryRow
 from src.app.infrastructure.sqlalchemy_payroll_repository import (
@@ -99,10 +100,10 @@ def test_duplicate_month_raises_domain_error_and_keeps_one_run(repository):
     with pytest.raises(DuplicateMonthError):
         repository.save_payroll_run(*make_run())
 
-    assert repository.count_rows("monthly_records") == 1
-    assert repository.count_rows("work_entries") == 1
-    assert repository.count_rows("payroll_snapshots") == 1
-    assert repository.count_rows("payslips") == 1
+    assert count_rows(repository.engine, "monthly_records") == 1
+    assert count_rows(repository.engine, "work_entries") == 1
+    assert count_rows(repository.engine, "payroll_snapshots") == 1
+    assert count_rows(repository.engine, "payslips") == 1
 
 
 def test_repository_has_no_separate_snapshot_save(repository):
@@ -145,7 +146,7 @@ def test_invalid_holiday_balance_rolls_back_everything(repository):
         repository.save_payroll_run(record, entries, invalid_snapshot, payslip)
 
     for table in ("monthly_records", "work_entries", "payroll_snapshots", "payslips"):
-        assert repository.count_rows(table) == 0
+        assert count_rows(repository.engine, table) == 0
 
 
 def test_saved_rows_keep_the_agreed_category_names(repository):
@@ -182,7 +183,7 @@ def test_every_agreed_category_is_accepted_by_the_constraint(repository):
 
     repository.save_payroll_run(record, entries, snapshot, payslip)
 
-    assert repository.count_rows("work_entries") == 4
+    assert count_rows(repository.engine, "work_entries") == 4
 
 
 def test_unknown_category_is_rejected_by_the_constraint(repository):
@@ -201,7 +202,7 @@ def test_unknown_category_is_rejected_by_the_constraint(repository):
     with pytest.raises(Exception):
         repository.save_payroll_run(record, entries, snapshot, payslip)
 
-    assert repository.count_rows("monthly_records") == 0
+    assert count_rows(repository.engine, "monthly_records") == 0
 
 
 def test_snapshot_keeps_the_employment_dates(repository):
@@ -337,7 +338,7 @@ def test_deleting_a_saved_snapshot_row_raises(repository):
             session.flush()
         session.rollback()
 
-    assert repository.count_rows("payroll_snapshots") == 1
+    assert count_rows(repository.engine, "payroll_snapshots") == 1
 
 
 def test_changing_a_saved_work_entry_raises(repository):
@@ -364,4 +365,4 @@ def test_deleting_a_saved_work_entry_raises(repository):
             session.flush()
         session.rollback()
 
-    assert repository.count_rows("work_entries") == 1
+    assert count_rows(repository.engine, "work_entries") == 1
