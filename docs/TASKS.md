@@ -47,7 +47,7 @@ See [UC-001](specs/UC-001-Set-Up-an-Employment.md).
 UC-001 setup saving sub-slice (Nano, `uc-001-employment-setup`): setup data survives a restart.
 - Specify (phase 1): done. Decided on 20 October 2026: an AHV number that is already saved reuses that employee
   (see [UC-001](specs/UC-001-Set-Up-an-Employment.md)).
-- Develop (phase 3): ready. A SQLAlchemy setup repository on the `employers`, `employees` and `employments`
+- Develop (phase 3): in-progress. A SQLAlchemy setup repository on the `employers`, `employees` and `employments`
   tables replaces `InMemorySetupRepository` in `create_app()`, which builds the engine from `DATABASE_URL`.
   It also offers `get_employment(id)` so payroll can read the saved employment.
 - Acceptance: the three rows are saved together or not at all; `6:30` is kept as 390 minutes and CHF 28.50

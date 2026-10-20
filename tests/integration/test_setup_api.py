@@ -70,6 +70,15 @@ class TestSetupApi(unittest.TestCase):
         self.assertEqual(response.json()["employer_id"], 1)
         self.assertEqual(response.json()["employee_id"], 2)
 
+    def test_second_setup_for_a_saved_ahv_number_reuses_the_employee(self):
+        self.set_up(employer=EMPLOYER, employee=EMPLOYEE, employment=EMPLOYMENT)
+
+        response = self.set_up(employee=EMPLOYEE, employment=EMPLOYMENT)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["employee_id"], 1)
+        self.assertEqual(response.json()["employment_id"], 2)
+
     def test_sending_a_second_employer_is_a_conflict(self):
         self.set_up(employer=EMPLOYER, employee=EMPLOYEE, employment=EMPLOYMENT)
 
