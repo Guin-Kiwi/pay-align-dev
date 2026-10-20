@@ -97,10 +97,10 @@ class PayrollService:
         validate_annual_limits(
             current_gross_wage=payslip.gross_wage,
             employee_gross_to_date=Decimal(
-                repository.employee_gross_to_date(stored.employee_id, year)
+                repository.employee_gross_to_date(stored.employee_id, year, month)
             ) / 100,
             employer_gross_to_date=Decimal(
-                repository.employer_gross_to_date(stored.employer_id, year)
+                repository.employer_gross_to_date(stored.employer_id, year, month)
             ) / 100,
         )
 

@@ -3,7 +3,6 @@ from datetime import date, time
 
 import pytest
 from sqlalchemy import text
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.app.application.ports.payroll_repository import (
@@ -16,7 +15,9 @@ from src.app.domain.errors import (
     DuplicateMonthError,
     ImmutableRecordError,
     InvalidHolidayBalanceError,
+    InvalidPayrollInputError,
 )
+from tests.db_helpers import count_rows
 from src.app.infrastructure.database import create_database_engine, create_schema
 from src.app.infrastructure.orm_models import PayrollSnapshotRow, WorkEntryRow
 from tests.database_helpers import add_employment
@@ -93,8 +94,8 @@ def test_saves_explicit_run_inputs_atomically(repository):
     saved = repository.save_payroll_run(record, entries, snapshot, payslip)
 
     assert saved.monthly_record_id == 1
-    assert repository.employee_gross_to_date(employee_id=9, year=2026) == 25000
-    assert repository.employer_gross_to_date(employer_id=3, year=2026) == 25000
+    assert repository.employee_gross_to_date(employee_id=9, year=2026, before_month=12) == 25000
+    assert repository.employer_gross_to_date(employer_id=3, year=2026, before_month=12) == 25000
 
 
 def test_duplicate_month_raises_domain_error_and_keeps_one_run(repository):
@@ -104,19 +105,14 @@ def test_duplicate_month_raises_domain_error_and_keeps_one_run(repository):
     with pytest.raises(DuplicateMonthError):
         repository.save_payroll_run(*make_run())
 
-    assert repository.count_rows("monthly_records") == 1
-    assert repository.count_rows("work_entries") == 1
-    assert repository.count_rows("payroll_snapshots") == 1
-    assert repository.count_rows("payslips") == 1
+    assert count_rows(repository.engine, "monthly_records") == 1
+    assert count_rows(repository.engine, "work_entries") == 1
+    assert count_rows(repository.engine, "payroll_snapshots") == 1
+    assert count_rows(repository.engine, "payslips") == 1
 
 
-def test_snapshot_is_unique_per_monthly_record(repository):
-    values = make_run()
-    repository.save_payroll_run(*values)
-    record, entries, snapshot, payslip = values
-
-    with pytest.raises(DuplicateMonthError):
-        repository.save_snapshot(record_id=1, snapshot=snapshot)
+def test_repository_has_no_separate_snapshot_save(repository):
+    assert not hasattr(repository, "save_snapshot")
 
 
 def test_employee_limit_sums_across_employments(repository):
@@ -125,7 +121,7 @@ def test_employee_limit_sums_across_employments(repository):
         *make_run(employment_id=8, month=11, employee_id=9)
     )
 
-    assert repository.employee_gross_to_date(employee_id=9, year=2026) == 50000
+    assert repository.employee_gross_to_date(employee_id=9, year=2026, before_month=12) == 50000
 
 
 def test_employer_limit_sums_across_employments(repository):
@@ -134,7 +130,7 @@ def test_employer_limit_sums_across_employments(repository):
         *make_run(employment_id=8, month=11, employer_id=3)
     )
 
-    assert repository.employer_gross_to_date(employer_id=3, year=2026) == 50000
+    assert repository.employer_gross_to_date(employer_id=3, year=2026, before_month=12) == 50000
 
 
 def test_prior_run_is_read_across_years(repository):
@@ -155,7 +151,7 @@ def test_invalid_holiday_balance_rolls_back_everything(repository):
         repository.save_payroll_run(record, entries, invalid_snapshot, payslip)
 
     for table in ("monthly_records", "work_entries", "payroll_snapshots", "payslips"):
-        assert repository.count_rows(table) == 0
+        assert count_rows(repository.engine, table) == 0
 
 
 def test_saved_rows_keep_the_agreed_category_names(repository):
@@ -192,7 +188,7 @@ def test_every_agreed_category_is_accepted_by_the_constraint(repository):
 
     repository.save_payroll_run(record, entries, snapshot, payslip)
 
-    assert repository.count_rows("work_entries") == 4
+    assert count_rows(repository.engine, "work_entries") == 4
 
 
 def test_unknown_category_is_rejected_by_the_constraint(repository):
@@ -208,11 +204,10 @@ def test_unknown_category_is_rejected_by_the_constraint(repository):
         ),
     )
 
-    with pytest.raises(IntegrityError) as raised:
+    with pytest.raises(InvalidPayrollInputError):
         repository.save_payroll_run(record, entries, snapshot, payslip)
 
-    assert not isinstance(raised.value, DuplicateMonthError)
-    assert repository.count_rows("monthly_records") == 0
+    assert count_rows(repository.engine, "monthly_records") == 0
 
 
 def test_snapshot_keeps_the_employment_dates(repository):
@@ -278,11 +273,19 @@ def test_prior_run_returns_the_latest_month(repository):
     assert prior.monthly_record_id == 2
 
 
+def test_gross_to_date_ignores_months_from_the_given_month_on(repository):
+    repository.save_payroll_run(*make_run(month=9))
+    repository.save_payroll_run(*make_run(month=11))
+
+    assert repository.employee_gross_to_date(9, 2026, before_month=10) == 25000
+    assert repository.employer_gross_to_date(3, 2026, before_month=10) == 25000
+
+
 def test_gross_to_date_ignores_other_years(repository):
     repository.save_payroll_run(*make_run(year=2025, month=12))
 
-    assert repository.employee_gross_to_date(employee_id=9, year=2026) == 0
-    assert repository.employer_gross_to_date(employer_id=3, year=2026) == 0
+    assert repository.employee_gross_to_date(employee_id=9, year=2026, before_month=12) == 0
+    assert repository.employer_gross_to_date(employer_id=3, year=2026, before_month=12) == 0
 
 
 def test_run_snapshot_round_trips_equal(repository):
@@ -340,7 +343,7 @@ def test_deleting_a_saved_snapshot_row_raises(repository):
             session.flush()
         session.rollback()
 
-    assert repository.count_rows("payroll_snapshots") == 1
+    assert count_rows(repository.engine, "payroll_snapshots") == 1
 
 
 def test_changing_a_saved_work_entry_raises(repository):
@@ -367,27 +370,20 @@ def test_deleting_a_saved_work_entry_raises(repository):
             session.flush()
         session.rollback()
 
-    assert repository.count_rows("work_entries") == 1
+    assert count_rows(repository.engine, "work_entries") == 1
+
+
 
 
 def test_a_run_for_an_unknown_employment_is_not_reported_as_a_duplicate_month(repository):
     record, entries, snapshot, payslip = make_run(employment_id=99)
 
-    with pytest.raises(IntegrityError) as raised:
+    with pytest.raises(InvalidPayrollInputError) as raised:
         repository.save_payroll_run(record, entries, snapshot, payslip)
 
     assert not isinstance(raised.value, DuplicateMonthError)
     for table in ("monthly_records", "work_entries", "payroll_snapshots", "payslips"):
-        assert repository.count_rows(table) == 0
-
-
-def test_a_snapshot_for_an_unknown_record_is_not_reported_as_a_duplicate(repository):
-    _, _, snapshot, _ = make_run()
-
-    with pytest.raises(IntegrityError) as raised:
-        repository.save_snapshot(record_id=99, snapshot=snapshot)
-
-    assert not isinstance(raised.value, DuplicateMonthError)
+        assert count_rows(repository.engine, table) == 0
 
 
 def test_employment_terms_reads_the_stored_integers(tmp_path):

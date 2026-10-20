@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.app.application.ports.payroll_repository import (
+    PayrollRepositoryPort,
     EmploymentTerms,
     MonthlyRecordInput,
     RunSnapshot,
@@ -13,7 +14,11 @@ from src.app.application.ports.payroll_repository import (
     WorkEntryInput,
 )
 from src.app.domain.hour_categories import MinuteTotals
-from src.app.domain.errors import DuplicateMonthError, InvalidHolidayBalanceError
+from src.app.domain.errors import (
+    DuplicateMonthError,
+    InvalidHolidayBalanceError,
+    InvalidPayrollInputError,
+)
 from src.app.infrastructure.orm_models import (
     EmploymentRow,
     MonthlyRecordRow,
@@ -23,12 +28,11 @@ from src.app.infrastructure.orm_models import (
 )
 
 
-def _is_unique_violation(error: IntegrityError, table: str) -> bool:
-    message = str(error.orig)
-    return message.startswith("UNIQUE constraint failed") and f" {table}." in f" {message}"
+def _is_unique_violation(error: IntegrityError) -> bool:
+    return "UNIQUE constraint failed" in str(error.orig)
 
 
-class SqlAlchemyPayrollRepository:
+class SqlAlchemyPayrollRepository(PayrollRepositoryPort):
     def __init__(self, engine) -> None:
         self.engine = engine
 
@@ -84,26 +88,12 @@ class SqlAlchemyPayrollRepository:
                 session.add(payroll_payslip)
                 session.flush()
                 return SavedPayrollRun(monthly_record.id, payroll_payslip.id)
-        except InvalidHolidayBalanceError:
-            raise
         except IntegrityError as error:
-            if _is_unique_violation(error, MonthlyRecordRow.__tablename__):
-                raise DuplicateMonthError("Payroll month already exists.") from error
-            raise
-
-    def save_snapshot(self, record_id: int, snapshot: RunSnapshot) -> int:
-        try:
-            with Session(self.engine) as session, session.begin():
-                row = self._snapshot_values(record_id, snapshot)
-                session.add(row)
-                session.flush()
-                return row.id
-        except InvalidHolidayBalanceError:
-            raise
-        except IntegrityError as error:
-            if _is_unique_violation(error, PayrollSnapshotRow.__tablename__):
-                raise DuplicateMonthError("Snapshot already exists.") from error
-            raise
+            if _is_unique_violation(error):
+                raise DuplicateMonthError(
+                    "Payroll month or snapshot already exists."
+                ) from error
+            raise InvalidPayrollInputError(str(error.orig)) from error
 
     def run_snapshot(self, monthly_record_id: int) -> RunSnapshot | None:
         with Session(self.engine) as session:
@@ -132,29 +122,34 @@ class SqlAlchemyPayrollRepository:
                 holiday_balance_minutes=row.holiday_balance_minutes,
             )
 
-    def employee_gross_to_date(self, employee_id: int, year: int) -> int:
+    def _gross_before(
+        self, owner_column, owner_id: int, year: int, before_month: int
+    ) -> int:
         with Session(self.engine) as session:
             value = session.scalar(
                 select(func.coalesce(func.sum(PayslipRow.gross_wage_cents), 0))
                 .join(MonthlyRecordRow)
                 .where(
-                    MonthlyRecordRow.employee_id == employee_id,
+                    owner_column == owner_id,
                     MonthlyRecordRow.year == year,
+                    MonthlyRecordRow.month < before_month,
                 )
             )
             return int(value)
 
-    def employer_gross_to_date(self, employer_id: int, year: int) -> int:
-        with Session(self.engine) as session:
-            value = session.scalar(
-                select(func.coalesce(func.sum(PayslipRow.gross_wage_cents), 0))
-                .join(MonthlyRecordRow)
-                .where(
-                    MonthlyRecordRow.employer_id == employer_id,
-                    MonthlyRecordRow.year == year,
-                )
-            )
-            return int(value)
+    def employee_gross_to_date(
+        self, employee_id: int, year: int, before_month: int
+    ) -> int:
+        return self._gross_before(
+            MonthlyRecordRow.employee_id, employee_id, year, before_month
+        )
+
+    def employer_gross_to_date(
+        self, employer_id: int, year: int, before_month: int
+    ) -> int:
+        return self._gross_before(
+            MonthlyRecordRow.employer_id, employer_id, year, before_month
+        )
 
     def prior_run(self, employment_id: int) -> PriorRun | None:
         with Session(self.engine) as session:
@@ -191,13 +186,3 @@ class SqlAlchemyPayrollRepository:
                     employment_end_date=row.end_date,
                 ),
             )
-
-    def count_rows(self, table_name: str) -> int:
-        allowed = {
-            "monthly_records": MonthlyRecordRow,
-            "work_entries": WorkEntryRow,
-            "payroll_snapshots": PayrollSnapshotRow,
-            "payslips": PayslipRow,
-        }
-        with Session(self.engine) as session:
-            return int(session.scalar(select(func.count()).select_from(allowed[table_name])))

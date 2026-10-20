@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, time
 
@@ -79,9 +80,10 @@ class SavedPayrollRun:
     payslip_id: int
 
 
-class PayrollRepositoryPort:
+class PayrollRepositoryPort(ABC):
     """Persistence port for explicit, integer-based payroll values."""
 
+    @abstractmethod
     def save_payroll_run(
         self,
         record: MonthlyRecordInput,
@@ -89,24 +91,28 @@ class PayrollRepositoryPort:
         snapshot: RunSnapshot,
         payslip: PayslipInput,
     ) -> SavedPayrollRun:
-        raise NotImplementedError
+        ...
 
-    def save_snapshot(
-        self, record_id: int, snapshot: RunSnapshot
-    ) -> int:
-        raise NotImplementedError
-
+    @abstractmethod
     def run_snapshot(self, monthly_record_id: int) -> RunSnapshot | None:
-        raise NotImplementedError
+        ...
 
-    def employee_gross_to_date(self, employee_id: int, year: int) -> int:
-        raise NotImplementedError
+    @abstractmethod
+    def employee_gross_to_date(
+        self, employee_id: int, year: int, before_month: int
+    ) -> int:
+        ...
 
-    def employer_gross_to_date(self, employer_id: int, year: int) -> int:
-        raise NotImplementedError
+    @abstractmethod
+    def employer_gross_to_date(
+        self, employer_id: int, year: int, before_month: int
+    ) -> int:
+        ...
 
+    @abstractmethod
     def prior_run(self, employment_id: int) -> PriorRun | None:
-        raise NotImplementedError
+        ...
 
+    @abstractmethod
     def employment_terms(self, employment_id: int) -> StoredEmployment | None:
-        raise NotImplementedError
+        ...

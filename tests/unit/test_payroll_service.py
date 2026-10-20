@@ -8,11 +8,11 @@ from src.app.application.payroll_service import PayrollService
 from src.app.application.ports.payroll_repository import (
     EmploymentTerms,
     StoredEmployment,
+    PayrollRepositoryPort,
     PriorRun,
     RunSnapshot,
     SavedPayrollRun,
 )
-from src.app.domain.employment import Employment
 from src.app.domain.errors import (
     AnnualLimitExceededError,
     DuplicateMonthError,
@@ -43,7 +43,7 @@ def make_employment(**overrides):
     )
 
 
-class FakePayrollRepository:
+class FakePayrollRepository(PayrollRepositoryPort):
     """In-memory stand-in for PayrollRepositoryPort."""
 
     def __init__(self, prior=None, employee_to_date=0, employer_to_date=0):
@@ -53,6 +53,7 @@ class FakePayrollRepository:
         self.employer_to_date = employer_to_date
         self.saved = None
         self.duplicate = False
+        self.before_months = []
 
     def save_payroll_run(self, record, entries, snapshot, payslip):
         if self.duplicate:
@@ -60,13 +61,15 @@ class FakePayrollRepository:
         self.saved = (record, entries, snapshot, payslip)
         return SavedPayrollRun(monthly_record_id=1, payslip_id=1)
 
-    def save_snapshot(self, record_id, snapshot):
-        raise NotImplementedError
+    def run_snapshot(self, monthly_record_id):
+        return None
 
-    def employee_gross_to_date(self, employee_id, year):
+    def employee_gross_to_date(self, employee_id, year, before_month):
+        self.before_months.append(before_month)
         return self.employee_to_date
 
-    def employer_gross_to_date(self, employer_id, year):
+    def employer_gross_to_date(self, employer_id, year, before_month):
+        self.before_months.append(before_month)
         return self.employer_to_date
 
     def prior_run(self, employment_id):
@@ -144,6 +147,19 @@ class TestPayrollService(unittest.TestCase):
 
         self.assertEqual(payslip.gross_wage, Decimal("257.50"))
         self.assertEqual(repository.saved[2].employment.hourly_wage_cents, 2575)
+
+    def test_gross_to_date_is_read_before_the_processed_month(self):
+        repository = FakePayrollRepository()
+
+        self.service.process_monthly_payroll(
+            repository=repository,
+            employment_id=7,
+            month=10,
+            year=2026,
+            work_entries=[WorkEntry(date(2026, 10, 1), HourCategory.WORKED, 600)],
+        )
+
+        self.assertEqual(repository.before_months, [10, 10])
 
     def test_snapshot_freezes_employment_values_and_minute_totals(self):
         repository = FakePayrollRepository()
