@@ -39,3 +39,11 @@ def test_same_employment_month_year_twice_still_raises_duplicate_month(repositor
 
 def test_repository_has_no_count_rows_method(repository):
     assert not hasattr(repository, "count_rows")
+
+
+def test_port_is_abstract_and_the_adapter_implements_it(repository):
+    from src.app.application.ports.payroll_repository import PayrollRepositoryPort
+
+    with pytest.raises(TypeError):
+        PayrollRepositoryPort()
+    assert isinstance(repository, PayrollRepositoryPort)

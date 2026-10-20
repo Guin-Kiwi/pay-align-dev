@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.app.application.ports.payroll_repository import (
+    PayrollRepositoryPort,
     EmploymentTerms,
     MonthlyRecordInput,
     RunSnapshot,
@@ -29,7 +30,7 @@ def _is_unique_violation(error: IntegrityError) -> bool:
     return "UNIQUE constraint failed" in str(error.orig)
 
 
-class SqlAlchemyPayrollRepository:
+class SqlAlchemyPayrollRepository(PayrollRepositoryPort):
     def __init__(self, engine) -> None:
         self.engine = engine
 

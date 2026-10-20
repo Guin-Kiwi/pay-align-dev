@@ -7,6 +7,7 @@ from decimal import Decimal
 from src.app.application.payroll_service import PayrollService
 from src.app.application.ports.payroll_repository import (
     EmploymentTerms,
+    PayrollRepositoryPort,
     PriorRun,
     RunSnapshot,
     SavedPayrollRun,
@@ -23,7 +24,7 @@ from src.app.domain.hour_categories import HourCategory, MinuteTotals
 from src.app.domain.work_entry import WorkEntry
 
 
-class FakePayrollRepository:
+class FakePayrollRepository(PayrollRepositoryPort):
     """In-memory stand-in for PayrollRepositoryPort."""
 
     def __init__(self, prior=None, employee_to_date=0, employer_to_date=0):
@@ -39,6 +40,9 @@ class FakePayrollRepository:
             raise DuplicateMonthError("Payroll month already exists.")
         self.saved = (record, entries, snapshot, payslip)
         return SavedPayrollRun(monthly_record_id=1, payslip_id=1)
+
+    def run_snapshot(self, monthly_record_id):
+        return None
 
     def employee_gross_to_date(self, employee_id, year, before_month):
         self.before_months.append(before_month)
