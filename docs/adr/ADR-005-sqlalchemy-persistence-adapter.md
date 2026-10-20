@@ -35,7 +35,7 @@ Infrastructure has one persistence adapter, built on SQLAlchemy 2.x, and the ORM
 6. **Foreign keys.** Declared in the schema. Enforcement is switched on when UC-001 persists employers and employments; until then payroll rows may reference parents that do not exist.
 7. **Delivery.** The payroll router maps `AnnualLimitExceededError`, `InvalidPayrollInputError`, `DuplicateMonthError` and `InvalidHolidayBalanceError` to 4xx responses, never 500.
 
-Not decided here: how `holiday_entitlement` (days on `Employment`) converts to the hours used by the balance in ADR-004. 
+Not decided here: how `holiday_entitlement` (days on `Employment`) converts to the hours used by the balance in ADR-004.
 
 Approval: AYLA PROPOSES
 

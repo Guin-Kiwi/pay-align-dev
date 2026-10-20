@@ -14,6 +14,8 @@ Payroll calculations combine hourly wages, percentages, reimbursements, and annu
 ## Decision
 Use decimal arithmetic for all monetary calculations. Store and expose monetary values at centime precision. Round each monetary deduction or contribution line to CHF 0.01 using a single documented half-up policy, then calculate displayed subtotals and totals from those rounded lines. Expense reimbursements remain separate from the AHV-liable wage base and are added to the final payout without being included in statutory deduction calculations.
 
+Hourly pay is computed once from whole minutes: wage x minutes / 60, rounded half-up to CHF 0.01, never through decimal hours. (Clarification 2026-10-16; the policy itself is unchanged.)
+
 This decision was accepted for implementation.
 
 ## Consequences
