@@ -34,3 +34,12 @@ MIN_WEEKLY_HOURS = 5     # Recommended minimum weekly hours
 
 # Payroll rules exist for this year only (ADR-002)
 RULES_YEAR = 2026
+RULES_YEAR_START = date(RULES_YEAR, 1, 1)
+RULES_YEAR_END = date(RULES_YEAR, 12, 31)
+DAYS_IN_RULES_YEAR = 365
+
+# Holiday entitlement (ADR-004, Amendment 1)
+ALLOWED_HOLIDAY_WEEKS = (4, 5)
+
+# NBU applies from 8 weekly hours (ADR-004, Amendment 1)
+NBU_MIN_WEEKLY_MINUTES = 8 * 60

@@ -2,7 +2,7 @@ import os
 
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.engine import URL, make_url
-from sqlalchemy.exc import ArgumentError
+from sqlalchemy.exc import ArgumentError, NoSuchModuleError
 from sqlalchemy.pool import StaticPool
 
 from src.app.infrastructure.orm_models import Base
@@ -40,15 +40,26 @@ def _parse_url(url: str) -> URL:
 
 
 def _is_in_memory(url: URL) -> bool:
-    return url.database in (None, "", ":memory:")
+    return (
+        url.database in (None, "", ":memory:")
+        or url.query.get("mode") == "memory"
+    )
 
 
 def create_database_engine(url: str | None = None) -> Engine:
-    parsed = _parse_url(url if url is not None else get_database_url())
+    raw_url = url if url is not None else get_database_url()
+    if raw_url == ":memory:":
+        raw_url = "sqlite:///:memory:"
+    parsed = _parse_url(raw_url)
     options: dict = {"connect_args": {"check_same_thread": False}}
     if _is_in_memory(parsed):
         options["poolclass"] = StaticPool
-    return create_engine(parsed, **options)
+    try:
+        return create_engine(parsed, **options)
+    except (ArgumentError, ValueError, NoSuchModuleError) as error:
+        raise DatabaseConfigurationError(
+            f"DATABASE_URL cannot create a database engine: {error}"
+        ) from error
 
 
 def create_schema(engine: Engine) -> None:

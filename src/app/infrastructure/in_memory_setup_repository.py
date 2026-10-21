@@ -5,7 +5,7 @@ from src.app.domain.employment import Employment
 
 
 class InMemorySetupRepository(SetupRepository):
-    """Keeps setup data in memory until the SQLAlchemy repository exists. Data is lost on restart."""
+    """Keeps setup data in memory, for tests. Data is lost on restart."""
 
     def __init__(self):
         self.employer: Employer | None = None
@@ -15,12 +15,19 @@ class InMemorySetupRepository(SetupRepository):
     def get_employer(self) -> Employer | None:
         return self.employer
 
+    def get_employee(self, ahv_number: str) -> Employee | None:
+        return next((e for e in self.employees if e.ahv_number == ahv_number), None)
+
+    def get_employment(self, employment_id: int) -> Employment | None:
+        return next((e for e in self.employments if e.id == employment_id), None)
+
     def save(self, employer: Employer, employee: Employee, employment: Employment) -> SetupResult:
         if employer.id is None:
             employer.id = 1
             self.employer = employer
-        employee.id = len(self.employees) + 1
-        self.employees.append(employee)
+        if employee.id is None:
+            employee.id = len(self.employees) + 1
+            self.employees.append(employee)
         employment.id = len(self.employments) + 1
         employment.employer_id = employer.id
         employment.employee_id = employee.id

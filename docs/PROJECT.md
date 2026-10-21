@@ -47,21 +47,25 @@ Where non-code material lives; link reference documents here so agents find them
 
 ## Commands
 
-Alle Befehle werden im Projektverzeichnis ausgeführt. Für Docker-Befehle muss Docker verfügbar sein; beim Start muss Port 8000 frei sein.
+Run all commands from the project directory. Docker must be available for Docker commands, and port 8000 must be free when starting the application.
 
 | Activity | Command |
 |---|---|
-| Docker-Image bauen | `docker compose build api` |
-| Anwendung starten | `docker compose up api` |
-| Health-Check | `curl --fail --include http://localhost:8000/health` |
-| Unit-Tests | `.venv/bin/python -m pytest tests/unit/` |
-| Integrationstests | `.venv/bin/python -m pytest tests/integration/` |
-| Alle Projektprüfungen | `bash scripts/test.sh` |
-| Image ohne Cache bauen | `docker compose build --no-cache api` |
+| Build Docker image | `docker compose build api` |
+| Start application | `docker compose up api` |
+| Health check | `curl --fail --include http://localhost:8000/health` |
+| Unit tests | `.venv/bin/python -m pytest tests/unit/` |
+| Integration tests | `.venv/bin/python -m pytest tests/integration/` |
+| All project checks | `bash scripts/test.sh` |
+| Build image without cache | `docker compose build --no-cache api` |
 
-Tests werden ausserhalb des Laufzeitcontainers in der lokalen Python-Umgebung `.venv` ausgeführt. Diese muss eingerichtet sein und die Abhängigkeiten aus `requirements.txt` enthalten; sie können mit `.venv/bin/python -m pip install -r requirements.txt` installiert werden. `.dockerignore` schliesst Tests und Prozessskripte aus dem Laufzeitimage aus.
+Run tests outside the runtime container in the local `.venv` Python environment. Set up this environment with the dependencies from `requirements.txt`, using `.venv/bin/python -m pip install -r requirements.txt`. `.dockerignore` excludes tests and process scripts from the runtime image.
 
-Der Health-Check wird bei laufender Anwendung ausgeführt und soll HTTP 200 sowie `{"status":"ok"}` liefern. Er beweist noch keine dauerhafte Datenspeicherung.
+Run the health check while the application is running. It should return HTTP 200 and `{"status":"ok"}`. This does not verify persistent data storage.
+
+The release workflow runs the existing tests, builds and starts a Docker image for `linux/amd64` using an isolated in-memory database, and provides the verified image as `payalign-<Commit-ID>-linux-amd64.tar.gz`. The archive contains the image, not running containers or payroll data. After downloading it, load it with `docker load --input payalign-<Commit-ID>-linux-amd64.tar.gz`, replacing `<Commit-ID>` with the actual ID in the filename. The resulting image name is `payalign:<Commit-ID>`. This image is not native to ARM Macs; Docker requires support for running `linux/amd64` images.
+
+Pushes of version tags matching `v*` publish the archive to a GitHub Release after successful checks. Manual runs only validate and store the archive as an Actions artifact by default. Manual publication requires explicitly selecting `publish_release` and running from a `v*` tag.
 
 ## Dependencies
 
@@ -72,7 +76,7 @@ Der Health-Check wird bei laufender Anwendung ausgeführt und soll HTTP 200 sowi
 
 ## Data conventions
 
-* **`DATABASE_URL` format:** a SQLAlchemy URL, e.g. `sqlite:////app/data/payroll.db` (four slashes for an absolute path inside the container). Until the database setup lands on `uc-002-payroll-saving`, the API still uses an in-memory SQLite connection and ignores the variable.
-* **Tables:** `employers`, `employees`, `employments`, `monthly_records` and `payslips`, one per core entity. The holiday balance is not stored on `employments`; it is derived from persisted runs ([ADR-004](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)).
+* **`DATABASE_URL` format:** a SQLAlchemy URL, e.g. `sqlite:////app/data/payroll.db` (four slashes for an absolute path inside the container). It is required; there is no silent in-memory fallback.
+* **Tables:** `employers`, `employees`, `employments`, `monthly_records`, `payslips`, `work_entries` and `payroll_snapshots`, one per core entity or persisted payroll run. `monthly_records` stores `employee_id` alongside `employment_id` and `employer_id`. The holiday balance is not stored on `employments`; it is derived from persisted runs ([ADR-004](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)).
 * **Money type** ([ADR-003](adr/ADR-003-monetary-precision-and-rounding.md)): `Decimal` in domain and application code, integer centimes in the database (columns suffixed `_cents`). The domain and `PayrollService` still use `float`; the migration to `Decimal` belongs to the payroll-calculation slice.
-* **`MonthlyRecord` fields:** `id`, `employment_id`, `month` (1-12), `year` (2026 or later), `hours_worked`, `holiday_hours` (paid holiday), `public_holiday_hours`, `cash_bonus` and `expense_reimbursements` (stored as `_cents`). The employer is stored alongside as `employer_id`. Duplicate `(employment_id, month, year)` is rejected.
+* **`MonthlyRecord` fields:** `id`, `employment_id`, `employee_id`, `employer_id`, `month` (1-12), `year` (2026 or later), `cash_bonus` and `expense_reimbursements` (stored as `_cents`). Hour totals are derived from persisted `work_entries`, not stored on `monthly_records`. Duplicate `(employment_id, month, year)` is rejected.

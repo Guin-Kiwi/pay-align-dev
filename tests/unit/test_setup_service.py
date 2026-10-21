@@ -272,6 +272,29 @@ class TestSetUpEmployment(unittest.TestCase):
         self.assertEqual(result.employer_id, 7)
         self.assertEqual(self.repository.employments[0].employer_id, 7)
 
+    def test_reuses_the_saved_employee_with_the_same_ahv_number_and_keeps_its_details(self):
+        self.service.set_up_employment(
+            employer=EMPLOYER_DETAILS, employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS
+        )
+
+        result = self.service.set_up_employment(
+            employee={**EMPLOYEE_DETAILS, "address": "Rheingasse 2, 4058 Basel"},
+            employment=EMPLOYMENT_DETAILS,
+        )
+
+        self.assertEqual((result.employee_id, result.employment_id), (1, 2))
+        self.assertEqual(len(self.repository.employees), 1)
+        self.assertEqual(self.repository.employees[0].address, "Clarastrasse 10, 4058 Basel")
+        self.assertEqual(self.repository.employments[1].employee_id, 1)
+
+    def test_get_employment_returns_the_saved_employment_or_none(self):
+        result = self.service.set_up_employment(
+            employer=EMPLOYER_DETAILS, employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS
+        )
+
+        self.assertEqual(self.repository.get_employment(result.employment_id).hourly_wage, 28.50)
+        self.assertIsNone(self.repository.get_employment(99))
+
     def test_rejects_a_second_employer_and_saves_nothing(self):
         self.repository.employer = make_employer(id=7)
 
