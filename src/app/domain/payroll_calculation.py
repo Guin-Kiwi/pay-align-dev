@@ -7,6 +7,7 @@ from src.app.domain.constants import (
     AHV_RATE, ALV_RATE, TAX_RATE, NBU_RATE, FAK_RATE, BU_RATE, ADMIN_CHARGE_RATE,
     EMPLOYEE_GROSS_LIMIT, EMPLOYER_GROSS_LIMIT, PUBLIC_HOLIDAYS_2026
 )
+from src.app.domain.constants import NBU_MIN_WEEKLY_MINUTES
 from src.app.domain.employment import Employment
 from src.app.domain.errors import AnnualLimitExceededError, InvalidPayrollInputError
 from src.app.domain.hour_categories import MinuteTotals
@@ -108,11 +109,8 @@ def calculate_gross_wage(
     return base_pay + holiday_premium + cash_bonus
 
 
-NBU_MIN_WEEKLY_MINUTES = 8 * 60  # NBU applies from 8 weekly hours (480 minutes)
-
-
 def nbu_applies(weekly_minutes: int) -> bool:
-    """Return whether NBU is deducted: weekly working time of at least 480 minutes."""
+    """Return whether NBU is deducted."""
     return weekly_minutes >= NBU_MIN_WEEKLY_MINUTES
 
 
@@ -121,12 +119,7 @@ def calculate_gross_wage_from_minutes(
     hourly_wage: Decimal,
     cash_bonus: Decimal = Decimal("0"),
 ) -> Decimal:
-    """Gross wage in CHF from whole minutes, as Decimal (ADR-003).
-
-    Hourly pay is computed once: wage x weighted minutes / 60, rounded half-up
-    to CHF 0.01. Hours worked on a public holiday count 1.5 times (50% premium).
-    The cash bonus is added afterwards.
-    """
+    """Gross wage in CHF from whole minutes, as Decimal (ADR-003, ADR-004)."""
     if not isinstance(hourly_wage, Decimal) or not isinstance(cash_bonus, Decimal):
         raise InvalidPayrollInputError("Hourly wage and cash bonus must be Decimal values.")
     if hourly_wage < 0:
@@ -136,8 +129,8 @@ def calculate_gross_wage_from_minutes(
 
     # Work in half-minutes so the 50% premium stays an integer.
     weighted_half_minutes = (
-        2 * (totals.worked + totals.paid_holiday + totals.public_holiday_leave)
-        + 3 * totals.worked_public_holiday
+        2 * (totals.worked + totals.annual_holiday_taken + totals.public_holiday_taken)
+        + 3 * totals.public_holiday_worked
     )
     hourly_pay = (hourly_wage * weighted_half_minutes / Decimal(120)).quantize(
         Decimal("0.01"), rounding=ROUND_HALF_UP

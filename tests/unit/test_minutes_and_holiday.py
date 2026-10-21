@@ -29,9 +29,9 @@ class TestMinuteTotals(unittest.TestCase):
         totals = sum_minutes_by_category([
             (HourCategory.WORKED, 120),
             (HourCategory.WORKED, 30),
-            (HourCategory.PAID_HOLIDAY, 60),
-            (HourCategory.WORKED_PUBLIC_HOLIDAY, 45),
-            (HourCategory.PUBLIC_HOLIDAY_LEAVE, 15),
+            (HourCategory.ANNUAL_HOLIDAY_TAKEN, 60),
+            (HourCategory.PUBLIC_HOLIDAY_WORKED, 45),
+            (HourCategory.PUBLIC_HOLIDAY_TAKEN, 15),
         ])
         self.assertEqual(totals, MinuteTotals(150, 45, 60, 15))
         self.assertEqual(totals.total, 270)
@@ -53,8 +53,8 @@ class TestGrossWageFromMinutes(unittest.TestCase):
                 inp = case["input"]
                 totals = MinuteTotals(
                     worked=to_minutes(inp["hours_worked"]),
-                    worked_public_holiday=to_minutes(inp["public_holiday_hours"]),
-                    paid_holiday=to_minutes(inp["holiday_hours"]),
+                    public_holiday_worked=to_minutes(inp["public_holiday_hours"]),
+                    annual_holiday_taken=to_minutes(inp["holiday_hours"]),
                 )
                 gross = calculate_gross_wage_from_minutes(
                     totals,
@@ -67,11 +67,11 @@ class TestGrossWageFromMinutes(unittest.TestCase):
         # 60 min worked on a public holiday = 1.5 h pay; leave = 1 h pay
         wage = Decimal("30.00")
         self.assertEqual(
-            calculate_gross_wage_from_minutes(MinuteTotals(worked_public_holiday=60), wage),
+            calculate_gross_wage_from_minutes(MinuteTotals(public_holiday_worked=60), wage),
             Decimal("45.00"),
         )
         self.assertEqual(
-            calculate_gross_wage_from_minutes(MinuteTotals(public_holiday_leave=60), wage),
+            calculate_gross_wage_from_minutes(MinuteTotals(public_holiday_taken=60), wage),
             Decimal("30.00"),
         )
 
