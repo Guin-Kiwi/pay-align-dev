@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from src.app.application.payroll_service import PayrollService
 from src.app.application.ports.payroll_repository import PayrollRepositoryPort
+from src.app.domain.constants import RULES_YEAR
 from src.app.domain.errors import (
     AnnualLimitExceededError,
     DuplicateMonthError,
@@ -30,7 +31,7 @@ class WorkEntryRequest(BaseModel):
 
 class MonthlyPayrollRequest(BaseModel):
     employment_id: int
-    year: int
+    year: int = Field(..., ge=RULES_YEAR, le=RULES_YEAR)
     month: int = Field(..., ge=1, le=12)
     cash_bonus: Decimal = Field(Decimal("0.00"), ge=0)
     expense_reimbursements: Decimal = Field(Decimal("0.00"), ge=0)

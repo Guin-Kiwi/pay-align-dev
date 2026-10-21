@@ -115,6 +115,35 @@ def calculate_gross_wage_from_minutes(
     return hourly_pay + cash_bonus.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+def nbu_applies(weekly_minutes: int) -> bool:
+    """Return whether NBU is deducted."""
+    return weekly_minutes >= NBU_MIN_WEEKLY_MINUTES
+
+
+def calculate_gross_wage_from_minutes(
+    totals: MinuteTotals,
+    hourly_wage: Decimal,
+    cash_bonus: Decimal = Decimal("0"),
+) -> Decimal:
+    """Gross wage in CHF from whole minutes, as Decimal (ADR-003, ADR-004)."""
+    if not isinstance(hourly_wage, Decimal) or not isinstance(cash_bonus, Decimal):
+        raise InvalidPayrollInputError("Hourly wage and cash bonus must be Decimal values.")
+    if hourly_wage < 0:
+        raise InvalidPayrollInputError("Hourly wage cannot be negative.")
+    if cash_bonus < 0:
+        raise InvalidPayrollInputError("Cash bonus cannot be negative.")
+
+    # Work in half-minutes so the 50% premium stays an integer.
+    weighted_half_minutes = (
+        2 * (totals.worked + totals.annual_holiday_taken + totals.public_holiday_taken)
+        + 3 * totals.public_holiday_worked
+    )
+    hourly_pay = (hourly_wage * weighted_half_minutes / Decimal(120)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    return hourly_pay + cash_bonus.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
 def calculate_employee_deductions(
     gross_wage: Decimal,
     weekly_minutes: int,
