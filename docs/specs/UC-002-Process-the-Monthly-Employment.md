@@ -63,6 +63,7 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - If the monthly run would take the calendar-year total above the employee or the employer limit, the system warns the employer and rejects the submission.
 - If the requested month is after the month in which the employment ends, the system rejects the submission. The end month itself is still processed.
 - If an entry is dated before the employment's start date or after its end date, the system rejects the submission. Both dates are inclusive: the start date is the first and the end date the last possible working day.
+- If the database refuses the save because of a constraint other than the duplicate month, the system rejects the submission with a fixed message. Text from the database is never shown to the employer.
 - If entries overlap, contain negative durations, or contain invalid category combinations, the system rejects the submission before saving. Invalid combinations are: public-holiday work or leave on a day that is not a public holiday; paid holiday on a public holiday (NAV Haushalt BS § 27 para 4); and public-holiday leave on the same day as public-holiday work or paid holiday.
 - An employment's first run is the month of its start date, starting from the employment's configured holiday entitlement. Each later run is the month after its last saved run. A month that is not the next one is rejected: an earlier or equal month as already processed, a later month as a skipped month.
 - A month without entries is still a run. The system produces a payslip without hours and records the holiday balance.
@@ -75,6 +76,7 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - Exceeding annual limits.
 - Run for a month after the employment's end month.
 - Entry dated before the start date or after the end date of the employment.
+- Save refused by a database constraint (reported without the database's text).
 - Duplicate monthly run.
 - Invalid or negative derived holiday balance.
 - Corrections to a completed run are not supported.
@@ -92,6 +94,7 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - The system must reject duplicate monthly runs and skipped months.
 - The system must reject a run for a month after the employment's end month.
 - The system must reject entries dated before the employment's start date or after its end date, both dates inclusive.
+- The system must not show database error text in a rejection.
 - The system must accept a month without entries and produce a payslip without hours.
 - The system must save the entries and a run snapshot (ADR-004 Amendment 2) together with the `MonthlyRecord` and `Payslip`.
 - The system must not persist any part of a rejected run.
@@ -112,6 +115,7 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - **Unit Tests**: Assert that the service throws an `AnnualLimitExceededError` if a payroll run breaches the CHF 22,680 employee limit or the CHF 60,480 employer limit.
 - **Integration Tests**: Assert on the real repository that the employee total ignores other employers' wages (two-employers test), that it adds up two employments of one employee with the same employer including months after the processed one (two-employments test), and that the employer total adds up all of its employees for the whole year.
 - **Unit Tests**: Assert that a run after the employment's end month is rejected, that the end month itself is accepted, and that entries on the start date and end date are accepted while the day before the start and the day after the end are rejected.
+- **Integration Tests**: Assert that a constraint failure other than the duplicate month is rejected as invalid input without the database's text, and persists nothing.
 
 ## Open questions / assumptions
 - Assumption: The employer has all required details (e.g., daily hours) at hand.

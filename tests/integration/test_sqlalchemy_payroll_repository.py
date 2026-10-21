@@ -413,6 +413,31 @@ def test_a_run_for_an_unknown_employment_is_not_reported_as_a_duplicate_month(re
         assert count_rows(repository.engine, table) == 0
 
 
+def run_with_unknown_employment():
+    return make_run(employment_id=99)
+
+
+def run_with_unknown_category():
+    record, entries, snapshot, payslip = make_run()
+    return record, (replace(entries[0], category="holiday"),), snapshot, payslip
+
+
+@pytest.mark.parametrize(
+    "build_run",
+    [
+        pytest.param(run_with_unknown_employment, id="foreign-key"),
+        pytest.param(run_with_unknown_category, id="check-constraint"),
+    ],
+)
+def test_a_constraint_failure_does_not_pass_on_the_database_text(repository, build_run):
+    with pytest.raises(InvalidPayrollInputError) as raised:
+        repository.save_payroll_run(*build_run())
+
+    message = str(raised.value).lower()
+    for fragment in ("constraint", "foreign key", "check", "sqlite", "integrity"):
+        assert fragment not in message
+
+
 def test_employment_terms_reads_the_stored_integers(tmp_path):
     engine = create_database_engine(f"sqlite:///{tmp_path / 'payroll.db'}")
     create_schema(engine)

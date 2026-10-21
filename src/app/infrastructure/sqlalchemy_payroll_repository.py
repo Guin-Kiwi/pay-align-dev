@@ -93,7 +93,9 @@ class SqlAlchemyPayrollRepository(PayrollRepositoryPort):
                 raise DuplicateMonthError(
                     "Payroll month or snapshot already exists."
                 ) from error
-            raise InvalidPayrollInputError(str(error.orig)) from error
+            raise InvalidPayrollInputError(
+                "The payroll run conflicts with stored data and was not saved."
+            ) from error
 
     def run_snapshot(self, monthly_record_id: int) -> RunSnapshot | None:
         with Session(self.engine) as session:
