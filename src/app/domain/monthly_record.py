@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Optional
 
+from src.app.domain.constants import RULES_YEAR
+
 
 @dataclass
 class MonthlyRecord:
@@ -11,7 +13,7 @@ class MonthlyRecord:
     id: Optional[int] = None  # Database ID (None for new instances)
     employment_id: int = 0  # Foreign key to Employment
     month: int = 1  # 1-12
-    year: int = 2026  # Year of the record
+    year: int = RULES_YEAR  # Year of the record
     hours_worked: float = 0.0  # Hours worked in the month
     holiday_hours: float = 0.0  # Paid holiday hours taken
     public_holiday_hours: float = 0.0  # Hours worked on public holidays
@@ -22,8 +24,8 @@ class MonthlyRecord:
         """Validate fields after initialization."""
         if not (1 <= self.month <= 12):
             raise ValueError("Month must be between 1 and 12.")
-        if self.year < 2026:
-            raise ValueError("Year must be 2026 or later.")
+        if self.year != RULES_YEAR:
+            raise ValueError(f"Year must be {RULES_YEAR}.")
         if self.hours_worked < 0:
             raise ValueError("Hours worked cannot be negative.")
         if self.holiday_hours < 0:
