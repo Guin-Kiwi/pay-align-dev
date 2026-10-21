@@ -1,7 +1,7 @@
 # ADR-005-sqlalchemy-persistence-adapter
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 UC-002 must save daily entries, a frozen run snapshot, the `MonthlyRecord` and the `Payslip` in one transaction ([ADR-004](ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). `docs/PROJECT.md` names a relational database reached through an ORM and configured by `DATABASE_URL`.
@@ -42,7 +42,7 @@ foundation.
 
 Holiday entitlement and the derived balance are defined by [ADR-004 Amendment 1](ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-1-2026-10-16).
 
-Approval: AYLA PROPOSES
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that sets this status.
 
 ## Consequences
 - `SQLitePayrollRepository` is replaced during DEVELOP on `uc-002-payroll-saving`; its tests move to the new adapter first (TDD).
@@ -51,7 +51,7 @@ Approval: AYLA PROPOSES
 - `create_all` does not alter existing tables; an existing `data/payroll.db` on the Docker volume must be deleted until migrations are decided.
 - On acceptance, `docs/PROJECT.md` is updated: `DATABASE_URL` required with no fallback, the two new tables, `employee_id` on `monthly_records`.
 - Tests must dispose their engines so database files can be removed on Windows.
-- Until UC-001 persists parents, referential integrity is declared but not enforced.
+- Referential integrity is enforced (item 6): a payroll row cannot reference a missing employment.
 
 ## Supersedes
 none

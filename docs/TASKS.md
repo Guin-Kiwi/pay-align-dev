@@ -11,8 +11,8 @@ STATUS: in-progress
 |---|---|---|
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Established; review as needed | UC-001 and UC-002 are documented. |
-| 2 — Design | Baseline established; decisions open | ADR-001 to ADR-004 form the working baseline. ADR-005 remains Proposed. |
-| 3 — Develop | In progress | Payroll calculation and persistent payroll saving are being developed; the UC-002 database foundation is done, wiring next. |
+| 2 — Design | Established; amend as needed | ADR-001 to ADR-006 are Accepted. |
+| 3 — Develop | In progress | Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; the slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
 
@@ -62,7 +62,7 @@ UC-001 setup saving sub-slice (Nano, `uc-001-employment-setup`): setup data surv
 - Review: merged into `main` as [PR #28](https://github.com/Guin-Kiwi/pay-align-dev/pull/28) on 20 October 2026.
   Review fix: tests always use an in-memory database, even when the developer has `DATABASE_URL` set
   (`tests/conftest.py`; `tests/integration/test_test_database_isolation.py` failed before the fix).
-- Done on `uc-002-wiring-stage2`: the payroll repository uses the app's one engine; `PRAGMA foreign_keys=ON` is set
+- Payroll wiring (done): the payroll repository uses the app's one engine; `PRAGMA foreign_keys=ON` is set
   in `database.py` (ADR-005 item 6); the payroll request takes only an `employment_id` and `PayrollService` reads
   the employment's stored terms up through its own port (`employment_terms(id)`); unknown ids are a 404.
 
@@ -90,12 +90,12 @@ rates, FAK, BU, NBU from 8 hours a week, the annual limits and the 30 January re
 - Rounding (no change): AKBS rounds its example to 5 Rappen; ADR-003 keeps 1 Rappen, and AKBS bills from the
   annual gross.
 
-Design sub-slice (phase 2): the persistence adapter for UC-002 saving, proposed in
-[ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md). It touches infrastructure
+Design sub-slice (phase 2): the persistence adapter for UC-002 saving, decided in
+[ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md), now Accepted. It touches infrastructure
 (one SQLAlchemy adapter, `work_entries` and `payroll_snapshots` tables, start-up
 configuration), the application port and errors, and the payroll router error mapping.
 
-UC-002 saving sub-slice (phase 3, `uc-002-payroll-saving`): implemented end to end.
+UC-002 saving sub-slice (phase 3): implemented end to end.
 - `process_monthly_payroll` takes the run's `WorkEntry` list, calculates with the
   minute functions, builds the `RunSnapshot`, reads the opening balance via
   `prior_run`, checks both annual limits, then calls `save_payroll_run`.
@@ -108,7 +108,7 @@ UC-002 saving sub-slice (phase 3, `uc-002-payroll-saving`): implemented end to e
   `EmploymentNotFoundError` to 404 and imports no infrastructure.
 - `WorkEntry` now carries `category` and `paid_minutes`; `MonthlyRecord` dropped its
   hour fields and gained `employee_id`; money is `Decimal` in domain and application.
-- Review fixes (human decisions of 20 October 2026, not yet in UC-002): an employment's
+- Review fixes (human decisions of 20 October 2026, recorded in UC-002): an employment's
   first run is the month of its start date and each later run is the month after the
   last saved run (`PriorRun` has `month`); a month without entries is still a run, with
   a payslip without hours, so the holiday balance is recorded.
@@ -170,32 +170,30 @@ UC-002 saving sub-slice (phase 3, `uc-002-payroll-saving`): implemented end to e
 - Architecture tests will continue to enforce inward dependency direction.
 - ADR-005 slice: integration tests assert that a duplicate month raises
   `DuplicateMonthError` and persists nothing, that a failed save leaves no
-  entries, snapshot, record or payslip, that the employee limit sums across
-  employments of the same employee, that start-up fails clearly when
+  entries, snapshot, record or payslip, that the employee limit counts only
+  this employer's wages, adding up the employee's employments with it, that start-up fails clearly when
   `DATABASE_URL` is unset or unsupported, and that tests dispose their engines.
 
 ## Blockers / assumptions / decisions
 
-- No architecture blocker found; `docs/PROJECT.md` is sufficient and needs no
-  update.
+- No architecture blocker found.
 - Assumption: the first implementation slice uses HTTP delivery and a
   relational ORM adapter as described by `docs/PROJECT.md`.
-- Decision: ADR-004 defines entry snapshots, the three normal-case hour
-  categories, derived holiday balance, and the exclusion of sick-pay and
+- Decision: ADR-004 defines entry snapshots, the four normal-case hour
+  categories (Amendment 1), derived holiday balance, and the exclusion of sick-pay and
   corrections.
 - ADR-001 through ADR-004 are marked Accepted for implementation.
-- Decision: database setup uses SQLAlchemy and reads `DATABASE_URL`, with skeleton tables for the five entities; the code is delivered on `uc-002-payroll-saving`. The money type and `DATABASE_URL` format are recorded in `docs/PROJECT.md`.
+- Decision: database setup uses SQLAlchemy and reads `DATABASE_URL`. The money type, the `DATABASE_URL` format and the tables are recorded in `docs/PROJECT.md`.
 - Accepted: ADR-005 (single SQLAlchemy persistence adapter). `docs/PROJECT.md`
   records the required `DATABASE_URL`, the two new tables and `employee_id` on
   `monthly_records`.
 - Decided on 16 October 2026: `holiday_weeks` (4 or 5) replaces
   the `holiday_entitlement` days, and yearly holiday time is
-  `holiday_weeks × weekly_minutes`. Still open: pro-rating for an employment
-  that starts or ends during the year (see the UC-001 open questions).
+  `holiday_weeks × weekly_minutes`. Pro-rating for an employment that starts or
+  ends during the year is decided in ADR-004 Amendment 1, item 3.
 - Decided on 16 October 2026: the app accepts only
-  2026, the only year with a ruleset (ADR-002); the holiday pro-rating divides
-  by 365. The payroll year check (`year >= 2026` in `interfaces/payroll.py` and
-  `domain/monthly_record.py`) still has to change; Aaron owns those files.
+  2026, the only year with a ruleset (ADR-002); the payroll year check uses
+  `RULES_YEAR`.
 - Assumption: the earlier float-column SQLite schema was never deployed, so the
   repository's legacy migration can be dropped.
 - Human review remains required for the review-gated use-case specifications.
@@ -268,7 +266,7 @@ the presentation is not marked complete here.
 Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and
 the end-to-end API test on a clean checkout, then review the slice.
 
-Run snapshot slice (phase 3, `uc-002-payroll-saving`): the run snapshot is defined in
+Run snapshot slice (phase 3): the run snapshot is defined in
 [ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-2-2026-10-20)
 and in code as one frozen `RunSnapshot` (`EmploymentTerms`, `ruleset_version`, the existing
 `MinuteTotals`, `holiday_balance_minutes`). The `payroll_snapshots` columns `start_date` and
@@ -276,9 +274,6 @@ and in code as one frozen `RunSnapshot` (`EmploymentTerms`, `ruleset_version`, t
 `RunSnapshot` to and from the row (`run_snapshot` reads it back). ORM `before_update` and
 `before_delete` guards on `PayrollSnapshotRow` and `WorkEntryRow` raise `ImmutableRecordError`;
 bulk statements and raw SQL bypass them (documented limit).
-
-Separately, on `uc-002-payroll-calculation`: implement and run golden payroll tests against `PayrollService` using the workbook-derived cases.
-The `admin_charge` and `total_employer_cost` golden expectations are final for the confirmed total-contribution formula.
 
 ## Backlog
 

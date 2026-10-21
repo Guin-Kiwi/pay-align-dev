@@ -132,6 +132,7 @@ The employer selects **"Process Monthly Payroll"** in the application.
 ## Known limitations
 - **Sunday work:** NAV Haushalt BS § 27 requires a 50% supplement for work on a Sunday. The app does not apply it; a Sunday entry is paid at the normal rate, and the app does not validate Sunday entries.
 - **Written-contract exception:** the app does not support a written contract in which the supplement is built into a higher wage.
+- **Age-dependent AHV rules:** no birth date is stored, so the AHV rules from reference age and up to age 25 are not applied; every employee gets the full contributions. UC-001 lists them as out of scope.
 - **Corrections:** a saved month is final. Corrections, reversals and overpayment adjustments are not supported.
 - **Ruleset:** the run snapshot stores the ruleset version only. A run reproduces correctly only while a published ruleset is never edited in place (ADR-002).
 - **Immutability:** it is enforced in the application. Direct SQL can still edit stored rows.
