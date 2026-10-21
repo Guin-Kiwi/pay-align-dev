@@ -1,5 +1,6 @@
 import pytest
 from sqlalchemy import Date, Integer, String, Time, inspect, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.pool import StaticPool
 
 from src.app.infrastructure.database import (
@@ -8,6 +9,7 @@ from src.app.infrastructure.database import (
     create_schema,
     get_database_url,
 )
+from tests.database_helpers import add_monthly_record
 
 ENTITY_TABLES = {
     "employers",
@@ -106,6 +108,25 @@ def test_file_url_that_merely_contains_memory_is_not_treated_as_in_memory(tmp_pa
     assert (tmp_path / "memory.db").exists()
 
 
+@pytest.mark.parametrize("memory", [True, False])
+def test_every_connection_enforces_foreign_keys(memory, tmp_path, engines):
+    url = "sqlite://" if memory else f"sqlite:///{tmp_path / 'payroll.db'}"
+    engine = engines(url)
+    create_schema(engine)
+
+    with engine.connect() as connection:
+        assert connection.execute(text("PRAGMA foreign_keys")).scalar() == 1
+    with pytest.raises(IntegrityError):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO employments (employer_id, employee_id, start_date, "
+                    "hourly_wage_cents, weekly_minutes, holiday_weeks) "
+                    "VALUES (99, 99, '2026-01-01', 2500, 600, 4)"
+                )
+            )
+
+
 def test_create_schema_creates_skeleton_tables_for_the_five_entities(tmp_path, engines):
     engine = engines(f"sqlite:///{tmp_path / 'payroll.db'}")
     create_schema(engine)
@@ -180,7 +201,8 @@ def test_work_entries_hold_integer_minute_fields_and_category_constraint(
     assert columns["start_time"]["nullable"] is True
     assert columns["end_time"]["nullable"] is True
 
-    with pytest.raises(Exception):
+    add_monthly_record(engine)
+    with pytest.raises(IntegrityError, match="ck_work_entries_category"):
         with engine.begin() as connection:
             connection.execute(
                 text(
@@ -206,6 +228,8 @@ def test_payroll_snapshots_hold_integer_minute_fields_and_are_unique(tmp_path, e
         "hourly_wage_cents",
         "weekly_minutes",
         "holiday_weeks",
+        "employment_start_date",
+        "employment_end_date",
         "ruleset_version",
         "worked_minutes",
         "public_holiday_worked_minutes",
@@ -214,19 +238,22 @@ def test_payroll_snapshots_hold_integer_minute_fields_and_are_unique(tmp_path, e
         "holiday_balance_minutes",
     }
     for name, column in columns.items():
-        if name not in {"ruleset_version"}:
+        if name in {"employment_start_date", "employment_end_date"}:
+            assert isinstance(column["type"], Date)
+        elif name != "ruleset_version":
             assert isinstance(column["type"], Integer)
-        assert column["nullable"] is False
+        assert column["nullable"] is (name == "employment_end_date")
 
+    add_monthly_record(engine)
     with engine.begin() as connection:
         connection.execute(
             text(
                 "INSERT INTO payroll_snapshots "
                 "(monthly_record_id, hourly_wage_cents, weekly_minutes, "
-                "holiday_weeks, ruleset_version, worked_minutes, "
+                "holiday_weeks, employment_start_date, ruleset_version, worked_minutes, "
                 "public_holiday_worked_minutes, annual_holiday_taken_minutes, "
                 "public_holiday_taken_minutes, holiday_balance_minutes) "
-                "VALUES (1, 2500, 600, 4, '2026', 60, 0, 0, 0, 1200)"
+                "VALUES (1, 2500, 600, 4, '2026-01-01', '2026', 60, 0, 0, 0, 1200)"
             )
         )
     with pytest.raises(Exception):
@@ -235,10 +262,10 @@ def test_payroll_snapshots_hold_integer_minute_fields_and_are_unique(tmp_path, e
                 text(
                     "INSERT INTO payroll_snapshots "
                     "(monthly_record_id, hourly_wage_cents, weekly_minutes, "
-                    "holiday_weeks, ruleset_version, worked_minutes, "
+                    "holiday_weeks, employment_start_date, ruleset_version, worked_minutes, "
                     "public_holiday_worked_minutes, annual_holiday_taken_minutes, "
                     "public_holiday_taken_minutes, holiday_balance_minutes) "
-                    "VALUES (1, 2500, 600, 4, '2026', 60, 0, 0, 0, 1200)"
+                    "VALUES (1, 2500, 600, 4, '2026-01-01', '2026', 60, 0, 0, 0, 1200)"
                 )
             )
 

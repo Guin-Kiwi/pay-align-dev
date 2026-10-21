@@ -1,6 +1,6 @@
 import os
 
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.engine import URL, make_url
 from sqlalchemy.exc import ArgumentError, NoSuchModuleError
 from sqlalchemy.pool import StaticPool
@@ -46,6 +46,12 @@ def _is_in_memory(url: URL) -> bool:
     )
 
 
+def _enable_foreign_keys(dbapi_connection, connection_record) -> None:
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
 def create_database_engine(url: str | None = None) -> Engine:
     raw_url = url if url is not None else get_database_url()
     if raw_url == ":memory:":
@@ -55,7 +61,9 @@ def create_database_engine(url: str | None = None) -> Engine:
     if _is_in_memory(parsed):
         options["poolclass"] = StaticPool
     try:
-        return create_engine(parsed, **options)
+        engine = create_engine(parsed, **options)
+        event.listen(engine, "connect", _enable_foreign_keys)
+        return engine
     except (ArgumentError, ValueError, NoSuchModuleError) as error:
         raise DatabaseConfigurationError(
             f"DATABASE_URL cannot create a database engine: {error}"

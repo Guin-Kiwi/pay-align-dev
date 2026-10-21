@@ -1,202 +1,223 @@
 # src/app/domain/payroll_calculation.py
 
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 
 from src.app.domain.constants import (
-    AHV_RATE, ALV_RATE, TAX_RATE, NBU_RATE, FAK_RATE, BU_RATE, ADMIN_CHARGE_RATE,
-    EMPLOYEE_GROSS_LIMIT, EMPLOYER_GROSS_LIMIT, PUBLIC_HOLIDAYS_2026
+    AHV_RATE, AHV_TOTAL_RATE, ALV_RATE, TAX_RATE, NBU_RATE, FAK_RATE, BU_RATE,
+    ADMIN_CHARGE_RATE,
+    EMPLOYEE_GROSS_LIMIT, EMPLOYER_GROSS_LIMIT, PUBLIC_HOLIDAYS
 )
+from src.app.domain.constants import NBU_MIN_WEEKLY_MINUTES
 from src.app.domain.employment import Employment
 from src.app.domain.errors import AnnualLimitExceededError, InvalidPayrollInputError
-from src.app.domain.monthly_record import MonthlyRecord
+from src.app.domain.hour_categories import HourCategory, MinuteTotals
 from src.app.domain.payslip import Payslip
-from src.app.domain.work_entry import WorkEntry
+from src.app.domain.work_entry import WorkEntry, calculate_paid_minutes  # noqa: F401
 
-# Constants
-HOLIDAY_PREMIUM_RATE = 0.5  # 50% premium for working on public holidays
-
-
-def _round_money(value: float) -> float:
-    """Round a monetary value to Swiss centimes using half-up rounding."""
-    return float(Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+CENT = Decimal("0.01")
 
 
-def calculate_paid_hours(entry: WorkEntry) -> float:
-    """Return paid hours for one work entry after unpaid breaks."""
-    if not entry.paid:
-        return 0.0
-    elapsed_hours = (
-        entry.end_time.hour * 60
-        + entry.end_time.minute
-        - entry.start_time.hour * 60
-        - entry.start_time.minute
-    ) / 60
-    paid_hours = elapsed_hours - entry.unpaid_break_hours
-    if paid_hours < 0:
-        raise InvalidPayrollInputError("Unpaid breaks exceed the work duration.")
-    return paid_hours
+def round_money(value: Decimal) -> Decimal:
+    return value.quantize(CENT, rounding=ROUND_HALF_UP)
 
 
 def is_public_holiday(work_date: date) -> bool:
-    """Return whether a date is a configured 2026 Basel-Stadt holiday."""
-    return work_date in PUBLIC_HOLIDAYS_2026
+    """Return whether a date is a configured Basel-Stadt holiday."""
+    return work_date in PUBLIC_HOLIDAYS
 
 
-def calculate_monthly_hours(entries: list[WorkEntry]) -> tuple[float, float]:
-    """Return regular paid hours and paid public-holiday hours for entries."""
-    if not entries:
-        return 0.0, 0.0
+def classify_public_holidays(entries: list[WorkEntry]) -> list[WorkEntry]:
+    """Apply the public-holiday categories of ADR-004 Amendment 1, item 6.
 
-    first_month = entries[0].work_date.month, entries[0].work_date.year
-    if any((entry.work_date.month, entry.work_date.year) != first_month for entry in entries):
+    Work on a public holiday is classified as public-holiday work (50% premium).
+    Rejected: public-holiday work and leave on any other day, paid holiday on a
+    public holiday (NAV Haushalt BS § 27 para 4), and public-holiday leave on
+    the same day as work or paid holiday.
+    """
+    classified = []
+    for entry in entries:
+        holiday = is_public_holiday(entry.work_date)
+        day = entry.work_date.isoformat()
+        if entry.category == HourCategory.WORKED and holiday:
+            entry = replace(entry, category=HourCategory.PUBLIC_HOLIDAY_WORKED)
+        elif entry.category == HourCategory.ANNUAL_HOLIDAY_TAKEN and holiday:
+            raise InvalidPayrollInputError(
+                f"{day} is a public holiday and cannot be taken as paid holiday."
+            )
+        elif not holiday and entry.category in (
+            HourCategory.PUBLIC_HOLIDAY_WORKED,
+            HourCategory.PUBLIC_HOLIDAY_TAKEN,
+        ):
+            raise InvalidPayrollInputError(f"{day} is not a public holiday.")
+        classified.append(entry)
+
+    leave_days = {
+        entry.work_date
+        for entry in classified
+        if entry.category == HourCategory.PUBLIC_HOLIDAY_TAKEN
+    }
+    for entry in classified:
+        if entry.work_date in leave_days and entry.category in (
+            HourCategory.PUBLIC_HOLIDAY_WORKED,
+            HourCategory.ANNUAL_HOLIDAY_TAKEN,
+        ):
+            raise InvalidPayrollInputError(
+                f"{entry.work_date.isoformat()} has public-holiday leave and "
+                f"{entry.category.value} entries."
+            )
+    return classified
+
+
+def calculate_monthly_totals(entries: list[WorkEntry]) -> MinuteTotals:
+    """Sum the entries of one calendar month into per-category minute totals."""
+    months = {(entry.work_date.month, entry.work_date.year) for entry in entries}
+    if len(months) > 1:
         raise InvalidPayrollInputError("Work entries must belong to one calendar month.")
 
-    regular_hours = 0.0
-    public_holiday_hours = 0.0
+    sums = {category: 0 for category in HourCategory}
     for entry in entries:
-        paid_hours = calculate_paid_hours(entry)
-        if is_public_holiday(entry.work_date):
-            public_holiday_hours += paid_hours
-        else:
-            regular_hours += paid_hours
-    return regular_hours, public_holiday_hours
+        sums[HourCategory(entry.category)] += entry.paid_minutes
+    return MinuteTotals(
+        worked=sums[HourCategory.WORKED],
+        public_holiday_worked=sums[HourCategory.PUBLIC_HOLIDAY_WORKED],
+        annual_holiday_taken=sums[HourCategory.ANNUAL_HOLIDAY_TAKEN],
+        public_holiday_taken=sums[HourCategory.PUBLIC_HOLIDAY_TAKEN],
+    )
 
 
-def calculate_gross_wage(
-    hours_worked: float,
-    hourly_wage: float,
-    holiday_hours: float = 0.0,
-    public_holiday_hours: float = 0.0,
-    cash_bonus: float = 0.0
-) -> float:
-    """Calculate the gross wage for the month.
+def nbu_applies(weekly_minutes: int) -> bool:
+    """Return whether NBU is deducted."""
+    return weekly_minutes >= NBU_MIN_WEEKLY_MINUTES
 
-    Args:
-        hours_worked: Hours worked in the month (must be >= 0).
-        hourly_wage: Gross hourly wage (must be >= 0).
-        holiday_hours: Paid holiday hours taken (must be >= 0).
-        public_holiday_hours: Hours worked on public holidays (must be >= 0).
-        cash_bonus: Cash bonus for the month (must be >= 0).
 
-    Returns:
-        float: Gross wage for the month.
-
-    Raises:
-        InvalidPayrollInputError: If any input is negative.
-
-    Example:
-        >>> calculate_gross_wage(160, 25.0, 8, 4, 100)
-        4450.0  # (160 + 8 + 4) * 25 + (4 * 25 * 0.5) + 100
-    """
-    # Validate inputs
-    if hours_worked < 0:
-        raise InvalidPayrollInputError("Hours worked cannot be negative.")
+def calculate_gross_wage_from_minutes(
+    totals: MinuteTotals,
+    hourly_wage: Decimal,
+    cash_bonus: Decimal = Decimal("0"),
+) -> Decimal:
+    """Gross wage in CHF from whole minutes, as Decimal (ADR-003, ADR-004)."""
+    if not isinstance(hourly_wage, Decimal) or not isinstance(cash_bonus, Decimal):
+        raise InvalidPayrollInputError("Hourly wage and cash bonus must be Decimal values.")
     if hourly_wage < 0:
         raise InvalidPayrollInputError("Hourly wage cannot be negative.")
-    if holiday_hours < 0:
-        raise InvalidPayrollInputError("Holiday hours cannot be negative.")
-    if public_holiday_hours < 0:
-        raise InvalidPayrollInputError("Public holiday hours cannot be negative.")
     if cash_bonus < 0:
         raise InvalidPayrollInputError("Cash bonus cannot be negative.")
 
-    # TODO(PR #3 review): money uses float; switch to Decimal per ADR-003. Owner: Aaron (@aaroncasula).
-    base_pay = (hours_worked + holiday_hours + public_holiday_hours) * hourly_wage
-    holiday_premium = public_holiday_hours * hourly_wage * HOLIDAY_PREMIUM_RATE
-    return base_pay + holiday_premium + cash_bonus
+    weighted_half_minutes = (
+        2 * (totals.worked + totals.annual_holiday_taken + totals.public_holiday_taken)
+        + 3 * totals.public_holiday_worked
+    )
+    hourly_pay = (hourly_wage * weighted_half_minutes / Decimal(120)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    return hourly_pay + cash_bonus.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def nbu_applies(weekly_minutes: int) -> bool:
+    """Return whether NBU is deducted."""
+    return weekly_minutes >= NBU_MIN_WEEKLY_MINUTES
+
+
+def calculate_gross_wage_from_minutes(
+    totals: MinuteTotals,
+    hourly_wage: Decimal,
+    cash_bonus: Decimal = Decimal("0"),
+) -> Decimal:
+    """Gross wage in CHF from whole minutes, as Decimal (ADR-003, ADR-004)."""
+    if not isinstance(hourly_wage, Decimal) or not isinstance(cash_bonus, Decimal):
+        raise InvalidPayrollInputError("Hourly wage and cash bonus must be Decimal values.")
+    if hourly_wage < 0:
+        raise InvalidPayrollInputError("Hourly wage cannot be negative.")
+    if cash_bonus < 0:
+        raise InvalidPayrollInputError("Cash bonus cannot be negative.")
+
+    # Work in half-minutes so the 50% premium stays an integer.
+    weighted_half_minutes = (
+        2 * (totals.worked + totals.annual_holiday_taken + totals.public_holiday_taken)
+        + 3 * totals.public_holiday_worked
+    )
+    hourly_pay = (hourly_wage * weighted_half_minutes / Decimal(120)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    return hourly_pay + cash_bonus.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def calculate_employee_deductions(
-    gross_wage: float,
-    weekly_hours: float
-) -> tuple[float, float, float, float]:
-    """Calculate employee deductions.
-
-    Args:
-        gross_wage: Gross wage for the month.
-        weekly_hours: Weekly working hours (NBU applies if >= 8).
-
-    Returns:
-        tuple: (AHV deduction, ALV deduction, tax deduction, NBU deduction)
-    """
-    ahv_deduction = gross_wage * AHV_RATE
-    alv_deduction = gross_wage * ALV_RATE
-    tax_deduction = gross_wage * TAX_RATE
-    nbu_deduction = gross_wage * NBU_RATE if weekly_hours >= 8 else 0.0
+    gross_wage: Decimal,
+    weekly_minutes: int,
+) -> tuple[Decimal, Decimal, Decimal, Decimal]:
+    """Return the rounded AHV, ALV, tax and NBU deduction lines."""
+    ahv_deduction = round_money(gross_wage * Decimal(str(AHV_RATE)))
+    alv_deduction = round_money(gross_wage * Decimal(str(ALV_RATE)))
+    tax_deduction = round_money(gross_wage * Decimal(str(TAX_RATE)))
+    nbu_deduction = (
+        round_money(gross_wage * Decimal(str(NBU_RATE))) if nbu_applies(weekly_minutes)
+        else Decimal("0.00")
+    )
     return ahv_deduction, alv_deduction, tax_deduction, nbu_deduction
 
 
 def calculate_employer_costs(
-    gross_wage: float
-) -> tuple[float, float, float, float, float]:
-    """Calculate employer social contributions.
-
-    Args:
-        gross_wage: Gross wage for the month.
-
-    Returns:
-        tuple: (Employer AHV, Employer ALV, Employer FAK, Employer BU, Admin Charge)
-    """
-    employer_ahv = gross_wage * AHV_RATE
-    employer_alv = gross_wage * ALV_RATE
-    employer_fak = gross_wage * FAK_RATE
-    employer_bu = gross_wage * BU_RATE
-    admin_charge = employer_ahv * ADMIN_CHARGE_RATE
+    gross_wage: Decimal,
+) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal]:
+    """Return the rounded employer contribution lines."""
+    employer_ahv = round_money(gross_wage * Decimal(str(AHV_RATE)))
+    employer_alv = round_money(gross_wage * Decimal(str(ALV_RATE)))
+    employer_fak = round_money(gross_wage * Decimal(str(FAK_RATE)))
+    employer_bu = round_money(gross_wage * Decimal(str(BU_RATE)))
+    admin_charge = round_money(
+        gross_wage * Decimal(str(AHV_TOTAL_RATE)) * Decimal(str(ADMIN_CHARGE_RATE))
+    )
     return employer_ahv, employer_alv, employer_fak, employer_bu, admin_charge
 
 
 def generate_payslip(
-    monthly_record: MonthlyRecord,
-    employment: Employment
+    totals: MinuteTotals,
+    employment: Employment,
+    cash_bonus: Decimal = Decimal("0"),
+    expense_reimbursements: Decimal = Decimal("0"),
 ) -> Payslip:
-    """Generate a payslip for the monthly record."""
-    # Calculate gross wage
-    gross_wage = calculate_gross_wage(
-        hours_worked=monthly_record.hours_worked,
-        hourly_wage=employment.hourly_wage,
-        holiday_hours=monthly_record.holiday_hours,
-        public_holiday_hours=monthly_record.public_holiday_hours,
-        cash_bonus=monthly_record.cash_bonus
+    """Build the payslip lines from the run's minute totals."""
+    return generate_payslip_from_terms(
+        totals=totals,
+        hourly_wage=Decimal(str(employment.hourly_wage)),
+        weekly_minutes=round(employment.weekly_hours * 60),
+        cash_bonus=cash_bonus,
+        expense_reimbursements=expense_reimbursements,
     )
 
-    # Calculate employee deductions
-    ahv_deduction, alv_deduction, tax_deduction, nbu_deduction = calculate_employee_deductions(
-        gross_wage=gross_wage,
-        weekly_hours=employment.weekly_hours
+
+def generate_payslip_from_terms(
+    totals: MinuteTotals,
+    hourly_wage: Decimal,
+    weekly_minutes: int,
+    cash_bonus: Decimal = Decimal("0"),
+    expense_reimbursements: Decimal = Decimal("0"),
+) -> Payslip:
+    """Build the payslip lines from stored wage and weekly minutes."""
+    gross_wage = calculate_gross_wage_from_minutes(totals, hourly_wage, cash_bonus)
+
+    ahv_deduction, alv_deduction, tax_deduction, nbu_deduction = (
+        calculate_employee_deductions(gross_wage, weekly_minutes)
     )
+    expense_reimbursements = round_money(expense_reimbursements)
 
-    # Round payslip lines before deriving totals so displayed amounts reconcile.
-    gross_wage = _round_money(gross_wage)
-    ahv_deduction = _round_money(ahv_deduction)
-    alv_deduction = _round_money(alv_deduction)
-    tax_deduction = _round_money(tax_deduction)
-    nbu_deduction = _round_money(nbu_deduction)
-    expense_reimbursements = _round_money(monthly_record.expense_reimbursements)
-
-    # Calculate net payout from rounded payslip lines.
-    net_payout = _round_money(
+    net_payout = round_money(
         gross_wage - (ahv_deduction + alv_deduction + tax_deduction + nbu_deduction)
         + expense_reimbursements
     )
 
-    # Calculate employer costs
-    employer_ahv, employer_alv, employer_fak, employer_bu, admin_charge = calculate_employer_costs(
-        gross_wage=gross_wage
+    employer_ahv, employer_alv, employer_fak, employer_bu, admin_charge = (
+        calculate_employer_costs(gross_wage)
     )
-    employer_ahv = _round_money(employer_ahv)
-    employer_alv = _round_money(employer_alv)
-    employer_fak = _round_money(employer_fak)
-    employer_bu = _round_money(employer_bu)
-    admin_charge = _round_money(admin_charge)
-    total_employer_cost = _round_money(
-        gross_wage + employer_ahv + employer_alv + employer_fak + employer_bu + admin_charge
-        + expense_reimbursements
+    total_employer_cost = round_money(
+        gross_wage + employer_ahv + employer_alv + employer_fak + employer_bu
+        + admin_charge + expense_reimbursements
     )
 
-    # Create payslip
-    payslip = Payslip(
-        monthly_record_id=monthly_record.id,
+    return Payslip(
         gross_wage=gross_wage,
         ahv_deduction=ahv_deduction,
         alv_deduction=alv_deduction,
@@ -208,42 +229,26 @@ def generate_payslip(
         employer_fak=employer_fak,
         employer_bu=employer_bu,
         admin_charge=admin_charge,
-        total_employer_cost=total_employer_cost
+        total_employer_cost=total_employer_cost,
     )
-    return payslip
 
 
 def validate_annual_limits(
-    employment: Employment,
-    current_gross_wage: float,
-    employee_gross_to_date: float = 0.0,
-    employer_gross_to_date: float = 0.0,
+    current_gross_wage: Decimal,
+    employee_gross_to_date: Decimal = Decimal("0.00"),
+    employer_gross_to_date: Decimal = Decimal("0.00"),
 ) -> None:
-    """Validate annual gross wage limits for the employee and employer.
-
-    Args:
-        employment: Employment relationship.
-        current_gross_wage: Gross wage for the current month.
-        employee_gross_to_date: Employee gross wage accumulated before this run.
-        employer_gross_to_date: Employer gross wage accumulated before this run.
-
-    Raises:
-        AnnualLimitExceededError: If the annual limit for the employee or employer is exceeded.
-        InvalidPayrollInputError: If a gross wage total is negative.
-    """
+    """Reject a run that would exceed the employee or employer annual limit."""
     if current_gross_wage < 0:
         raise InvalidPayrollInputError("Current gross wage cannot be negative.")
     if employee_gross_to_date < 0 or employer_gross_to_date < 0:
         raise InvalidPayrollInputError("Year-to-date gross wage cannot be negative.")
 
-    employee_total = employee_gross_to_date + current_gross_wage
-    if employee_total > EMPLOYEE_GROSS_LIMIT:
+    if employee_gross_to_date + current_gross_wage > Decimal(str(EMPLOYEE_GROSS_LIMIT)):
         raise AnnualLimitExceededError(
             f"Employee annual gross wage limit (CHF {EMPLOYEE_GROSS_LIMIT}) exceeded."
         )
-
-    employer_total = employer_gross_to_date + current_gross_wage
-    if employer_total > EMPLOYER_GROSS_LIMIT:
+    if employer_gross_to_date + current_gross_wage > Decimal(str(EMPLOYER_GROSS_LIMIT)):
         raise AnnualLimitExceededError(
             f"Employer annual gross wage limit (CHF {EMPLOYER_GROSS_LIMIT}) exceeded."
         )
