@@ -73,7 +73,7 @@ none
 
 ## Amendment 1 (2026-10-16)
 
-Approval: Proposed by Ayla. Approved by Aaron on 19 October 2026 (PR #19).
+Approval: Proposed by Ayla. Approved by Aaron on 19 October 2026.
 
 The following decisions amend this ADR:
 

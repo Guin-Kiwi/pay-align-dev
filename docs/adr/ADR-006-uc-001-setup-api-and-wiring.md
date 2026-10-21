@@ -22,7 +22,7 @@ UC-001 saves an employer, an employee and an employment. It rejects invalid AHV 
 Approved by Nano on 15 October 2026. The payroll router uses the same wiring pattern.
 
 ## Consequences
-- Routers stay free of infrastructure imports. The payroll router can adopt the same pattern to clear the remaining architecture violation.
+- Routers stay free of infrastructure imports. The payroll router adopted the same pattern, which cleared the architecture violation that the first payroll router caused.
 - `create_app()` wires `SqlAlchemySetupRepository`, so setup data survives a restart. `InMemorySetupRepository` remains for tests.
 - A JSON field that is missing entirely returns FastAPI's 422. A blank value returns 400 from the domain.
 - Follow-ups: PR #9 has merged, but `docs/PROJECT.md` does not list the endpoints yet; a human may add the input rules to the review-gated UC-001 spec; both routers now use the wiring pattern, so it can be proposed as a durable rule for `AGENTS.md`.
