@@ -1,6 +1,6 @@
-from datetime import date
+from datetime import date, time
 
-from sqlalchemy import Date, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, Date, ForeignKey, Integer, String, Time, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -48,14 +48,52 @@ class MonthlyRecordRow(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     employment_id: Mapped[int] = mapped_column(ForeignKey("employments.id"), nullable=False)
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), nullable=False)
     employer_id: Mapped[int] = mapped_column(ForeignKey("employers.id"), nullable=False)
     month: Mapped[int] = mapped_column(Integer, nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
-    hours_worked: Mapped[float] = mapped_column(Float, nullable=False)
-    holiday_hours: Mapped[float] = mapped_column(Float, nullable=False)
-    public_holiday_hours: Mapped[float] = mapped_column(Float, nullable=False)
     cash_bonus_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     expense_reimbursements_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class WorkEntryRow(Base):
+    __tablename__ = "work_entries"
+    __table_args__ = (
+        CheckConstraint(
+            "category IN ('worked', 'public_holiday_worked', 'annual_holiday_taken', "
+            "'public_holiday_taken')",
+            name="ck_work_entries_category",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    monthly_record_id: Mapped[int] = mapped_column(
+        ForeignKey("monthly_records.id"), nullable=False
+    )
+    work_date: Mapped[date] = mapped_column(Date, nullable=False)
+    category: Mapped[str] = mapped_column(String, nullable=False)
+    start_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    end_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    unpaid_break_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    paid_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class PayrollSnapshotRow(Base):
+    __tablename__ = "payroll_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    monthly_record_id: Mapped[int] = mapped_column(
+        ForeignKey("monthly_records.id"), nullable=False, unique=True
+    )
+    hourly_wage_cents: Mapped[int] = mapped_column(Integer, nullable=False)
+    weekly_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    holiday_weeks: Mapped[int] = mapped_column(Integer, nullable=False)
+    ruleset_version: Mapped[str] = mapped_column(String, nullable=False)
+    worked_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    public_holiday_worked_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    annual_holiday_taken_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    public_holiday_taken_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    holiday_balance_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class PayslipRow(Base):
