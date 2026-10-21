@@ -69,7 +69,7 @@ Pushes of version tags matching `v*` publish the archive to a GitHub Release aft
 
 ## Dependencies
 
-* **Runtime:** Docker, Python 3.11+
+* **Runtime:** Docker, Python 3.11+ (`.python-version` pins 3.12 for CI and the dev container; the container image uses 3.11)
 * **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), Pydantic (Validation), Pytest (Testing)
 * **Environment Variables:** `DATABASE_URL` (Required for infrastructure configuration). 
 * Never commit `.env` credentials to version control.
