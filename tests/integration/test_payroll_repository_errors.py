@@ -2,8 +2,7 @@ from dataclasses import replace
 
 import pytest
 from src.app.domain.errors import DuplicateMonthError, InvalidPayrollInputError
-from tests.database_helpers import add_employment
-from tests.db_helpers import count_rows
+from tests.database_helpers import add_employment, count_rows
 from src.app.infrastructure.database import create_database_engine, create_schema
 from src.app.infrastructure.sqlalchemy_payroll_repository import (
     SqlAlchemyPayrollRepository,

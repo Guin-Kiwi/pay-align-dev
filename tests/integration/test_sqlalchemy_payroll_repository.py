@@ -17,10 +17,9 @@ from src.app.domain.errors import (
     InvalidHolidayBalanceError,
     InvalidPayrollInputError,
 )
-from tests.db_helpers import count_rows
 from src.app.infrastructure.database import create_database_engine, create_schema
 from src.app.infrastructure.orm_models import PayrollSnapshotRow, WorkEntryRow
-from tests.database_helpers import add_employment
+from tests.database_helpers import add_employment, count_rows
 from src.app.infrastructure.sqlalchemy_payroll_repository import (
     MonthlyRecordInput,
     PayslipInput,

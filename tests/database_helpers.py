@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import Engine
+from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
 from src.app.domain.constants import RULES_YEAR_START
@@ -9,7 +9,17 @@ from src.app.infrastructure.orm_models import (
     EmployerRow,
     EmploymentRow,
     MonthlyRecordRow,
+    PayrollSnapshotRow,
+    PayslipRow,
+    WorkEntryRow,
 )
+
+TABLES = {
+    "monthly_records": MonthlyRecordRow,
+    "work_entries": WorkEntryRow,
+    "payroll_snapshots": PayrollSnapshotRow,
+    "payslips": PayslipRow,
+}
 
 
 def add_employment(
@@ -78,3 +88,8 @@ def add_monthly_record(engine: Engine, month: int = 1) -> int:
         session.add(row)
         session.flush()
         return row.id
+
+
+def count_rows(engine: Engine, table_name: str) -> int:
+    with Session(engine) as session:
+        return int(session.scalar(select(func.count()).select_from(TABLES[table_name])))
