@@ -3,10 +3,10 @@
 ## Purpose
 
 - **Project name:** PayAlign
-- **User or organisational problem:** Private individuals employing household help need a way to legally and accurately manage monthly payroll and annual reporting under the AKBS simplified settlement procedure without facing heavy corporate HR administration.
+- **User or organisational problem:** Private individuals employing household help need a way to legally and accurately manage monthly payroll under the AKBS simplified settlement procedure without facing heavy corporate HR administration.
 - **Intended users:** Private household employers in Basel-Stadt.
 - **In scope:** Single-employer onboarding, employee registration and contract parameter generation, monthly payroll processing (gross-to-net calculations using 2026 rates), and payslip generation.
-- **Out of scope:** The annual aggregation for the AKBS wage declaration (decided on 21 October 2026 for v0.1.0), exception management (including sick pay, occupational accidents, property damage, and disputes), termination workflows, employer account closure, and the standard settlement procedure (Standard-Abrechnung). The normal-case monthly payroll use case does not record or calculate sick-pay hours.
+- **Out of scope:** The annual aggregation for the AKBS wage declaration (for v0.1.0), exception management (including sick pay, occupational accidents, property damage, and disputes), termination workflows, employer account closure, and the standard settlement procedure (Standard-Abrechnung). The normal-case monthly payroll use case does not record or calculate sick-pay hours.
 
 ## Architecture
 

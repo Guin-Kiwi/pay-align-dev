@@ -1,7 +1,7 @@
 # ADR-004-payroll-entry-snapshots-and-holiday-balance
 
 ## Status
-Accepted (amended: see Amendment 1)
+Accepted (amended: see Amendments 1 and 2)
 
 ## Context
 Monthly payroll must remain reproducible after submission. The application
@@ -125,6 +125,9 @@ The following decisions amend this ADR:
   a holiday changes to the category model.
 
 ## Amendment 2 (2026-10-20)
+
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
+
 Reason: "snapshot" was used for several different things across ADR-004, ADR-005
 and UC-002. This amendment defines the run snapshot once and replaces the earlier
 wording.

@@ -10,7 +10,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**PayAlign** is a local-only payroll management system for private household employers in Basel-Stadt. It simplifies the process of calculating monthly pay, applying social insurance and tax deductions, and generating compliant payslips for annual AKBS reporting.
+**PayAlign** is a local-only payroll management system for private household employers in Basel-Stadt. It simplifies the process of calculating monthly pay, applying social insurance and tax deductions, and generating compliant payslips.
 
 ### Monthly payroll saving (UC-002)
 

@@ -49,7 +49,6 @@ Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the 
 - SQLAlchemy imports stay in infrastructure; the architecture test keeps enforcing this.
 - `requirements.txt` pins `sqlalchemy>=2.0`.
 - `create_all` does not alter existing tables; an existing `data/payroll.db` on the Docker volume must be deleted until migrations are decided.
-- On acceptance, `docs/PROJECT.md` is updated: `DATABASE_URL` required with no fallback, the two new tables, `employee_id` on `monthly_records`.
 - Tests must dispose their engines so database files can be removed on Windows.
 - Referential integrity is enforced (item 6): a payroll row cannot reference a missing employment.
 
