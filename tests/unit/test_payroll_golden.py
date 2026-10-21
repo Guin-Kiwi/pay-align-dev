@@ -7,7 +7,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from src.app.domain.employment import Employment
-from src.app.domain.monthly_record import MonthlyRecord
+from src.app.domain.hour_categories import MinuteTotals
 from src.app.domain.payroll_calculation import generate_payslip
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "payroll_golden_cases.json"
@@ -34,6 +34,12 @@ def _money(value) -> Decimal:
     return Decimal(str(value))
 
 
+def _minutes(hours: str) -> int:
+    minutes = Decimal(hours) * 60
+    assert minutes == minutes.to_integral_value()
+    return int(minutes)
+
+
 def _payslip_for(case):
     employment = Employment(
         id=1,
@@ -43,18 +49,17 @@ def _payslip_for(case):
         weekly_hours=float(case["employment"]["weekly_hours"]),
     )
     inputs = case["input"]
-    record = MonthlyRecord(
-        id=1,
-        employment_id=1,
-        month=case["month"]["month"],
-        year=case["month"]["year"],
-        hours_worked=float(inputs["hours_worked"]),
-        holiday_hours=float(inputs["holiday_hours"]),
-        public_holiday_hours=float(inputs["public_holiday_hours"]),
-        cash_bonus=float(inputs["cash_bonus"]),
-        expense_reimbursements=float(inputs["expense_reimbursements"]),
+    totals = MinuteTotals(
+        worked=_minutes(inputs["hours_worked"]),
+        public_holiday_worked=_minutes(inputs["public_holiday_hours"]),
+        annual_holiday_taken=_minutes(inputs["holiday_hours"]),
     )
-    return generate_payslip(record, employment)
+    return generate_payslip(
+        totals=totals,
+        employment=employment,
+        cash_bonus=_money(inputs["cash_bonus"]),
+        expense_reimbursements=_money(inputs["expense_reimbursements"]),
+    )
 
 
 class TestPayrollGolden(unittest.TestCase):
@@ -89,12 +94,7 @@ class TestPayrollGolden(unittest.TestCase):
                     _money(expected["net_payout"]),
                 )
 
-    @unittest.expectedFailure
     def test_admin_charge_and_total_employer_cost_match_workbook(self):
-        """Pending: the code uses gross x 5.3% x 5%, the workbook gross x 10.6% x 5%.
-
-        Remove the expectedFailure decorator once the formula is agreed and fixed.
-        """
         for case in CASES:
             payslip = _payslip_for(case)
             for attribute in PENDING_FIELDS:

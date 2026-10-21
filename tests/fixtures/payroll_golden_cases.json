@@ -1,7 +1,6 @@
 {
   "source": "docs/reference/Payslip_2026.xlsm recalculated with LibreOffice; Rates B11=28.50, B12=2026-01-01, B25=0.05, B26=0.00505, B27=0.5",
-  "rounding": "each line ROUND(x,2) half-up on the exact formula (ADR-003)",
-  "pending": "admin_charge and total_employer_cost follow the workbook (gross x 10.6% x 5%). calculations.md and payroll_service.py give gross x 5.3% x 5%. Confirm with Ayla before treating these as final.",
+  "rounding": "each line ROUND(x,2) half-up on the exact formula (ADR-003); the administration charge is gross x 10.6% x 5%.",
   "cases": [
     {
       "id": "A_plain_under_8h",
