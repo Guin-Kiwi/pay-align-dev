@@ -25,6 +25,8 @@ The foundation for all social deductions is the AHV-liable gross wage, which inc
 * Statutory Holiday Premium = Holiday Worked Hours * Gross Hourly Wage * 0.5
 * **Gross Wage = Base Pay + Statutory Holiday Premium + Cash Bonus**
 
+Hours Worked includes both categories of work: normal worked hours and hours worked on a public holiday (Holiday Worked Hours). The app records them as separate categories ([ADR-004 Amendment 1](../adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-1-2026-10-16), item 6). The Statutory Holiday Premium is the extra 50% on Holiday Worked Hours only, so those hours are paid at 1.5 times the hourly wage in total.
+
 ### Step B: Calculate Employee Deductions
 Calculate individual deductions based on the Gross Wage.
 

@@ -51,7 +51,7 @@ UC-001 setup saving sub-slice (Nano): setup data survives a restart.
 - Develop (phase 3): done. `SqlAlchemySetupRepository` on the `employers`, `employees` and `employments`
   tables replaces `InMemorySetupRepository` in `create_app()`, which builds the engine from `DATABASE_URL`,
   keeps it on `app.state.engine` and disposes it on shutdown; start-up fails with `DatabaseConfigurationError`
-  when the variable is unset. `tests/conftest.py` gives tests an in-memory `DATABASE_URL` by default.
+  when the variable is unset. `tests/conftest.py` always gives tests an in-memory `DATABASE_URL`.
 - Acceptance: the three rows are saved together or not at all; `6:30` is kept as 390 minutes and CHF 28.50
   as 2850 centimes; a second setup with the same employee AHV number links a new employment to the saved
   employee; data is still there after the app is created again on the same database file.
@@ -111,8 +111,8 @@ run snapshot in [ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-ho
 - Invalid inputs and annual-limit breaches fail before persistence; success
   returns a confirmation after the transaction completes.
 - The architecture remains consistent with ADR-001 through ADR-006 (see Evidence links).
-- Evidence: this design record, the two linked use-case specifications, and
-  the existing architecture ADRs.
+- Evidence: the two use-case specifications, ADR-001 to ADR-006 and the tests
+  under `tests/`.
 
 ## Risks / tradeoffs
 
@@ -127,12 +127,12 @@ run snapshot in [ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-ho
 
 ## Validation approach
 
-- During DEVELOP, unit tests will cover domain validation, exact payroll
-  calculations, NBU eligibility, reimbursement separation, and annual-limit
-  rejection.
-- Integration tests will verify repository foreign keys, employer uniqueness,
-  and atomic persistence of the monthly record and payslip.
-- Architecture tests will continue to enforce inward dependency direction.
+- Unit tests cover domain validation, exact payroll calculations, NBU
+  eligibility, reimbursement separation, and annual-limit rejection.
+- Integration tests verify repository foreign keys, employer uniqueness, and
+  atomic persistence of the monthly record and payslip.
+- Architecture tests check the inward dependency direction; their layer check
+  does not yet recognise `src.app` imports (see Person 4 below).
 - ADR-005 slice: integration tests cover the persistence cases of the UC-002
   validation plan (duplicate month, failed save, annual limits per
   [calculations.md §3](reference/calculations.md)), that start-up fails clearly when
@@ -154,8 +154,6 @@ run snapshot in [ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-ho
   (items 2 and 3).
 - Decided on 16 October 2026: the app accepts only 2026, the only year with a
   ruleset (ADR-002); see UC-001.
-- Assumption: the earlier float-column SQLite schema was never deployed, so the
-  repository's legacy migration can be dropped.
 - Human review remains required for the review-gated use-case specifications.
 
 ## Evidence links
@@ -171,8 +169,6 @@ run snapshot in [ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-ho
 - [PROJECT architecture](PROJECT.md)
 
 ## Person 4 — CI, Docker, Release and architecture tests
-
-Baseline: `origin/main` at `e6f293a`.
 
 - **CI:** [PR #10](https://github.com/Guin-Kiwi/pay-align-dev/pull/10)
   is merged. The whitespace check covers changes in PRs

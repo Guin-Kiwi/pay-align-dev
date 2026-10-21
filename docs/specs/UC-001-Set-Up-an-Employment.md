@@ -94,7 +94,7 @@ The employer selects **"Set Up Employment"** in the application.
 ## Open questions / assumptions
 - Assumption: The employer has all required details (e.g., AHV number) at hand.
 - Open question: Should the system support bulk import of employees in the future?
-- Decided on 16 October 2026: weekly hours are kept as minutes, holiday weeks replace holiday days, and the end date is optional. Not yet confirmed for the UI and for the UC-002 NBU check, which becomes `weekly_minutes >= 480`.
+- Decided on 16 October 2026: weekly hours are kept as minutes, holiday weeks replace holiday days, and the end date is optional. The UC-002 NBU check is `weekly_minutes >= 480` (`NBU_MIN_WEEKLY_MINUTES` in `constants.py`).
 - The `employments` table keeps integer `weekly_minutes` and `holiday_weeks` and a nullable `end_date` (PR #18); setup saves them there.
 - Decided on 16 October 2026 (for UC-002, ADR-004): holiday for an employment that starts or ends during the year is pro-rated by days under contract (OR 329a para. 3): holiday weeks × weekly minutes × contract days in 2026 ÷ 365, counting the start and end dates, rounded half-up once to whole minutes (rounding mode decided on 17 October 2026 in ADR-004).
 - Decided on 16 October 2026: the app accepts only 2026. ADR-002 gives each year its own reviewed ruleset, and 2026 is the only one, so "2026 or later" would apply 2026 rates to 2027 without warning. A later year is added as a new ruleset with its own golden tests; employers do not enter legal rates.

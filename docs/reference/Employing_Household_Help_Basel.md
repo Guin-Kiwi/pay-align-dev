@@ -1,6 +1,6 @@
 # Employing Household Help in Basel-Stadt
 **A complete guide for private employers**[cite: 1]
-*Companion file: Payslip_2026.xlsx*[cite: 1]
+*Companion file: Payslip_2026.xlsm*[cite: 1]
 *2026 rates | legal-source review: July 2026*[cite: 1]
 
 ## Purpose of this document
@@ -78,7 +78,7 @@ The contract should also state names/addresses, start date, probation period, em
 3.  **Put it somewhere both of you can refer to:** Attach the task list to the contract, or keep it as a shared note[cite: 6].
 
 #### Prepare the payslip spreadsheet
-Open Payslip_2026.xlsx and complete the blue cells on the Rates sheet[cite: 7]. Enter employer details, employee details, gross hourly wage, employment dates, regular weekly hours, and holiday entitlement[cite: 7]. The workbook determines whether NBU applies and pro-rates holiday entitlements[cite: 7].
+Open Payslip_2026.xlsm and complete the blue cells on the Rates sheet[cite: 7]. Enter employer details, employee details, gross hourly wage, employment dates, regular weekly hours, and holiday entitlement[cite: 7]. The workbook determines whether NBU applies and pro-rates holiday entitlements[cite: 7].
 
 ### RUNNING IT
 #### Calculate and pay monthly wages

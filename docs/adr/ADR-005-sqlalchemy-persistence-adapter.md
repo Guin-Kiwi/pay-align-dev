@@ -45,7 +45,7 @@ Holiday entitlement and the derived balance are defined by [ADR-004 Amendment 1]
 Approval: Approved by Nano on 21 October 2026.
 
 ## Consequences
-- `SQLitePayrollRepository` is replaced during DEVELOP on `uc-002-payroll-saving`; its tests move to the new adapter first (TDD).
+- `SQLitePayrollRepository` was replaced during DEVELOP on `uc-002-payroll-saving`; its tests moved to the new adapter first (TDD).
 - SQLAlchemy imports stay in infrastructure; the architecture test keeps enforcing this.
 - `requirements.txt` pins `sqlalchemy>=2.0`.
 - `create_all` does not alter existing tables; an existing `data/payroll.db` on the Docker volume must be deleted until migrations are decided.

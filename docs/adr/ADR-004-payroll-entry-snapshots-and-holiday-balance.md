@@ -28,7 +28,8 @@ overpayment handling are outside the current use case.
 ## Decision
 
 For each monthly payroll run, persist the submitted daily entries with exactly
-three normal-case hour categories:
+three normal-case hour categories (four since
+[Amendment 1](#amendment-1-2026-10-16), item 6):
 
 1. worked hours;
 2. paid holiday hours;
@@ -60,8 +61,9 @@ monthly payroll flow.
   than maintained as an independent editable value.
 - A future correction workflow requires a separate use case and ADR or an
   explicit amendment to this decision.
-- The three categories must be validated so negative or overlapping entries
-  cannot enter a run.
+- The three categories (four since [Amendment 1](#amendment-1-2026-10-16),
+  item 6) must be validated so negative or overlapping entries cannot enter a
+  run.
 - Exception handling, including sick pay, requires a separate use case and
   design decision.
 
@@ -71,7 +73,7 @@ none
 
 ## Amendment 1 (2026-10-16)
 
-Approval: AYLA PROPOSES; review by Nano and Aaron in this PR.
+Approval: Proposed by Ayla. Approved by Aaron on 19 October 2026 (PR #19).
 
 The following decisions amend this ADR:
 

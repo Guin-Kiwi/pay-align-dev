@@ -29,9 +29,9 @@ limits are in [calculations.md](docs/reference/calculations.md).
 Starter repository for student and teaching projects that use the AI-Assisted
 Software Development Life Cycle (AI-SDLC).
 
-The method is documented canonically in [AISL Docs](https://docs.aisl.science/learning-and-resources/ai-sdlc). This repository contains only the executable, repository-local
-workflow artefacts. It does not contain a complete copy of the method or
-application-specific code.
+The method is documented canonically in [AISL Docs](https://docs.aisl.science/learning-and-resources/ai-sdlc). This repository contains the executable, repository-local
+workflow artefacts and the PayAlign application. It does not contain a complete
+copy of the method.
 
 ## How it works
 
@@ -46,7 +46,7 @@ blocks a merge.
 
 | | Paths | Licence |
 |---|---|---|
-| **Your project** (what is being built) | `src/app/` (domain, application, interfaces, infrastructure), `tests/`, `docs/PROJECT.md`, `docs/TASKS.md`, `docs/specs/`, `docs/adr/`, `README.md` | Your team's choice (`LICENSE` section 2) |
+| **Your project** (what is being built) | `src/app/` (domain, application, interfaces, infrastructure), `tests/`, `docs/PROJECT.md`, `docs/TASKS.md`, `docs/specs/`, `docs/adr/`, `README.md` | MIT (`LICENSE` section 2) |
 | **The AI-SDLC process** (how it is built) | `AGENTS.md`, `CONTRIBUTING.md`, `skills/`, `scripts/`, `.github/`, `environments/`, `docs/INDEX.json`, `docs/STANDARDS.md`, `docs/AGENT-GUIDANCE.md` | CC BY 4.0 (`LICENSE` section 1) |
 
 Both stay in the repository: the process files are your evidence of TDD,
@@ -137,6 +137,6 @@ For non-interactive setup, pass the same selection, for example `bash scripts/se
 - `scripts/pr_advisory.py` — non-blocking PR warnings (model tier, Fast Track scope)
 - `scripts/sdlc.py review` — optional human review report, recorded in history
 - `.vscode/tasks.json` — "AI-SDLC: Run checks" and "AI-SDLC: Human review report"
-- `.github/` — Copilot instructions and `/ai-sdlc` prompt, CODEOWNERS, PR and
+- `.github/` — Copilot instructions, CODEOWNERS, PR and
   use-case issue templates, CI, release, bootstrap-issue and CD workflows,
   importable rulesets

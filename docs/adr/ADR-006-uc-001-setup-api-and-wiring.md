@@ -19,13 +19,13 @@ UC-001 saves an employer, an employee and an employment. It rejects invalid AHV 
 3. **Port.** `SetupRepository` in `src/app/application/ports/` has `get_employer()` and `save(employer, employee, employment)`. `save` stores all three atomically and links the employment to the employer and employee.
 4. **Wiring.** `create_app()` in `src/app/infrastructure/web/app.py` builds the services and stores them on `app.state`. Routers read them through a small dependency such as `get_setup_service`. Tests call `create_app()` with a fake repository. The module-level `app = create_app()` stays, so the Docker start path keeps working.
 
-Approved by Nano on 15 October 2026. The wiring pattern applies to the payroll router once Ayla confirms it.
+Approved by Nano on 15 October 2026. The payroll router uses the same wiring pattern.
 
 ## Consequences
 - Routers stay free of infrastructure imports. The payroll router can adopt the same pattern to clear the remaining architecture violation.
-- Until the SQLAlchemy setup repository exists, the app uses an in-memory setup repository and forgets setup data on restart.
+- `create_app()` wires `SqlAlchemySetupRepository`, so setup data survives a restart. `InMemorySetupRepository` remains for tests.
 - A JSON field that is missing entirely returns FastAPI's 422. A blank value returns 400 from the domain.
-- Follow-ups: add the endpoint list to `docs/PROJECT.md` after PR #9 merges; a human may add the input rules to the review-gated UC-001 spec; once both routers use the wiring pattern, propose it as a durable rule for `AGENTS.md`.
+- Follow-ups: PR #9 has merged, but `docs/PROJECT.md` does not list the endpoints yet; a human may add the input rules to the review-gated UC-001 spec; both routers now use the wiring pattern, so it can be proposed as a durable rule for `AGENTS.md`.
 
 ## Supersedes
 none
