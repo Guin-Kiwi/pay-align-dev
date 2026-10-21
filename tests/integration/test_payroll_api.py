@@ -404,3 +404,75 @@ def test_a_second_employments_later_months_count_towards_the_employee_limit(clie
     assert october.status_code == 400
     assert "22680" in october.json()["detail"]
     assert count(engine, "monthly_records") == 1
+
+
+def test_a_run_after_the_end_month_is_a_4xx_and_saves_nothing(client):
+    test_client, engine = client
+    add_employment(
+        engine,
+        employment_id=8,
+        employer_id=3,
+        employee_id=9,
+        start_date=date(2026, 10, 1),
+        end_date=date(2026, 10, 31),
+    )
+
+    october = test_client.post("/api/v1/monthly-payroll", json=bonus_only(employment_id=8))
+    november = test_client.post(
+        "/api/v1/monthly-payroll", json=bonus_only(employment_id=8, month=11)
+    )
+
+    assert october.status_code == 201
+    assert november.status_code == 400
+    assert count(engine, "monthly_records") == 1
+
+
+def entry_on(day):
+    return {
+        "work_date": f"2026-10-{day:02d}",
+        "category": "worked",
+        "start_time": "09:00",
+        "end_time": "10:00",
+    }
+
+
+def test_entries_on_the_first_and_last_day_of_the_employment_are_saved(client):
+    test_client, engine = client
+    add_employment(
+        engine,
+        employment_id=8,
+        employer_id=3,
+        employee_id=9,
+        start_date=date(2026, 10, 5),
+        end_date=date(2026, 10, 20),
+    )
+
+    response = test_client.post(
+        "/api/v1/monthly-payroll",
+        json=bonus_only(employment_id=8, work_entries=[entry_on(5), entry_on(20)]),
+    )
+
+    assert response.status_code == 201
+    assert count(engine, "work_entries") == 2
+
+
+@pytest.mark.parametrize("day", [4, 21])
+def test_an_entry_outside_the_employment_is_a_4xx_and_saves_nothing(client, day):
+    test_client, engine = client
+    add_employment(
+        engine,
+        employment_id=8,
+        employer_id=3,
+        employee_id=9,
+        start_date=date(2026, 10, 5),
+        end_date=date(2026, 10, 20),
+    )
+
+    response = test_client.post(
+        "/api/v1/monthly-payroll",
+        json=bonus_only(employment_id=8, work_entries=[entry_on(5), entry_on(day)]),
+    )
+
+    assert response.status_code == 400
+    for table in ("monthly_records", "work_entries", "payroll_snapshots", "payslips"):
+        assert count(engine, table) == 0

@@ -79,10 +79,12 @@ class PayrollService:
             raise InvalidPayrollInputError(
                 "Work entries must belong to the payroll month."
             )
+        self._check_entries_within_employment(work_entries, terms)
         reject_overlapping_entries(work_entries)
         work_entries = classify_public_holidays(work_entries)
         totals = calculate_monthly_totals(work_entries)
 
+        self._check_month_not_after_end(terms, month, year)
         prior = repository.prior_run(employment_id)
         self._check_run_sequence(prior, terms, month, year)
 
@@ -165,6 +167,29 @@ class PayrollService:
         payslip.id = saved.payslip_id
         payslip.monthly_record_id = saved.monthly_record_id
         return record, payslip
+
+    @staticmethod
+    def _check_month_not_after_end(
+        terms: EmploymentTerms, month: int, year: int
+    ) -> None:
+        end = terms.employment_end_date
+        if end is not None and (year, month) > (end.year, end.month):
+            raise InvalidPayrollInputError(
+                f"The employment ended on {end.isoformat()}; "
+                f"no payroll run is possible for {month:02d}/{year}."
+            )
+
+    @staticmethod
+    def _check_entries_within_employment(
+        work_entries: list[WorkEntry], terms: EmploymentTerms
+    ) -> None:
+        start, end = terms.employment_start_date, terms.employment_end_date
+        for entry in work_entries:
+            if entry.work_date < start or (end is not None and entry.work_date > end):
+                raise InvalidPayrollInputError(
+                    f"Entry on {entry.work_date.isoformat()} is outside the employment "
+                    f"({start.isoformat()} to {end.isoformat() if end else 'open end'})."
+                )
 
     @staticmethod
     def _check_run_sequence(

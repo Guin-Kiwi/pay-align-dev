@@ -531,6 +531,101 @@ class TestPayrollService(unittest.TestCase):
 
         self.assertIsNone(repository.saved)
 
+    def test_a_run_after_the_end_month_is_rejected_and_nothing_is_saved(self):
+        repository = FakePayrollRepository(prior=PriorRun(1, 2026, 10, 500))
+        employment = make_employment(end_date=date(2026, 10, 15))
+
+        with self.assertRaises(InvalidPayrollInputError):
+            self.run_month(repository, month=11, employment=employment)
+
+        self.assertIsNone(repository.saved)
+
+    def test_a_run_long_after_the_end_month_is_rejected_as_ended(self):
+        repository = FakePayrollRepository(prior=PriorRun(1, 2026, 10, 500))
+        employment = make_employment(end_date=date(2026, 10, 15))
+
+        with self.assertRaisesRegex(InvalidPayrollInputError, "ended"):
+            self.run_month(repository, month=12, employment=employment)
+
+        self.assertIsNone(repository.saved)
+
+    def test_the_end_month_itself_is_still_processed(self):
+        repository = FakePayrollRepository()
+        employment = make_employment(end_date=date(2026, 10, 15))
+
+        self.run_month(repository, month=10, employment=employment)
+
+        self.assertEqual(repository.saved[0].month, 10)
+
+    def test_a_duplicate_of_the_end_month_is_still_a_duplicate(self):
+        repository = FakePayrollRepository(prior=PriorRun(1, 2026, 10, 500))
+        employment = make_employment(end_date=date(2026, 10, 15))
+
+        with self.assertRaises(DuplicateMonthError):
+            self.run_month(repository, month=10, employment=employment)
+
+    def test_entries_on_the_start_and_end_dates_are_accepted(self):
+        repository = FakePayrollRepository()
+        employment = make_employment(
+            start_date=date(2026, 10, 5), end_date=date(2026, 10, 20)
+        )
+
+        self.run_month(
+            repository,
+            month=10,
+            employment=employment,
+            entries=[
+                WorkEntry(date(2026, 10, 5), HourCategory.WORKED, 60),
+                WorkEntry(date(2026, 10, 20), HourCategory.WORKED, 60),
+            ],
+        )
+
+        self.assertEqual(len(repository.saved[1]), 2)
+
+    def test_an_entry_before_the_start_date_is_rejected_and_nothing_is_saved(self):
+        repository = FakePayrollRepository()
+        employment = make_employment(start_date=date(2026, 10, 5))
+
+        with self.assertRaises(InvalidPayrollInputError):
+            self.run_month(
+                repository,
+                month=10,
+                employment=employment,
+                entries=[WorkEntry(date(2026, 10, 4), HourCategory.WORKED, 60)],
+            )
+
+        self.assertIsNone(repository.saved)
+
+    def test_an_entry_after_the_end_date_is_rejected_and_nothing_is_saved(self):
+        repository = FakePayrollRepository()
+        employment = make_employment(end_date=date(2026, 10, 20))
+
+        with self.assertRaises(InvalidPayrollInputError):
+            self.run_month(
+                repository,
+                month=10,
+                employment=employment,
+                entries=[WorkEntry(date(2026, 10, 21), HourCategory.WORKED, 60)],
+            )
+
+        self.assertIsNone(repository.saved)
+
+    def test_a_leave_entry_outside_the_employment_is_rejected_too(self):
+        repository = FakePayrollRepository()
+        employment = make_employment(end_date=date(2026, 10, 20))
+
+        with self.assertRaises(InvalidPayrollInputError):
+            self.run_month(
+                repository,
+                month=10,
+                employment=employment,
+                entries=[
+                    WorkEntry(date(2026, 10, 21), HourCategory.ANNUAL_HOLIDAY_TAKEN, 60)
+                ],
+            )
+
+        self.assertIsNone(repository.saved)
+
     def test_snapshot_keeps_the_employment_dates(self):
         repository = FakePayrollRepository()
         employment = make_employment(end_date=date(2026, 12, 15))
