@@ -2,22 +2,25 @@
 
 import unittest
 from datetime import date, time
+from decimal import Decimal
 
-from src.app.domain.constants import PUBLIC_HOLIDAYS_2026
+from src.app.domain.constants import PUBLIC_HOLIDAYS
 from src.app.domain.employment import Employment
 from src.app.domain.errors import AnnualLimitExceededError, InvalidPayrollInputError
-from src.app.domain.monthly_record import MonthlyRecord
+from src.app.domain.hour_categories import HourCategory, MinuteTotals
 from src.app.domain.payroll_calculation import (
     calculate_employee_deductions,
     calculate_employer_costs,
-    calculate_gross_wage,
-    calculate_monthly_hours,
-    calculate_paid_hours,
+    calculate_monthly_totals,
+    calculate_paid_minutes,
+    classify_public_holidays,
     generate_payslip,
+    generate_payslip_from_terms,
     is_public_holiday,
+    round_money,
     validate_annual_limits,
 )
-from src.app.domain.work_entry import WorkEntry
+from src.app.domain.work_entry import WorkEntry, reject_overlapping_entries
 
 
 class TestPayrollCalculation(unittest.TestCase):
@@ -34,180 +37,328 @@ class TestPayrollCalculation(unittest.TestCase):
         )
 
 
-    def test_calculate_gross_wage(self):
-        """Test gross wage calculation."""
-        # Standard case
-        gross_wage = calculate_gross_wage(
-            hours_worked=160,
-            hourly_wage=25.0,
-            holiday_hours=8,
-            public_holiday_hours=4,
-            cash_bonus=100
-        )
-        self.assertEqual(gross_wage, 4450.0)  # (160 + 8 + 4) * 25 + (4 * 25 * 0.5) + 100
+    def test_paid_minutes_are_whole_minutes_after_unpaid_breaks(self):
+        self.assertEqual(calculate_paid_minutes(time(9, 0), time(17, 30), 30), 480)
+        self.assertEqual(calculate_paid_minutes(time(9, 0), time(13, 0), 0), 240)
 
-        # No public holiday hours
-        gross_wage = calculate_gross_wage(
-            hours_worked=160,
-            hourly_wage=25.0,
-            holiday_hours=8
-        )
-        self.assertEqual(gross_wage, 4200.0)  # (160 + 8) * 25
+    def test_paid_minutes_reject_breaks_longer_than_the_work(self):
+        with self.assertRaises(InvalidPayrollInputError):
+            calculate_paid_minutes(time(9, 0), time(10, 0), 61)
 
-        # No holiday hours or bonus
-        gross_wage = calculate_gross_wage(
-            hours_worked=160,
-            hourly_wage=25.0
-        )
-        self.assertEqual(gross_wage, 4000.0)  # 160 * 25
-
-    def test_work_entry_calculates_paid_hours_and_public_holiday(self):
+    def test_work_entry_carries_a_category_and_whole_minutes(self):
         entry = WorkEntry(
             work_date=date(2026, 5, 14),
-            start_time=time(9, 0),
-            end_time=time(17, 30),
-            unpaid_break_hours=0.5,
+            category=HourCategory.PUBLIC_HOLIDAY_WORKED,
+            paid_minutes=240,
         )
 
-        self.assertEqual(calculate_paid_hours(entry), 8.0)
+        self.assertEqual(entry.category, HourCategory.PUBLIC_HOLIDAY_WORKED)
+        self.assertEqual(entry.paid_minutes, 240)
         self.assertTrue(is_public_holiday(entry.work_date))
+
+    def test_work_entry_rejects_negative_minutes(self):
+        with self.assertRaises(InvalidPayrollInputError):
+            WorkEntry(
+                work_date=date(2026, 5, 14),
+                category=HourCategory.WORKED,
+                paid_minutes=-1,
+            )
 
     def test_public_holiday_list_contains_nine_statutory_holidays(self):
         self.assertFalse(is_public_holiday(date(2026, 1, 2)))
         self.assertFalse(is_public_holiday(date(2026, 3, 2)))
-        self.assertEqual(len(PUBLIC_HOLIDAYS_2026), 9)
+        self.assertEqual(len(PUBLIC_HOLIDAYS), 9)
 
-    def test_unpaid_work_entry_has_no_paid_hours(self):
-        entry = WorkEntry(
-            work_date=date(2026, 5, 15),
-            start_time=time(9, 0),
-            end_time=time(17, 0),
-            unpaid_break_hours=1.0,
-            paid=False,
-        )
-
-        self.assertEqual(calculate_paid_hours(entry), 0.0)
-        self.assertFalse(is_public_holiday(entry.work_date))
-
-    def test_monthly_hours_derive_public_holiday_hours_from_entries(self):
+    def test_monthly_totals_sum_each_category(self):
         entries = [
-            WorkEntry(
-                work_date=date(2026, 5, 14),
-                start_time=time(9, 0),
-                end_time=time(13, 0),
-            ),
-            WorkEntry(
-                work_date=date(2026, 5, 15),
-                start_time=time(9, 0),
-                end_time=time(13, 0),
-            ),
+            WorkEntry(date(2026, 5, 14), HourCategory.PUBLIC_HOLIDAY_WORKED, 240),
+            WorkEntry(date(2026, 5, 15), HourCategory.WORKED, 240),
+            WorkEntry(date(2026, 5, 16), HourCategory.ANNUAL_HOLIDAY_TAKEN, 60),
+            WorkEntry(date(2026, 5, 17), HourCategory.PUBLIC_HOLIDAY_TAKEN, 30),
         ]
 
-        self.assertEqual(calculate_monthly_hours(entries), (4.0, 4.0))
+        self.assertEqual(
+            calculate_monthly_totals(entries),
+            MinuteTotals(
+                worked=240,
+                public_holiday_worked=240,
+                annual_holiday_taken=60,
+                public_holiday_taken=30,
+            ),
+        )
 
-    def test_calculate_gross_wage_invalid_input(self):
-        """Test invalid input handling for gross wage calculation."""
+    def test_monthly_totals_reject_entries_from_another_month(self):
+        entries = [
+            WorkEntry(date(2026, 5, 14), HourCategory.WORKED, 240),
+            WorkEntry(date(2026, 6, 1), HourCategory.WORKED, 240),
+        ]
+
         with self.assertRaises(InvalidPayrollInputError):
-            calculate_gross_wage(hours_worked=-1, hourly_wage=25.0)
+            calculate_monthly_totals(entries)
+
+    def test_monthly_totals_of_no_entries_are_all_zero(self):
+        self.assertEqual(calculate_monthly_totals([]), MinuteTotals())
+
+    def test_round_money_rounds_half_up_to_the_centime(self):
+        self.assertEqual(round_money(Decimal("10.005")), Decimal("10.01"))
+        self.assertEqual(round_money(Decimal("10.004")), Decimal("10.00"))
+        self.assertEqual(round_money(Decimal("0.015")), Decimal("0.02"))
+
+    def test_entry_from_times_derives_the_paid_minutes_and_keeps_the_times(self):
+        entry = WorkEntry.from_times(
+            date(2026, 10, 1), HourCategory.WORKED, time(9, 0), time(17, 30), 30
+        )
+
+        self.assertEqual(entry.paid_minutes, 480)
+        self.assertEqual(entry.start_time, time(9, 0))
+        self.assertEqual(entry.end_time, time(17, 30))
+        self.assertEqual(entry.unpaid_break_minutes, 30)
+
+    def test_entry_rejects_paid_minutes_that_contradict_its_times(self):
         with self.assertRaises(InvalidPayrollInputError):
-            calculate_gross_wage(hours_worked=160, hourly_wage=-25.0)
+            WorkEntry(
+                date(2026, 10, 1), HourCategory.WORKED, 100,
+                start_time=time(9, 0), end_time=time(17, 0),
+            )
+
+    def test_entry_rejects_a_start_time_without_an_end_time(self):
         with self.assertRaises(InvalidPayrollInputError):
-            calculate_gross_wage(hours_worked=160, hourly_wage=25.0, holiday_hours=-8)
+            WorkEntry(date(2026, 10, 1), HourCategory.WORKED, 60, start_time=time(9, 0))
+
+    def test_entry_rejects_an_end_before_the_start(self):
+        with self.assertRaises(InvalidPayrollInputError):
+            WorkEntry.from_times(
+                date(2026, 10, 1), HourCategory.WORKED, time(17, 0), time(9, 0), 0
+            )
+
+    def test_overlapping_entries_on_one_day_are_rejected(self):
+        entries = [
+            WorkEntry.from_times(date(2026, 10, 1), HourCategory.WORKED, time(9), time(12), 0),
+            WorkEntry.from_times(date(2026, 10, 1), HourCategory.WORKED, time(11), time(14), 0),
+        ]
+
+        with self.assertRaises(InvalidPayrollInputError):
+            reject_overlapping_entries(entries)
+
+    def test_an_entry_inside_another_is_an_overlap(self):
+        entries = [
+            WorkEntry.from_times(date(2026, 10, 1), HourCategory.WORKED, time(9), time(17), 0),
+            WorkEntry.from_times(date(2026, 10, 1), HourCategory.WORKED, time(10), time(11), 0),
+        ]
+
+        with self.assertRaises(InvalidPayrollInputError):
+            reject_overlapping_entries(entries)
+
+    def test_several_non_overlapping_entries_on_one_day_are_valid(self):
+        entries = [
+            WorkEntry.from_times(date(2026, 10, 1), HourCategory.WORKED, time(14), time(17), 0),
+            WorkEntry.from_times(date(2026, 10, 1), HourCategory.WORKED, time(9), time(12), 0),
+            WorkEntry.from_times(date(2026, 10, 1), HourCategory.WORKED, time(12), time(14), 0),
+        ]
+
+        reject_overlapping_entries(entries)
+
+    def test_the_same_hours_on_different_days_do_not_overlap(self):
+        entries = [
+            WorkEntry.from_times(date(2026, 10, 1), HourCategory.WORKED, time(9), time(12), 0),
+            WorkEntry.from_times(date(2026, 10, 2), HourCategory.WORKED, time(9), time(12), 0),
+        ]
+
+        reject_overlapping_entries(entries)
+
+    def test_work_on_a_public_holiday_is_classified_as_public_holiday_worked(self):
+        entries = [
+            WorkEntry(date(2026, 5, 14), HourCategory.WORKED, 240),
+            WorkEntry(date(2026, 5, 15), HourCategory.WORKED, 240),
+        ]
+
+        classified = classify_public_holidays(entries)
+
+        self.assertEqual(classified[0].category, HourCategory.PUBLIC_HOLIDAY_WORKED)
+        self.assertEqual(classified[1].category, HourCategory.WORKED)
+
+    def test_classification_keeps_times_and_minutes(self):
+        entry = WorkEntry.from_times(
+            date(2026, 5, 14), HourCategory.WORKED, time(9), time(13), 15
+        )
+
+        classified = classify_public_holidays([entry])[0]
+
+        self.assertEqual(classified.paid_minutes, 225)
+        self.assertEqual(classified.start_time, time(9))
+        self.assertEqual(classified.unpaid_break_minutes, 15)
+
+    def test_public_holiday_worked_on_an_ordinary_day_is_rejected(self):
+        entries = [WorkEntry(date(2026, 5, 15), HourCategory.PUBLIC_HOLIDAY_WORKED, 240)]
+
+        with self.assertRaises(InvalidPayrollInputError):
+            classify_public_holidays(entries)
+
+    def test_public_holiday_leave_on_an_ordinary_day_is_rejected(self):
+        entries = [WorkEntry(date(2026, 5, 15), HourCategory.PUBLIC_HOLIDAY_TAKEN, 240)]
+
+        with self.assertRaises(InvalidPayrollInputError):
+            classify_public_holidays(entries)
+
+    def test_public_holiday_leave_and_public_holiday_work_are_kept_on_a_holiday(self):
+        entries = [
+            WorkEntry(date(2026, 5, 14), HourCategory.PUBLIC_HOLIDAY_TAKEN, 240),
+            WorkEntry(date(2026, 8, 1), HourCategory.PUBLIC_HOLIDAY_WORKED, 240),
+        ]
+
+        self.assertEqual(classify_public_holidays(entries), entries)
+
+    def test_paid_holiday_on_a_public_holiday_is_rejected(self):
+        entries = [WorkEntry(date(2026, 5, 14), HourCategory.ANNUAL_HOLIDAY_TAKEN, 240)]
+
+        with self.assertRaises(InvalidPayrollInputError):
+            classify_public_holidays(entries)
+
+    def test_paid_holiday_on_an_ordinary_day_is_kept(self):
+        entries = [WorkEntry(date(2026, 5, 15), HourCategory.ANNUAL_HOLIDAY_TAKEN, 240)]
+
+        self.assertEqual(classify_public_holidays(entries), entries)
+
+    def test_public_holiday_leave_with_public_holiday_work_on_one_day_is_rejected(self):
+        entries = [
+            WorkEntry(date(2026, 5, 14), HourCategory.PUBLIC_HOLIDAY_TAKEN, 240),
+            WorkEntry(date(2026, 5, 14), HourCategory.PUBLIC_HOLIDAY_WORKED, 60),
+        ]
+
+        with self.assertRaises(InvalidPayrollInputError):
+            classify_public_holidays(entries)
+
+    def test_public_holiday_leave_with_work_on_a_holiday_is_rejected_after_classification(self):
+        entries = [
+            WorkEntry(date(2026, 5, 14), HourCategory.PUBLIC_HOLIDAY_TAKEN, 240),
+            WorkEntry(date(2026, 5, 14), HourCategory.WORKED, 60),
+        ]
+
+        with self.assertRaises(InvalidPayrollInputError):
+            classify_public_holidays(entries)
+
+    def test_paid_holiday_with_public_holiday_leave_on_one_day_is_rejected(self):
+        entries = [
+            WorkEntry(date(2026, 5, 14), HourCategory.ANNUAL_HOLIDAY_TAKEN, 60),
+            WorkEntry(date(2026, 5, 14), HourCategory.PUBLIC_HOLIDAY_TAKEN, 60),
+        ]
+
+        with self.assertRaises(InvalidPayrollInputError):
+            classify_public_holidays(entries)
+
+    def test_several_public_holiday_work_entries_on_one_day_are_valid(self):
+        entries = [
+            WorkEntry.from_times(date(2026, 5, 14), HourCategory.WORKED, time(9), time(12)),
+            WorkEntry.from_times(date(2026, 5, 14), HourCategory.WORKED, time(14), time(17)),
+        ]
+
+        classified = classify_public_holidays(entries)
+
+        self.assertEqual(
+            [entry.category for entry in classified],
+            [HourCategory.PUBLIC_HOLIDAY_WORKED] * 2,
+        )
 
     def test_calculate_employee_deductions(self):
-        """Test employee deduction calculations."""
-        # Employee with weekly hours >= 8 (NBU applies)
         ahv, alv, tax, nbu = calculate_employee_deductions(
-            gross_wage=4000.0,
-            weekly_hours=10
+            gross_wage=Decimal("4000.00"), weekly_minutes=600
         )
-        self.assertAlmostEqual(ahv, 212.0)    # 4000 * 0.053
-        self.assertAlmostEqual(alv, 44.0)     # 4000 * 0.011
-        self.assertAlmostEqual(tax, 200.0)    # 4000 * 0.05
-        self.assertAlmostEqual(nbu, 57.28)    # 4000 * 0.01432
+        self.assertEqual(ahv, Decimal("212.00"))
+        self.assertEqual(alv, Decimal("44.00"))
+        self.assertEqual(tax, Decimal("200.00"))
+        self.assertEqual(nbu, Decimal("57.28"))
 
-        # Employee with weekly hours < 8 (NBU does not apply)
         ahv, alv, tax, nbu = calculate_employee_deductions(
-            gross_wage=4000.0,
-            weekly_hours=5
+            gross_wage=Decimal("4000.00"), weekly_minutes=300
         )
-        self.assertAlmostEqual(nbu, 0.0)      # NBU not applied
+        self.assertEqual(nbu, Decimal("0.00"))
+
+    def test_admin_charge_uses_total_ahv_on_500_85(self):
+        self.assertEqual(
+            calculate_employer_costs(Decimal("500.85"))[-1], Decimal("2.65")
+        )
+
+    def test_admin_charge_keeps_cents_for_880(self):
+        """AKBS prints 4.70 after rounding its lines to 5 Rappen; we keep cents."""
+        self.assertEqual(
+            calculate_employer_costs(Decimal("880.00"))[-1], Decimal("4.66")
+        )
 
     def test_calculate_employer_costs(self):
-        """Test employer cost calculations."""
-        employer_ahv, employer_alv, employer_fak, employer_bu, admin_charge = calculate_employer_costs(
-            gross_wage=4000.0
+        employer_ahv, employer_alv, employer_fak, employer_bu, admin_charge = (
+            calculate_employer_costs(gross_wage=Decimal("4000.00"))
         )
-        self.assertAlmostEqual(employer_ahv, 212.0)      # 4000 * 0.053
-        self.assertAlmostEqual(employer_alv, 44.0)       # 4000 * 0.011
-        self.assertAlmostEqual(employer_fak, 66.0)       # 4000 * 0.0165
-        self.assertAlmostEqual(employer_bu, 20.2)       # 4000 * 0.00505
-        self.assertAlmostEqual(admin_charge, 10.6)      # 212 * 0.05
+        self.assertEqual(employer_ahv, Decimal("212.00"))
+        self.assertEqual(employer_alv, Decimal("44.00"))
+        self.assertEqual(employer_fak, Decimal("66.00"))
+        self.assertEqual(employer_bu, Decimal("20.20"))
+        self.assertEqual(admin_charge, Decimal("21.20"))
+
+    def test_generate_payslip_from_terms_matches_the_employment_version(self):
+        totals = MinuteTotals(worked=9600, annual_holiday_taken=480)
+
+        from_terms = generate_payslip_from_terms(
+            totals=totals,
+            hourly_wage=Decimal(str(self.employment.hourly_wage)),
+            weekly_minutes=round(self.employment.weekly_hours * 60),
+            cash_bonus=Decimal("100.00"),
+            expense_reimbursements=Decimal("50.00"),
+        )
+        from_employment = generate_payslip(
+            totals=totals,
+            employment=self.employment,
+            cash_bonus=Decimal("100.00"),
+            expense_reimbursements=Decimal("50.00"),
+        )
+
+        self.assertEqual(from_terms, from_employment)
 
     def test_generate_payslip(self):
-        """Test payslip generation."""
-        monthly_record = MonthlyRecord(
-            id=1,
-            employment_id=1,
-            month=10,
-            year=2026,
-            hours_worked=160,
-            holiday_hours=8,
-            public_holiday_hours=4,
-            cash_bonus=100,
-            expense_reimbursements=50
+        totals = MinuteTotals(
+            worked=9600,
+            public_holiday_worked=240,
+            annual_holiday_taken=480,
         )
 
         payslip = generate_payslip(
-            monthly_record=monthly_record,
-            employment=self.employment
+            totals=totals,
+            employment=self.employment,
+            cash_bonus=Decimal("100.00"),
+            expense_reimbursements=Decimal("50.00"),
         )
 
-        # Gross wage: (160 + 8 + 4) * 25 + (4 * 25 * 0.5) + 100 = 4450
-        self.assertEqual(payslip.gross_wage, 4450.0)
-
-        # Employee deductions
-        self.assertAlmostEqual(payslip.ahv_deduction, 235.85)    # 4450 * 0.053
-        self.assertAlmostEqual(payslip.alv_deduction, 48.95)     # 4450 * 0.011
-        self.assertAlmostEqual(payslip.tax_deduction, 222.50)    # 4450 * 0.05
-        self.assertAlmostEqual(payslip.nbu_deduction, 63.72)     # 4450 * 0.01432
-
-        # Net payout uses rounded deductions: 4450 - (235.85 + 48.95 + 222.50 + 63.72) + 50 = 3928.98
-        self.assertAlmostEqual(payslip.net_payout, 3928.98)
-
-        # Employer costs
-        self.assertAlmostEqual(payslip.employer_ahv, 235.85)     # 4450 * 0.053
-        self.assertAlmostEqual(payslip.employer_alv, 48.95)      # 4450 * 0.011
-        self.assertAlmostEqual(payslip.employer_fak, 73.43)      # 4450 * 0.0165
-        self.assertAlmostEqual(payslip.employer_bu, 22.47)       # 4450 * 0.00505
-        self.assertAlmostEqual(payslip.admin_charge, 11.79)      # 235.85 * 0.05
-
-        # Total uses rounded employer cost lines: 4450 + 235.85 + 48.95 + 73.43 + 22.47 + 11.79 + 50 = 4892.49
-        self.assertAlmostEqual(payslip.total_employer_cost, 4892.49)
+        self.assertEqual(payslip.gross_wage, Decimal("4450.00"))
+        self.assertEqual(payslip.ahv_deduction, Decimal("235.85"))
+        self.assertEqual(payslip.alv_deduction, Decimal("48.95"))
+        self.assertEqual(payslip.tax_deduction, Decimal("222.50"))
+        self.assertEqual(payslip.nbu_deduction, Decimal("63.72"))
+        self.assertEqual(payslip.net_payout, Decimal("3928.98"))
+        self.assertEqual(payslip.employer_ahv, Decimal("235.85"))
+        self.assertEqual(payslip.employer_alv, Decimal("48.95"))
+        self.assertEqual(payslip.employer_fak, Decimal("73.43"))
+        self.assertEqual(payslip.employer_bu, Decimal("22.47"))
+        self.assertEqual(payslip.admin_charge, Decimal("23.59"))
+        self.assertEqual(payslip.total_employer_cost, Decimal("4904.29"))
 
     def test_validate_annual_limits(self):
-        """Reject payroll runs that exceed employee or employer annual limits."""
         validate_annual_limits(
-            self.employment,
-            current_gross_wage=4000.0,
-            employee_gross_to_date=18000.0,
-            employer_gross_to_date=50000.0,
+            current_gross_wage=Decimal("4000.00"),
+            employee_gross_to_date=Decimal("18000.00"),
+            employer_gross_to_date=Decimal("50000.00"),
         )
 
         with self.assertRaises(AnnualLimitExceededError):
             validate_annual_limits(
-                self.employment,
-                current_gross_wage=5000.0,
-                employee_gross_to_date=18000.0,
-                employer_gross_to_date=50000.0,
+                current_gross_wage=Decimal("5000.00"),
+                employee_gross_to_date=Decimal("18000.00"),
+                employer_gross_to_date=Decimal("0.00"),
             )
 
         with self.assertRaises(AnnualLimitExceededError):
             validate_annual_limits(
-                self.employment,
-                current_gross_wage=11000.0,
-                employee_gross_to_date=10000.0,
-                employer_gross_to_date=50000.0,
+                current_gross_wage=Decimal("5000.00"),
+                employee_gross_to_date=Decimal("0.00"),
+                employer_gross_to_date=Decimal("56000.00"),
             )
 
 
