@@ -20,24 +20,11 @@ The request takes an `employment_id`, the year and month, the cash bonus, the ex
 reimbursements and the work entries; the employment (employer, employee, wage, weekly
 hours, holiday weeks and dates) is read from the saved setup in the `employments` table, and an unknown
 `employment_id` is a 404 before anything is saved.
-The run snapshot holds the employment terms, the ruleset version, the hour totals and the closing holiday balance of the run (ADR-004 Amendment 2). The application never updates or deletes it or the saved entries, but direct SQL can still edit stored rows.
+The run snapshot is defined in [ADR-004 Amendment 2](docs/adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-2-2026-10-20).
 
-- **Run order:** an employment's first run is the month of its start date; each
-  later run is the month after the last saved run. Duplicate and skipped months
-  are rejected.
-- **Empty months:** a month without entries is still a run, with a payslip
-  without hours, so the holiday balance is recorded.
-- **Daily entries:** start time, end time and breaks give the paid minutes.
-  Overlapping entries are rejected; several non-overlapping entries on one day
-  are valid. Entries are saved as submitted.
-- **Public holidays:** work on a public holiday is classified as
-  `public_holiday_worked` (50% premium). Paid holiday on a public holiday and
-  public-holiday work or leave on an ordinary day are rejected.
-
-Known limitations: work on a Sunday is paid at the normal rate (NAV Haushalt BS
-§ 27 requires a 50% supplement); a written contract that builds the supplement
-into a higher wage is not supported; a saved month is final, with no
-corrections.
+Run order, empty months, daily entries, public holidays and the known limitations are
+specified in [UC-002](docs/specs/UC-002-Process-the-Monthly-Employment.md); rates and
+limits are in [calculations.md](docs/reference/calculations.md).
 
 Starter repository for student and teaching projects that use the AI-Assisted
 Software Development Life Cycle (AI-SDLC).
