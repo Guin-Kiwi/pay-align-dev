@@ -76,8 +76,8 @@ rates, FAK, BU, NBU from 8 hours a week, the annual limits and the 30 January re
   `calculate_employer_costs` take the employer half (gross × 5.3% × 5%), so the fee is half. This settles the
   pending `admin_charge` discrepancy above in favour of the workbook. Decided on 21 October 2026: the fix goes
   into PR #29 (Ayla), reviewed by Aaron. With 1-Rappen rounding (ADR-003), CHF 880 gives 4.66, not 4.70.
-- Minimum wage (work in progress, UC-001): CHF 22.20 is the legal minimum only below 5 hours a week; see the
-  UC-001 open questions.
+- Minimum wage (decided, UC-001): CHF 22.20 is the legal minimum only below 5 hours a week. Decided on
+  21 October 2026: setup keeps it as a single floor in v0.1.0, as a known limitation; see UC-001.
 - Age rules (not applied in v0.1.0): no birth date is stored, so the AHV rules from reference age (CHF 1,400 a
   month allowance, no ALV) and up to age 25 (no contributions up to CHF 750 a year) are not applied. UC-001 lists
   them as out of scope; UC-002 should say the same (UC-002 owners).
