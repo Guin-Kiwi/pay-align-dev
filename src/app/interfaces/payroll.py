@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from src.app.application.payroll_service import PayrollService
+from src.app.domain.constants import RULES_YEAR
 from src.app.domain.employment import Employment
 from src.app.domain.work_entry import WorkEntry
 from src.app.infrastructure.sqlite_payroll_repository import SQLitePayrollRepository
@@ -20,7 +21,7 @@ class MonthlyPayrollRequest(BaseModel):
     employee_id: int
     hourly_wage: float = Field(..., gt=0)
     weekly_hours: float = Field(..., gt=0)
-    year: int = Field(..., ge=2026, le=2026)
+    year: int = Field(..., ge=RULES_YEAR, le=RULES_YEAR)
     month: int = Field(..., ge=1, le=12)
     hours_worked: float | None = Field(None, ge=0)
     holiday_hours: float = Field(0, ge=0)
