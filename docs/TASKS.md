@@ -151,24 +151,28 @@ Resolve the pending `admin_charge` and `total_employer_cost` discrepancy before 
   Auswahl 4 oder 5, Standard 4. Startdatum nur 2026; optionales Enddatum ab
   Startdatum, auch nach 2026. Stundenlohn in CHF, mindestens 22.20 und höchstens
   zwei Nachkommastellen. Hinweis auf gewöhnliche Besteuerung als Standard.
-- Die vorhandene uncommittete Testkorrektur auf `weekly_hours: "6:00"` bleibt erhalten.
+- The previously uncommitted test correction to `weekly_hours: "6:00"` was preserved
+  and is included in commit `14fbaa5`.
 - TDD-Nachweis: neue Feld-/Validierungsprüfungen zuerst rot (3 fehlgeschlagen),
   danach 7 UI-Tests grün. JavaScript-Grenzfälle, Datumsabhängigkeit und ausbleibende
   zusätzliche HTTP-Anfragen werden im vorhandenen Node-DOM-Harness geprüft.
-- Prüfungen: `bash scripts/test.sh` mit isolierter Python-Umgebung unter `/tmp`:
+- Historical validation for this field-only sub-slice: `bash scripts/test.sh`
+  with an isolated Python environment under `/tmp`:
   89 bestanden, 1 erwarteter Fehlschlag, 70 Subtests; 32 Prozess-Tests und
   Lifecycle-Szenarien bestanden. `bash scripts/check-lifecycle.sh` und
   `git diff --check` bestanden. Bekannte Starlette/HTTPX-Abkündigungswarnung.
 - Grenze: kein echter Browser-/Layout-Test in dieser Teilaufgabe.
-- Folgeschritt: Formularübermittlung, nachfolgend dokumentiert.
+- Follow-up completed: form submission and Save Setup are implemented in commit
+  `14fbaa5`, as documented below.
 
-## UC-001 Save Setup — lokale Umsetzung auf `person4-ui-setup`
+## UC-001 Save Setup — implemented on `person4-ui-setup` (Draft PR #24)
 
 - Quelle: UC-001, bestehender Setup-API-Vertrag und expliziter Auftrag zur
   UI-Übermittlung. Phase 3; Teilaufgabe implementiert und lokal geprüft.
   Der gemeinsame Projektstatus bleibt `in-progress`.
-- Vorhandene uncommittete Feldänderungen und die Testkorrektur bleiben erhalten.
-  Backend, API-Vertrag, andere Branches und Worktrees bleiben unverändert.
+- The earlier field changes and test correction are included in commit `14fbaa5`.
+  Save Setup submits to `POST /api/v1/setup`. This UI implementation did not change
+  backend code or API contracts.
 - Save wird erst nach bestätigtem Arbeitgeber-Lookup und gültigen Pflichtfeldern
   freigegeben. Nur der dokumentierte 404 erlaubt neue Arbeitgeberdaten;
   bei bestehendem Arbeitgeber entfällt die gesamte `employer`-Eigenschaft.
@@ -188,12 +192,13 @@ Resolve the pending `admin_charge` and `total_employer_cost` discrepancy before 
   Payloads, Validierungsgrenzen, Lookup-Fehler, Doppelübermittlung,
   Fehlerantworten, Texte mit HTML-Zeichen und Refresh-Fehler. Erzeugte
   Erfolgs-Payloads werden zusätzlich gegen die echte API im TestClient geprüft.
-- Nachweise: fokussierte UI/API-Tests 44 bestanden (23 Subtests);
+- Historical automated evidence for the implementation in commit `14fbaa5`:
+  focused UI/API tests: 44 passed (23 subtests);
   vollständiges `bash scripts/test.sh` mit isolierter Python-Umgebung unter
   `/tmp`: 111 bestanden, 1 erwarteter Fehlschlag, 70 Subtests. 32 Prozess-Tests
   und Lifecycle-Szenarien bestanden. Lifecycle-Check und `git diff --check`
   bestanden. Bekannte Starlette/HTTPX-Abkündigungswarnung bleibt bestehen.
-- Person 4 manual browser validation (reported personally by the user):
+- Historical Person 4 manual browser validation (reported personally by the user):
   Safari on macOS; these observations are separate from the automated tests above.
   - The setup page loads correctly.
   - Saving a new employer and employment displays the success message.
@@ -204,10 +209,16 @@ Resolve the pending `admin_charge` and `total_employer_cost` discrepancy before 
   - The form remains usable in a narrow Safari window without horizontal scrolling.
 - Validation limits: a full screenreader audit remains unverified. These checks
   do not establish usability on a physical mobile device or persistence across
-  a server restart. Setup records are stored only in memory and are lost when
-  the server restarts.
-- Alles bleibt uncommittet zur menschlichen Prüfung. Kein Push, Merge,
-  Rebase, Tag oder Release; PR #24 bleibt unverändert Draft.
+  a server restart. At UI commit `14fbaa5`, setup records are stored only in memory
+  and are lost after a server restart.
+- PR #28 introduces persistent database storage and has not been integrated into
+  this UI branch. Later integration requires updating the UI storage warning
+  and renewed automated and manual validation.
+- Related PRs #12 (release workflow), #23 (Person 4 progress), #25 (English project
+  instructions), and #26 (Node.js 22 in CI) are merged into `main`. This UI branch
+  has not yet integrated those changes.
+- Implementation commit `14fbaa5` is committed and pushed in Draft PR #24.
+  PR #24 remains Draft; integration with current `main` and review remain outstanding.
 
 ## Backlog
 
