@@ -145,8 +145,8 @@ wording.
 3. The entries are not copied. The run's `work_entries` are the record of them and
    are immutable once saved.
 4. A run can be reproduced from its entries and its run snapshot, with the rules of
-   the named ruleset. Gross to date for the annual limits comes from the earlier
-   `monthly_records`, not from the snapshot.
+   the named ruleset. Gross to date for the annual limits comes from the
+   `monthly_records` of the whole calendar year, not from the snapshot.
 5. This replaces "a frozen snapshot of the submitted entries, the employment
    parameters, and the named payroll-ruleset version" and "calculated from that
    snapshot" in the Decision, and "the employment snapshot" in Amendment 1.
