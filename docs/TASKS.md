@@ -31,7 +31,7 @@ docs/specs/UC-002-Process-the-Monthly-Employment.md
 Initial implementation of the domain models, `SetupService`, and `PayrollService`, with unit tests for setup and payroll calculations.
 
 The implementation must remain consistent with ADR-001 through ADR-004. Workbook-derived golden payroll cases
-should be used to verify the calculated values. The discrepancy in `admin_charge` and `total_employer_cost` remains pending confirmation.
+should be used to verify the calculated values. The administration charge now uses total AHV/IV/EO contributions and cents precision.
 
 UC-001 employment input sub-slice (Nano, `uc-001-employment-setup`): weekly hours as H:MM kept as minutes,
 holiday weeks (4 or 5) instead of days, an optional end date and 2026-only start dates.
@@ -254,7 +254,7 @@ and in code as one frozen `RunSnapshot` (`EmploymentTerms`, `ruleset_version`, t
 bulk statements and raw SQL bypass them (documented limit).
 
 Separately, on `uc-002-payroll-calculation`: implement and run golden payroll tests against `PayrollService` using the workbook-derived cases.
-Resolve the pending `admin_charge` and `total_employer_cost` discrepancy before treating those expected values as final.
+The `admin_charge` and `total_employer_cost` golden expectations are final for the confirmed total-contribution formula.
 
 ## Backlog
 

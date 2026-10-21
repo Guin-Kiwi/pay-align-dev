@@ -94,12 +94,7 @@ class TestPayrollGolden(unittest.TestCase):
                     _money(expected["net_payout"]),
                 )
 
-    @unittest.expectedFailure
     def test_admin_charge_and_total_employer_cost_match_workbook(self):
-        """Pending: the code uses gross x 5.3% x 5%, the workbook gross x 10.6% x 5%.
-
-        Remove the expectedFailure decorator once the formula is agreed and fixed.
-        """
         for case in CASES:
             payslip = _payslip_for(case)
             for attribute in PENDING_FIELDS:

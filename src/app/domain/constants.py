@@ -27,7 +27,8 @@ TAX_RATE = 0.05   # 5.0%
 NBU_RATE = 0.01432  # 1.432% (applies if weekly hours >= 8)
 FAK_RATE = 0.0165  # 1.65%
 BU_RATE = 0.00505  # 0.505%
-ADMIN_CHARGE_RATE = 0.05  # 5% of employer AHV
+AHV_TOTAL_RATE = AHV_RATE * 2
+ADMIN_CHARGE_RATE = 0.05
 
 # Annual limits (RULES_YEAR)
 EMPLOYEE_GROSS_LIMIT = 22_680  # CHF 22,680 per employee per employer per year

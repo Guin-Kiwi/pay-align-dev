@@ -5,7 +5,8 @@ from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 
 from src.app.domain.constants import (
-    AHV_RATE, ALV_RATE, TAX_RATE, NBU_RATE, FAK_RATE, BU_RATE, ADMIN_CHARGE_RATE,
+    AHV_RATE, AHV_TOTAL_RATE, ALV_RATE, TAX_RATE, NBU_RATE, FAK_RATE, BU_RATE,
+    ADMIN_CHARGE_RATE,
     EMPLOYEE_GROSS_LIMIT, EMPLOYER_GROSS_LIMIT, PUBLIC_HOLIDAYS
 )
 from src.app.domain.constants import NBU_MIN_WEEKLY_MINUTES
@@ -137,7 +138,9 @@ def calculate_employer_costs(
     employer_alv = round_money(gross_wage * Decimal(str(ALV_RATE)))
     employer_fak = round_money(gross_wage * Decimal(str(FAK_RATE)))
     employer_bu = round_money(gross_wage * Decimal(str(BU_RATE)))
-    admin_charge = round_money(employer_ahv * Decimal(str(ADMIN_CHARGE_RATE)))
+    admin_charge = round_money(
+        gross_wage * Decimal(str(AHV_TOTAL_RATE)) * Decimal(str(ADMIN_CHARGE_RATE))
+    )
     return employer_ahv, employer_alv, employer_fak, employer_bu, admin_charge
 
 

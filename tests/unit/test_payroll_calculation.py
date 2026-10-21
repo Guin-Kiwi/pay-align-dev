@@ -273,6 +273,17 @@ class TestPayrollCalculation(unittest.TestCase):
         )
         self.assertEqual(nbu, Decimal("0.00"))
 
+    def test_admin_charge_uses_total_ahv_on_500_85(self):
+        self.assertEqual(
+            calculate_employer_costs(Decimal("500.85"))[-1], Decimal("2.65")
+        )
+
+    def test_admin_charge_keeps_cents_for_880(self):
+        """AKBS prints 4.70 after rounding its lines to 5 Rappen; we keep cents."""
+        self.assertEqual(
+            calculate_employer_costs(Decimal("880.00"))[-1], Decimal("4.66")
+        )
+
     def test_calculate_employer_costs(self):
         employer_ahv, employer_alv, employer_fak, employer_bu, admin_charge = (
             calculate_employer_costs(gross_wage=Decimal("4000.00"))
@@ -281,7 +292,7 @@ class TestPayrollCalculation(unittest.TestCase):
         self.assertEqual(employer_alv, Decimal("44.00"))
         self.assertEqual(employer_fak, Decimal("66.00"))
         self.assertEqual(employer_bu, Decimal("20.20"))
-        self.assertEqual(admin_charge, Decimal("10.60"))
+        self.assertEqual(admin_charge, Decimal("21.20"))
 
     def test_generate_payslip_from_terms_matches_the_employment_version(self):
         totals = MinuteTotals(worked=9600, annual_holiday_taken=480)
@@ -326,8 +337,8 @@ class TestPayrollCalculation(unittest.TestCase):
         self.assertEqual(payslip.employer_alv, Decimal("48.95"))
         self.assertEqual(payslip.employer_fak, Decimal("73.43"))
         self.assertEqual(payslip.employer_bu, Decimal("22.47"))
-        self.assertEqual(payslip.admin_charge, Decimal("11.79"))
-        self.assertEqual(payslip.total_employer_cost, Decimal("4892.49"))
+        self.assertEqual(payslip.admin_charge, Decimal("23.59"))
+        self.assertEqual(payslip.total_employer_cost, Decimal("4904.29"))
 
     def test_validate_annual_limits(self):
         validate_annual_limits(
