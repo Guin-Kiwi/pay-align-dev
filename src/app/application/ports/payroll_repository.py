@@ -99,14 +99,12 @@ class PayrollRepositoryPort(ABC):
 
     @abstractmethod
     def employee_gross_to_date(
-        self, employee_id: int, year: int, before_month: int
+        self, employee_id: int, employer_id: int, year: int
     ) -> int:
         ...
 
     @abstractmethod
-    def employer_gross_to_date(
-        self, employer_id: int, year: int, before_month: int
-    ) -> int:
+    def employer_gross_to_date(self, employer_id: int, year: int) -> int:
         ...
 
     @abstractmethod

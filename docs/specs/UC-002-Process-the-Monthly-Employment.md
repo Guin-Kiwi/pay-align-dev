@@ -53,12 +53,14 @@ The employer selects **"Process Monthly Payroll"** in the application.
    - Calculates **Gross wage** (worked and paid holiday/public-holiday hours × hourly rate + applicable supplements + bonus).
    - Calculates **Deductions** (AHV/IV/EO, ALV, 5% tax, NBU if weekly hours ≥ 8).
    - Calculates **Net payout** (gross wage - deductions + expenses).
-5. The system checks that the month is the next run in sequence, if the monthly run exceeds annual limits (CHF 22,680 for employee, CHF 60,480 for employer), rejects duplicate months, and verifies the derived holiday balance is valid.
+5. The system checks that the month is the next run in sequence, if the monthly run exceeds annual limits, rejects duplicate months, and verifies the derived holiday balance is valid. The annual limits count the whole calendar year, whatever the month of the run:
+   - Employee: CHF 22,680 gross. Only wages from this employer count, across all of the employee's employments with this employer. Wages from other employers do not.
+   - Employer: CHF 60,480 gross. All of this employer's employees count.
 6. The system saves the staged entries, run snapshot (ADR-004 Amendment 2), `MonthlyRecord`, and `Payslip` in one transaction.
 7. The system displays a **confirmation message** (e.g., "Payroll processed successfully").
 
 ## Alternate / edge flows
-- If the monthly run exceeds annual limits, the system warns the employer and rejects the submission.
+- If the monthly run would take the calendar-year total above the employee or the employer limit, the system warns the employer and rejects the submission.
 - If entries overlap, contain negative durations, or contain invalid category combinations, the system rejects the submission before saving. Invalid combinations are: public-holiday work or leave on a day that is not a public holiday; paid holiday on a public holiday (NAV Haushalt BS § 27 para 4); and public-holiday leave on the same day as public-holiday work or paid holiday.
 - An employment's first run is the month of its start date, starting from the employment's configured holiday entitlement. Each later run is the month after its last saved run. A month that is not the next one is rejected: an earlier or equal month as already processed, a later month as a skipped month.
 - A month without entries is still a run. The system produces a payslip without hours and records the holiday balance.
@@ -80,7 +82,9 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - The system must identify public holidays and apply the correct pay rate.
 - The system must derive remaining holiday balance from the employment's entitlement and prior persisted runs, less paid holiday hours.
 - The system must apply 2026 deduction rates (5.3% AHV/IV/EO, 1.1% ALV, 5% tax, 1.432% NBU if applicable).
-- The system must reject monthly runs that exceed annual limits.
+- The system must reject a monthly run that takes the employee's calendar-year gross wage from this employer above CHF 22,680, counting every employment of that employee with this employer and no wages from other employers.
+- The system must reject a monthly run that takes the calendar-year gross wage of all of this employer's employees above CHF 60,480.
+- The system must count the whole calendar year for both limits.
 - The system must reject duplicate monthly runs and skipped months.
 - The system must accept a month without entries and produce a payslip without hours.
 - The system must save the entries and a run snapshot (ADR-004 Amendment 2) together with the `MonthlyRecord` and `Payslip`.
@@ -99,7 +103,8 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - **Unit Tests**: Assert that the four normal-case hour categories are classified and that holiday balance starts from employment entitlement and decreases only by paid holiday hours.
 - **Integration Tests**: Assert that submitted entries and the run snapshot (ADR-004 Amendment 2) are saved atomically with the monthly record and payslip.
 - **Integration Tests**: Assert that duplicate months and rejected annual-limit checks persist no entries, snapshot, record, or payslip.
-- **Unit Tests**: Assert that the service throws an `AnnualLimitExceededError` if a payroll run breaches the CHF 22,680 employee limit.
+- **Unit Tests**: Assert that the service throws an `AnnualLimitExceededError` if a payroll run breaches the CHF 22,680 employee limit or the CHF 60,480 employer limit.
+- **Integration Tests**: Assert on the real repository that the employee total ignores other employers' wages (two-employers test), that it adds up two employments of one employee with the same employer including months after the processed one (two-employments test), and that the employer total adds up all of its employees for the whole year.
 
 ## Open questions / assumptions
 - Assumption: The employer has all required details (e.g., daily hours) at hand.

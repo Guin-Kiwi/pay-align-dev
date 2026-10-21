@@ -53,7 +53,7 @@ class FakePayrollRepository(PayrollRepositoryPort):
         self.employer_to_date = employer_to_date
         self.saved = None
         self.duplicate = False
-        self.before_months = []
+        self.gross_requests = []
 
     def save_payroll_run(self, record, entries, snapshot, payslip):
         if self.duplicate:
@@ -64,12 +64,12 @@ class FakePayrollRepository(PayrollRepositoryPort):
     def run_snapshot(self, monthly_record_id):
         return None
 
-    def employee_gross_to_date(self, employee_id, year, before_month):
-        self.before_months.append(before_month)
+    def employee_gross_to_date(self, employee_id, employer_id, year):
+        self.gross_requests.append(("employee", employee_id, employer_id, year))
         return self.employee_to_date
 
-    def employer_gross_to_date(self, employer_id, year, before_month):
-        self.before_months.append(before_month)
+    def employer_gross_to_date(self, employer_id, year):
+        self.gross_requests.append(("employer", employer_id, year))
         return self.employer_to_date
 
     def prior_run(self, employment_id):
@@ -148,7 +148,7 @@ class TestPayrollService(unittest.TestCase):
         self.assertEqual(payslip.gross_wage, Decimal("257.50"))
         self.assertEqual(repository.saved[2].employment.hourly_wage_cents, 2575)
 
-    def test_gross_to_date_is_read_before_the_processed_month(self):
+    def test_gross_to_date_is_read_for_the_whole_year_of_this_employer(self):
         repository = FakePayrollRepository()
 
         self.service.process_monthly_payroll(
@@ -159,7 +159,10 @@ class TestPayrollService(unittest.TestCase):
             work_entries=[WorkEntry(date(2026, 10, 1), HourCategory.WORKED, 600)],
         )
 
-        self.assertEqual(repository.before_months, [10, 10])
+        self.assertEqual(
+            repository.gross_requests,
+            [("employee", 9, 3, 2026), ("employer", 3, 2026)],
+        )
 
     def test_snapshot_freezes_employment_values_and_minute_totals(self):
         repository = FakePayrollRepository()

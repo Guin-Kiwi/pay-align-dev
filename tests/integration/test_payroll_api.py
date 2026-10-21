@@ -363,3 +363,44 @@ def test_employment_terms_come_from_the_saved_employment_not_the_request(client)
             text("SELECT employer_id FROM monthly_records")
         ).scalar()
     assert employer_id == 3
+
+
+def bonus_only(**overrides):
+    return {**PAYLOAD, "work_entries": [], **overrides}
+
+
+def test_wages_from_another_employer_do_not_count_towards_the_employee_limit(client):
+    test_client, engine = client
+    add_employment(
+        engine, employment_id=10, employer_id=4, employee_id=9, start_date=date(2026, 9, 1)
+    )
+
+    other_employer = test_client.post(
+        "/api/v1/monthly-payroll",
+        json=bonus_only(employment_id=10, month=9, cash_bonus=3_000),
+    )
+    this_employer = test_client.post(
+        "/api/v1/monthly-payroll", json=bonus_only(cash_bonus=20_000)
+    )
+
+    assert other_employer.status_code == 201
+    assert this_employer.status_code == 201
+    assert count(engine, "monthly_records") == 2
+
+
+def test_a_second_employments_later_months_count_towards_the_employee_limit(client):
+    test_client, engine = client
+    add_employment(
+        engine, employment_id=8, employer_id=3, employee_id=9, start_date=date(2026, 11, 1)
+    )
+
+    november = test_client.post(
+        "/api/v1/monthly-payroll",
+        json=bonus_only(employment_id=8, month=11, cash_bonus=22_000),
+    )
+    october = test_client.post("/api/v1/monthly-payroll", json=bonus_only(cash_bonus=1_000))
+
+    assert november.status_code == 201
+    assert october.status_code == 400
+    assert "22680" in october.json()["detail"]
+    assert count(engine, "monthly_records") == 1

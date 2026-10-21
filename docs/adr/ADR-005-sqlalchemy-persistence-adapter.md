@@ -31,7 +31,7 @@ foundation.
 
 1. **Adapter.** A SQLAlchemy repository implements the application port and uses one session per request as the unit of work. The raw DDL and legacy-migration code of `SQLitePayrollRepository` are removed (assumption: the earlier float-column schema was never deployed, so there is nothing to migrate).
 2. **Port** (application layer, no framework imports):
-   - gross wage to date per employee and per employer for a year;
+   - gross wage of the calendar year for one employee with one employer, and for one employer (limits in [calculations.md §3](../reference/calculations.md));
    - the immediately prior run of an employment, whatever its year (ADR-004 Amendment 1, item 9);
    - save one run atomically: entries, snapshot, `MonthlyRecord`, `Payslip`.
 3. **Errors.** The domain defines `DuplicateMonthError` and `InvalidHolidayBalanceError` in `src/app/domain/errors.py`, beside `AnnualLimitExceededError` and `InvalidPayrollInputError`. The adapter translates the unique-constraint failure on `(employment_id, month, year)` into `DuplicateMonthError`; no raw database error reaches the interfaces.
