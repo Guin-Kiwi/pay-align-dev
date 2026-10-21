@@ -25,12 +25,6 @@ class MonthlyRecord:
             raise ValueError("Month must be between 1 and 12.")
         if self.year != RULES_YEAR:
             raise ValueError(f"Year must be {RULES_YEAR}.")
-        if self.hours_worked < 0:
-            raise ValueError("Hours worked cannot be negative.")
-        if self.holiday_hours < 0:
-            raise ValueError("Holiday hours cannot be negative.")
-        if self.public_holiday_hours < 0:
-            raise ValueError("Public holiday hours cannot be negative.")
         if self.cash_bonus < 0:
             raise ValueError("Cash bonus cannot be negative.")
         if self.expense_reimbursements < 0:
