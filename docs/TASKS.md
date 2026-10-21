@@ -71,17 +71,18 @@ AKBS alignment check (Nano, `docs-uc-001-akbs-alignment`, Fast Track): on 20 Oct
 [AKBS 2026 gross-to-net example](https://cms.ak-bs.ch/fileadmin/downloads/2026hd-beispiel-bruttonetto.pdf),
 [Merkblatt 2.07](https://www.ahv-iv.ch/p/2.07.d) and the Basel-Stadt minimum-wage FAQ. The contribution and tax
 rates, FAK, BU, NBU from 8 hours a week, the annual limits and the 30 January report match.
-- Admin fee (open, payroll calculation, before the 24 October freeze): AKBS charges 5% of the whole AHV/IV/EO
+- Admin fee (agreed, fix on PR #29 before the 24 October freeze): AKBS charges 5% of the whole AHV/IV/EO
   contribution (gross × 10.6% × 5%; on CHF 880 the example shows 4.70). `calculations.md` and
   `calculate_employer_costs` take the employer half (gross × 5.3% × 5%), so the fee is half. This settles the
-  pending `admin_charge` discrepancy above in favour of the workbook.
+  pending `admin_charge` discrepancy above in favour of the workbook. Decided on 21 October 2026: the fix goes
+  into PR #29 (Ayla), reviewed by Aaron. With 1-Rappen rounding (ADR-003), CHF 880 gives 4.66, not 4.70.
 - Minimum wage (work in progress, UC-001): CHF 22.20 is the legal minimum only below 5 hours a week; see the
   UC-001 open questions.
 - Age rules (not applied in v0.1.0): no birth date is stored, so the AHV rules from reference age (CHF 1,400 a
   month allowance, no ALV) and up to age 25 (no contributions up to CHF 750 a year) are not applied. UC-001 lists
   them as out of scope; UC-002 should say the same (UC-002 owners).
-- Annual wage report (team decision): `docs/PROJECT.md` lists the annual aggregation for the AKBS wage
-  declaration as in scope, but no use case covers it. Options: a small UC-003, or out of scope for v0.1.0.
+- Annual wage report: no use case covers the annual aggregation for the AKBS wage declaration. Decided on
+  21 October 2026: it is out of scope for v0.1.0; Ayla updates the scope in `docs/PROJECT.md`.
 - Exclusions (not checked): the employer's spouse or children, and cross-border workers living in France;
   listed in UC-001.
 - Monthly CHF 1,890 (open question for AKBS, 061 685 22 22): the AKBS page names it as a monthly limit, while
