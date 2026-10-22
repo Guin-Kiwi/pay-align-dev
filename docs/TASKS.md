@@ -330,3 +330,25 @@ Resolve the pending `admin_charge` and `total_employer_cost` discrepancy before 
   Stand eaabb89 bereits integriert. Die aktuellen UI-Texte berücksichtigen dies.
 - Nächster Schritt: menschliche Prüfung des lokalen Commits; kein Push, Merge
   oder Rebase. PR #24 bleibt Draft.
+
+## Fast Track: UI-/API-Persistenztest nach App-Neustart
+
+- Quelle: Auftrag zur Rekonstruktion des verlorenen Regressionstests und
+  UC-001-Akzeptanz zur Datenbankspeicherung. Phase 3, Teilaufgabe geprüft;
+  Projektstatus bleibt in-progress. SPECIFY verkürzt; DESIGN entfällt, da
+  ausschließlich bestehendes Verhalten durch einen Test abgesichert wird.
+- Akzeptanz: Der vorhandene JavaScript-Harness erzeugt mit echtem setup.js
+  eine Payload mit fünf Ferienwochen. Die erste App speichert sie über die API
+  und wird per TestClient-Kontext geschlossen. Eine neue App liest dieselbe
+  temporäre SQLite-Datei; Arbeitgeber, Arbeitnehmer, Anstellung, Verknüpfungen,
+  2850 Rappen Stundenlohn, 390 Wochenminuten und fünf Ferienwochen bleiben erhalten.
+- Isolation: tmp_path und monkeypatch; tests/conftest.py bleibt unverändert.
+  Keine Entwicklerdatenbank; keine Änderung an Backend, API oder Dev Container.
+- Prüfungen: UI/API 48 bestanden, 23 Subtests; `bash scripts/test.sh`
+  bestanden: 160 Tests, 1 erwarteter Fehlschlag, 78 Subtests; 32 Prozess-Tests
+  und Lifecycle-Szenarien bestanden. Bekannte Starlette/HTTPX-Abkündigungswarnung.
+  Lifecycle-Check und `git diff --check` bestanden.
+- Grenze: JavaScript läuft im vorhandenen DOM-/API-Harness, nicht in einem
+  echten Browser. Der API-Neustart verwendet echte SQLite-Dateispeicherung.
+- Nächster Schritt: menschliche Prüfung des lokalen Commits; PR #24 bleibt
+  Draft. Kein Push, Merge oder Rebase.

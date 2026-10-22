@@ -251,3 +251,62 @@ def test_setup_submission_javascript(scenario):
         response = client.post('/api/v1/setup', json=posts[0])
         assert response.status_code == 201
         assert client.get('/api/v1/employer').status_code == 200
+
+
+def test_ui_setup_payload_persists_across_app_restarts(monkeypatch, tmp_path):
+    import json
+    from datetime import date
+    from pathlib import Path
+    import shutil
+    import subprocess
+
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from src.app.infrastructure.orm_models import EmployeeRow, EmploymentRow
+
+    node = shutil.which('node')
+    if node is None:
+        candidates = sorted(Path('/vscode/vscode-server/bin').glob('*/*/node'))
+        assert candidates, 'The UI tests require Node.js.'
+        node = str(candidates[-1])
+
+    database = tmp_path / 'setup.db'
+    monkeypatch.setenv('DATABASE_URL', f'sqlite:///{database}')
+    with TestClient(create_app()) as client:
+        assert client.get('/api/v1/employer').status_code == 404
+        html = client.get('/setup').text
+        elements = {attrs['id']: attrs for _, attrs in Page(html).tags if 'id' in attrs}
+        result = subprocess.run(
+            [node, 'tests/fixtures/setup_submission.js'],
+            input=json.dumps({'scenario': 'holiday-five', 'elements': elements,
+                              'javascript': client.get('/setup-assets/setup.js').text}),
+            text=True, capture_output=True, timeout=10,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        posts = json.loads(result.stdout)
+        assert len(posts) == 1
+        payload = posts[0]
+        response = client.post('/api/v1/setup', json=payload)
+        assert response.status_code == 201
+        saved = response.json()
+
+    assert database.is_file()
+    restarted = create_app()
+    with TestClient(restarted) as client:
+        response = client.get('/api/v1/employer')
+        assert response.status_code == 200
+        assert response.json() == {'id': saved['employer_id'], **payload['employer']}
+        with Session(restarted.state.engine) as session:
+            employee = session.scalars(select(EmployeeRow)).one()
+            assert employee.id == saved['employee_id']
+            assert {field: getattr(employee, field) for field in payload['employee']} == payload['employee']
+            employment = session.scalars(select(EmploymentRow)).one()
+            assert employment.id == saved['employment_id']
+            assert employment.employer_id == saved['employer_id']
+            assert employment.employee_id == employee.id
+            assert employment.start_date == date.fromisoformat(payload['employment']['start_date'])
+            assert employment.end_date is None
+            assert employment.hourly_wage_cents == 2850
+            assert employment.weekly_minutes == 390
+            assert employment.holiday_weeks == 5
