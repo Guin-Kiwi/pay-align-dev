@@ -43,7 +43,7 @@ there. The full rules are under "Collaboration" in `AGENTS.md`.
 
 | Folder or file | Holds | Describes |
 |---|---|---|
-| `docs/PROJECT.md` | Architecture, endpoints, commands, scope | `main` as it is now |
+| `docs/PROJECT.md` | Architecture, endpoints, commands, scope | `main` once your PR is merged; update it in the PR that changes these |
 | `docs/TASKS.md` | Phase, status, open tasks, the current use case | What comes next |
 | `docs/specs/` | One use case per file, with its own decisions | Decisions, dated |
 | `docs/adr/` | Decisions that span use cases or shape the architecture | Decisions, dated |

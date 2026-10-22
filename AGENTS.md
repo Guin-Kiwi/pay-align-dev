@@ -49,7 +49,8 @@ DEPLOY → SPECIFY (feedback)
    instead of quoting it. Acceptance criteria and tests may quote a value as an example if they
    link its owner.
 2. **Each owner has one time frame.**
-   - `docs/PROJECT.md` — the system on `main` now: architecture, endpoints, commands, scope.
+   - `docs/PROJECT.md` — the system on `main` once the PR that edits it is merged: architecture,
+     endpoints, commands, scope. A PR that changes any of these updates PROJECT.md too.
    - `docs/TASKS.md` — what comes next: phase, status, open tasks, the current use case or
      Fast Track and its acceptance cues.
    - `docs/specs/` — one use case per file: its behaviour and the decisions that affect only it,
