@@ -13,7 +13,7 @@ All rates are applied against the AHV-liable Gross Wage unless otherwise specifi
 * AHV/IV/EO: 5.3%
 * ALV: 1.1%
 * FAK (Family Allowances): 1.65%
-* AKBS Administration Charge: 5.0% of the calculated Employer AHV/IV/EO contribution
+* AKBS Administration Charge: 5.0% of the total AHV/IV/EO contribution (employee plus employer), estimating AKBS's invoice, which AKBS rounds to 5 Rappen ([example sheet](https://cms.ak-bs.ch/fileadmin/downloads/2026hd-beispiel-bruttonetto.pdf))
 * VAvplus BU (Occupational accident): 0.505%
 
 ## 2. Calculation Logic & Formulas
@@ -46,7 +46,7 @@ Calculate the employer's share of social contributions.
 * Employer ALV = Gross Wage * 0.011
 * Employer FAK = Gross Wage * 0.0165
 * Employer BU = Gross Wage * 0.00505
-* Admin Charge = Employer AHV * 0.05
+* Admin Charge = Gross Wage * 0.106 * 0.05
 * **Total Employer Social Costs = Employer AHV + Employer ALV + Employer FAK + Employer BU + Admin Charge**
 
 ### Step E: Calculate Total Monthly Administrative Cost

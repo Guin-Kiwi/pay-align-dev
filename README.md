@@ -12,6 +12,33 @@
 
 **PayAlign** is a local-only payroll management system for private household employers in Basel-Stadt. It simplifies the process of calculating monthly pay, applying social insurance and tax deductions, and generating compliant payslips for annual AKBS reporting.
 
+### Monthly payroll saving (UC-002)
+
+`POST /api/v1/monthly-payroll` calculates one month and saves the daily entries,
+a run snapshot, the monthly record and the payslip in one transaction.
+The request takes an `employment_id`, the year and month, the cash bonus, the expense
+reimbursements and the work entries; the employment (employer, employee, wage, weekly
+hours, holiday weeks and dates) is read from the saved setup in the `employments` table, and an unknown
+`employment_id` is a 404 before anything is saved.
+The run snapshot holds the employment terms, the ruleset version, the hour totals and the closing holiday balance of the run (ADR-004 Amendment 2). The application never updates or deletes it or the saved entries, but direct SQL can still edit stored rows.
+
+- **Run order:** an employment's first run is the month of its start date; each
+  later run is the month after the last saved run. Duplicate and skipped months
+  are rejected.
+- **Empty months:** a month without entries is still a run, with a payslip
+  without hours, so the holiday balance is recorded.
+- **Daily entries:** start time, end time and breaks give the paid minutes.
+  Overlapping entries are rejected; several non-overlapping entries on one day
+  are valid. Entries are saved as submitted.
+- **Public holidays:** work on a public holiday is classified as
+  `public_holiday_worked` (50% premium). Paid holiday on a public holiday and
+  public-holiday work or leave on an ordinary day are rejected.
+
+Known limitations: work on a Sunday is paid at the normal rate (NAV Haushalt BS
+§ 27 requires a 50% supplement); a written contract that builds the supplement
+into a higher wage is not supported; a saved month is final, with no
+corrections.
+
 Starter repository for student and teaching projects that use the AI-Assisted
 Software Development Life Cycle (AI-SDLC).
 
