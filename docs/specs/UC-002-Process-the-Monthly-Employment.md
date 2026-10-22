@@ -54,8 +54,8 @@ The employer selects **"Process Monthly Payroll"** in the application.
    - Calculates **Deductions** (AHV/IV/EO, ALV, tax, and NBU when it applies), as in [calculations.md Step B](../reference/calculations.md#step-b-calculate-employee-deductions).
    - Calculates **Net payout** (gross wage - deductions + expenses).
 5. The system checks that the month is not after the employment's end month, that the month is the next run in sequence, that every entry is dated within the employment, if the monthly run exceeds annual limits, rejects duplicate months, and verifies the derived holiday balance is valid. The annual limits count the whole calendar year, whatever the month of the run:
-   - Employee: [`EMPLOYEE_GROSS_LIMIT`](../../src/app/domain/constants.py) gross. Only wages from this employer count, across all of the employee's employments with this employer. Wages from other employers do not.
-   - Employer: [`EMPLOYER_GROSS_LIMIT`](../../src/app/domain/constants.py) gross. All of this employer's employees count.
+   - Employee limit ([`EMPLOYEE_GROSS_LIMIT`](../../src/app/domain/constants.py), gross wage): only wages from this employer count, across all of the employee's employments with this employer. Wages from other employers do not.
+   - Employer limit ([`EMPLOYER_GROSS_LIMIT`](../../src/app/domain/constants.py), gross wage): all of this employer's employees count.
 6. The system saves the staged entries, run snapshot (ADR-004 Amendment 2), `MonthlyRecord`, and `Payslip` in one transaction.
 7. The system displays a **confirmation message** (e.g., "Payroll processed successfully").
 

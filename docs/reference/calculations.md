@@ -1,6 +1,6 @@
 # docs/reference/calculations.md
 
-## 1. 2026 Domain Constants (Rates)
+## 1. Rates Applied (values in `constants.py`)
 The values are defined once, in [`src/app/domain/constants.py`](../../src/app/domain/constants.py); the formulas below use their names. Why a value is what it is lives in its source ([Employing_Household_Help_Basel.md](Employing_Household_Help_Basel.md)) or in the use case or ADR that decided it.
 
 All rates are applied against the AHV-liable Gross Wage unless otherwise specified.

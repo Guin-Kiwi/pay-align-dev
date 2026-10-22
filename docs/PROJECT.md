@@ -36,8 +36,8 @@ Where non-code material lives; link reference documents here so agents find them
 
 - Runtime files (templates, static files, seed data, migrations): inside `src/app/`, in the layer that uses them
 - Test data: `tests/fixtures/`
+- Values: `src/app/domain/constants.py` holds every rate, limit and threshold the app applies, once. Why each value is what it is lives in the sources under `docs/reference/` or in the UC or ADR that decided it.
 - Reference material (brief, domain notes, glossary, diagrams): `docs/reference/`
-  - Values: `src/app/domain/constants.py` holds every rate, limit and threshold the app applies, once. Why each value is what it is lives in the sources below or in the UC or ADR that decided it.
   - Formulas: `calculations.md` holds the formulas the app applies, using the constant names.
   - Source: `Employing_Household_Help_Basel.pdf`, the guide to the 2026 AKBS simplified procedure, as published.
   - Source: `Employing_Household_Help_Basel.md`, an agent-readable summary of that guide, with citations.

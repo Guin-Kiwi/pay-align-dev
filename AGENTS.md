@@ -38,7 +38,8 @@ DEPLOY → SPECIFY (feedback)
 - Small corrections only; no feature, API, data, security, dependency or architecture changes.
 - While the work runs, record scope, reason, acceptance and planned checks in `docs/TASKS.md`
   (Current Use Case: `Fast Track: <description>`). Before merging, put them and the check results
-  in the commit message and remove them from `docs/TASKS.md`; git history keeps them.
+  in the commit message, remove them from `docs/TASKS.md` and set Current Use Case back to the
+  active use case; git history keeps them.
 - Shorten SPECIFY; skip DESIGN with a reason. Scope grows → regular flow.
 - Keep required CI and review. Release/deployment still require authorization.
 
@@ -48,7 +49,7 @@ DEPLOY → SPECIFY (feedback)
    split a file by topic before it grows. Other files link to the owner's file and section
    instead of quoting it. Acceptance criteria and tests may quote a value as an example if they
    link its owner.
-2. **Each owner has one time frame.**
+2. **Where each kind of fact lives.**
    - `docs/PROJECT.md` — the system on `main` once the PR that edits it is merged: architecture,
      endpoints, commands, scope. A PR that changes any of these updates PROJECT.md too.
    - `docs/TASKS.md` — what comes next: phase, status, open tasks, the current use case or
