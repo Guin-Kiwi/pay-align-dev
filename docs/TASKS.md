@@ -168,29 +168,40 @@ run snapshot in [ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-ho
 - [ADR-006 UC-001 setup API and wiring](adr/ADR-006-uc-001-setup-api-and-wiring.md)
 - [PROJECT architecture](PROJECT.md)
 
-## Person 4 — CI, Docker, Release and architecture tests
+## Person 4 — CI, Docker, Release, setup UI and architecture tests
 
-- **CI:** [PR #10](https://github.com/Guin-Kiwi/pay-align-dev/pull/10)
-  is merged. The whitespace check covers changes in PRs
-  and pushes (`.github/workflows/ci.yml`).
-- **Docker:** [PR #11](https://github.com/Guin-Kiwi/pay-align-dev/pull/11)
-  is merged. The health check does not verify persistent data storage
-  (see [PROJECT.md](PROJECT.md), Commands).
-- **Release workflow:** [PR #12](https://github.com/Guin-Kiwi/pay-align-dev/pull/12)
-  is merged (`b2aa051`). No `v*` tag exists, so publication
-  through a tag has not happened.
-- **Documentation cleanup:**
-  [PR #22](https://github.com/Guin-Kiwi/pay-align-dev/pull/22)
-  is merged. Commit `39ffed463d711ca4cf295f220fe5eb5c895e736b`
-  removes three trailing whitespace errors.
-- **Architecture tests:** `tests/unit/test_architecture.py` checks the
-  dependency rule, but it only recognises imports that start with `app`,
-  while the code imports `src.app...`, so it cannot detect an import of an
-  outer layer. Commit `f523a45` on `origin/delivery-architecture-tests`
-  recognises `src.app` imports; it is not on `main`. The violation it was
-  written to find (`interfaces/payroll.py` importing the SQLite repository) no
-  longer exists: no module in `domain`, `application` or `interfaces` imports
-  infrastructure, and the payroll wiring is done.
+- **CI:** Implemented and merged. The whitespace check covers changes in pull
+  requests and pushes. Node.js 22 is configured in both
+  [CI](../.github/workflows/ci.yml) and
+  [Release](../.github/workflows/release.yml) for the JavaScript UI tests.
+- **Docker:** Implemented and merged. Historical validation covered image build,
+  container startup and the health check. The health check does not verify
+  persistent data storage (see [PROJECT.md](PROJECT.md#commands)).
+- **Release workflow:** Implemented and merged. Historical validation covered
+  the Docker image build, isolated container startup, health check, image archive
+  creation and reload, and artifact upload. The publication job was skipped;
+  that validation did not exercise tag-triggered publication. See
+  [PROJECT.md](PROJECT.md#commands) for the release workflow and artifact usage.
+- **Documentation cleanup:** Completed and merged; historical trailing whitespace
+  errors were corrected. Project command instructions are available in English
+  in [PROJECT.md](PROJECT.md#commands).
+- **Setup UI:** Implemented and tested separately; it remains in draft review
+  and is not merged. Automated checks cover form validation, submission and error
+  handling using a JavaScript DOM harness and API tests. Historical user-reported
+  Safari checks covered page loading, saving, employer lookup after reload,
+  invalid weekly hours, keyboard focus and a narrow window. These are not
+  full-browser automation, a complete screenreader audit, physical mobile-device
+  validation, or proof of persistence across server restarts. Behaviour is defined
+  in [UC-001](specs/UC-001-Set-Up-an-Employment.md).
+- **Architecture tests:** The current layer check in
+  [test_architecture.py](../tests/unit/test_architecture.py) does not recognise
+  `src.app` imports. An extended check exists separately and is not integrated
+  into main. Historical validation of the extended work detected the payroll
+  router importing the SQLite repository. Payroll wiring has since changed, so
+  that historical failure does not establish the current result. Revalidate the
+  extended check against the updated payroll architecture before reporting it
+  as passing or complete. See [ADR-001](adr/ADR-001-clean-architecture-boundaries.md)
+  for the dependency rule.
 
 ## Next smallest step
 
