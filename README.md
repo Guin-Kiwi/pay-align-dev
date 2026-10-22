@@ -124,7 +124,6 @@ For non-interactive setup, pass the same selection, for example `bash scripts/se
 - `docs/adr/` — architecture decision records and their template
 - `docs/STANDARDS.md` — security and quality references (NIST SSDF, OWASP ASVS)
 - `docs/AGENT-GUIDANCE.md` — worked examples for applying the agent rules
-- `docs/future/` — non-binding roadmap notes
 - `skills/ai-sdlc-*` — phase-specific execution guidance
 - `.devcontainer/` — Codespaces and VS Code baseline
 - `environments/python/` — default Python + FastAPI profile, including the

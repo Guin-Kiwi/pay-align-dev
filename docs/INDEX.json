@@ -10,7 +10,7 @@
   ],
   "lifecycle_state": "docs/TASKS.md",
   "project_context": "docs/PROJECT.md",
-  "project": ["src/", "tests/", "docs/PROJECT.md", "docs/TASKS.md", "docs/specs/", "docs/adr/", "README.md"],
+  "project": ["src/", "tests/", "docs/PROJECT.md", "docs/TASKS.md", "docs/specs/", "docs/adr/", "docs/reference/", "README.md"],
   "process": ["AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md", "skills/", "scripts/", "docs/INDEX.json", "docs/STANDARDS.md", "docs/AGENT-GUIDANCE.md", ".github/", "environments/"],
   "review_gated": {
     "rule": "Edit only with a human's explicit approval; changes need a code owner's review (.github/CODEOWNERS).",
