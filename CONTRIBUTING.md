@@ -36,27 +36,29 @@ Borderline? If a teammate would need to agree on *what* it should do before
 you build it, it is a use case. If they only need to check *how* you did it,
 it is Fast Track.
 
-## Where things are written down
+## Where to write what
 
-Each fact is written once, in the file that owns it; everything else links
-there. The full rules are under "Collaboration" in `AGENTS.md`.
+Write each thing in one place only. Anywhere else, link to it instead of
+copying it, so there is never a second version that goes out of date.
 
-| Folder or file | Holds | Describes |
-|---|---|---|
-| `docs/PROJECT.md` | Architecture, endpoints, commands, scope | `main` once your PR is merged; update it in the PR that changes these |
-| `docs/TASKS.md` | Phase, status, open tasks, the current use case | What comes next |
-| `docs/specs/` | One use case per file, with its own decisions | Decisions, dated |
-| `docs/adr/` | Decisions that span use cases or shape the architecture | Decisions, dated |
-| `docs/reference/` | External sources, and the formulas that cite them | The rules in force |
-| Constants module (named in `docs/PROJECT.md`) | The values the app applies: rates, limits, thresholds | The rules in force |
-| Commit messages | PR numbers, branches, SHAs, test results, Fast Track records | How it got here |
+| You want to write down… | Put it in |
+|---|---|
+| How the app is built and run: architecture, endpoints, commands, scope | `docs/PROJECT.md`, in the same PR as the change |
+| Work still to do, who does it, and what comes next | `docs/TASKS.md` |
+| What a use case does, and decisions that only affect it | Its file in `docs/specs/` |
+| A decision that affects several use cases or the architecture | A file in `docs/adr/` |
+| A rate, limit or other number the app uses | The constants module named in `docs/PROJECT.md` |
+| A formula, or a summary of an outside source | `docs/reference/` |
+| PR numbers, branch names, test results | The commit message |
 
-- A decision is never rewritten: add a dated amendment and point to it from
-  the original.
-- Change a rule in its owner, in the same PR as the code, and have someone
-  other than the author review it.
-- Write only what someone can check against the code or the repo, and record
-  an approval by name and date only if it happened.
+Three more habits:
+
+- **Don't edit an old decision.** Add a dated amendment below it and say in
+  the original that it changed.
+- **Say who approved what, and when**, and only if they really did.
+- **Only write what someone can check** in the code or the repo.
+
+The full rules are under "Collaboration" in `AGENTS.md`.
 
 ## Working with an agent
 
