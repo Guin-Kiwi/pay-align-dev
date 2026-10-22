@@ -74,9 +74,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
-| `env-requirements` | todo | Bring `environments/python/requirements.txt` in line with `requirements.txt` (it lacks `sqlalchemy`). | ADR-005 | | |
-| `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay; CI runs only the `.sh` versions. | `.github/workflows/ci.yml` | | |
-| `cd-template` | todo | Decide whether `.github/workflows/cd.yml` stays; PROJECT.md declares no deployment target. | PROJECT.md | | |
+| `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
 
 ## Acceptance / validation cues
 
