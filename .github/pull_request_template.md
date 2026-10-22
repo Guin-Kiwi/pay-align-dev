@@ -9,7 +9,7 @@
 
 ## Evidence
 
-<!-- Tests run, checks passed, links to results. -->
+<!-- Tests run, checks passed, links to results. For a Fast Track, also its scope, reason and acceptance. Copy them into the commit message too; the PR description does not reach git history. -->
 
 ## Assumptions / open questions
 
