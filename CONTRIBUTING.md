@@ -24,7 +24,7 @@ Pick the lowest level that fits.
 | Level | What qualifies | Record it in |
 |---|---|---|
 | 1. Commit | A step inside already-scoped work: a test, an implementation step, a refactor | The commit, on the use case's branch |
-| 2. Fast Track | A small correction within existing behaviour: a bug fix (start with a failing test), wording, config, docs | One line in the PR description or `docs/TASKS.md` |
+| 2. Fast Track | A small correction within existing behaviour: a bug fix (start with a failing test), wording, config, docs | `docs/TASKS.md` while you work; the commit message before merging |
 | 3. Use case | Anything that adds or changes observable behaviour, i.e. something an acceptance criterion would describe | `docs/specs/UC-NNN-<NAME>.md` → branch → PR |
 | 4. ADR | A consequential decision that is hard to reverse or spans use cases: data store, auth approach, framework, a break in the layer rules | `docs/adr/ADR-NNN-<title>.md`, Proposed until a human accepts it, usually inside a use case's PR |
 
@@ -35,6 +35,28 @@ and continue as a use case.
 Borderline? If a teammate would need to agree on *what* it should do before
 you build it, it is a use case. If they only need to check *how* you did it,
 it is Fast Track.
+
+## Where things are written down
+
+Each fact is written once, in the file that owns it; everything else links
+there. The full rules are under "Collaboration" in `AGENTS.md`.
+
+| Folder or file | Holds | Describes |
+|---|---|---|
+| `docs/PROJECT.md` | Architecture, endpoints, commands, scope | `main` as it is now |
+| `docs/TASKS.md` | Phase, status, open tasks, the current use case | What comes next |
+| `docs/specs/` | One use case per file, with its own decisions | Decisions, dated |
+| `docs/adr/` | Decisions that span use cases or shape the architecture | Decisions, dated |
+| `docs/reference/` | External sources, and the formulas that cite them | The rules in force |
+| Constants module (named in `docs/PROJECT.md`) | The values the app applies: rates, limits, thresholds | The rules in force |
+| Commit messages | PR numbers, branches, SHAs, test results, Fast Track records | How it got here |
+
+- A decision is never rewritten: add a dated amendment and point to it from
+  the original.
+- Change a rule in its owner, in the same PR as the code, and have someone
+  other than the author review it.
+- Write only what someone can check against the code or the repo, and record
+  an approval by name and date only if it happened.
 
 ## Working with an agent
 
@@ -80,9 +102,11 @@ tier. Move down when a task turns out to be Fast Track.
   free number. Pick one way as a team so numbers do not clash.
 - One use case per branch and per PR. With an issue, the PR body says
   `Closes #42`.
-- On a branch, `docs/TASKS.md` describes that branch's use case only. Before
-  merging, update the branch from `main` and reconcile `docs/TASKS.md` and
-  any UC or ADR numbers with what `main` already has.
+- `docs/TASKS.md` is the team's shared task list. Add rows under your own
+  name only (unowned work under Unassigned); the PR that finishes a task
+  deletes its row. Before merging, update the branch from `main` and
+  reconcile `docs/TASKS.md` and any UC or ADR numbers with what `main`
+  already has.
 - ADR numbers: take the next unused number on `main`. CI rejects duplicates.
 - Change shared files (`AGENTS.md`, `docs/PROJECT.md`, `docs/INDEX.json`,
   `.github/`) in their own small PR, not mixed into feature work.
@@ -146,9 +170,10 @@ only settles the advisory; the teammate's approval is still required.
 - The author merges after approval, using **Rebase and merge** (choose it
   from the arrow next to the merge button).
 - **`docs/TASKS.md` conflicts** are expected when two branches run in
-  parallel: each branch records its own use case there. To resolve, keep
-  `main`'s version, then put back your branch's PHASE, STATUS and current use
-  case. You can ask your agent to do this.
+  parallel. To resolve, keep `main`'s version, then delete the row your
+  branch finishes, put back the rows you added under your own name, and put
+  back your branch's PHASE, STATUS and current use case. You can ask your
+  agent to do this.
 - If the `advisory` job warns, the reviewer looks harder at the flagged files,
   ideally with a second review by a larger model (Copilot code review on the
   PR, or an agent's code-review command), and leaves a one-to-three line
