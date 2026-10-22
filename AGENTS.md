@@ -36,15 +36,42 @@ DEPLOY → SPECIFY (feedback)
 ## Fast Track
 
 - Small corrections only; no feature, API, data, security, dependency or architecture changes.
-- Record scope, reason, acceptance and checks in the existing UC or `docs/TASKS.md`.
+- While the work runs, record scope, reason, acceptance and planned checks in `docs/TASKS.md`
+  (Current Use Case: `Fast Track: <description>`). Before merging, put them and the check results
+  in the commit message and remove them from `docs/TASKS.md`; git history keeps them.
 - Shorten SPECIFY; skip DESIGN with a reason. Scope grows → regular flow.
 - Keep required CI and review. Release/deployment still require authorization.
 
 ## Collaboration
 
-- Human-approved decisions → ADR; current architecture → `docs/PROJECT.md`.
-- Durable rules + ADR links → `AGENTS.md`, with human approval/review.
-- Update related files together; preserve decision history and reconcile parallel changes.
+1. **One owner per fact.** Each fact is written in one file, in the folder that owns its kind;
+   split a file by topic before it grows. Other files link to the owner's file and section
+   instead of quoting it. Acceptance criteria and tests may quote a value as an example if they
+   link its owner.
+2. **Each owner has one time frame.**
+   - `docs/PROJECT.md` — the system on `main` now: architecture, endpoints, commands, scope.
+   - `docs/TASKS.md` — what comes next: phase, status, open tasks, the current use case or
+     Fast Track and its acceptance cues.
+   - `docs/specs/` — one use case per file: its behaviour and the decisions that affect only it,
+     dated.
+   - `docs/adr/` — human-approved decisions that span use cases or shape the architecture, and
+     why, dated.
+   - `docs/reference/` — sources (external documents, as published) and the formulas the app
+     applies, citing them.
+   - The constants module named in `docs/PROJECT.md` — the values the app applies (rates, limits,
+     thresholds). Why a value is what it is lives in its source or in the UC or ADR that decided it.
+   - `AGENTS.md` — durable rules for agents and ADR links, changed only with human approval/review.
+   - Git commit messages — how it got here: PR numbers, branch names, commit SHAs, test results,
+     Fast Track records. None of these go in the files above.
+3. **Decisions are added to, not rewritten.** Change an Accepted ADR or a dated spec decision with
+   a dated amendment and point to it from the original; the newest amendment applies.
+4. **Change a fact where it is owned**, in the same PR as the code that implements it; someone
+   other than the author reviews it. Reconcile parallel changes. A mismatch between the code and
+   its owner is a task, not a second source of truth.
+5. **Write only what can be checked.** If a claim cannot be verified against the code or the
+   repo, remove it or mark it unverified. Record an approval by name and date, and only if it
+   happened.
+
 - `CONTRIBUTING.md` is the team workflow for humans; agents do not need to read it.
 - App code goes in `src/app/`, its tests in `tests/`; `scripts/` and `skills/` are process tooling (`docs/INDEX.json` "project" vs "process").
 
