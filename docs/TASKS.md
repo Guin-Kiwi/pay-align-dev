@@ -16,7 +16,6 @@ STATUS: in-progress
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
 
-
 ## Active objective
 
 Implement and validate the initial vertical slice for employment setup and monthly payroll,
@@ -26,79 +25,58 @@ following the accepted architecture decisions and use-case specifications.
 
 docs/specs/UC-002-Process-the-Monthly-Employment.md
 
-## Current slice
+## Next smallest step
 
-Initial implementation of the domain models, `SetupService`, and `PayrollService`, with unit tests for setup and payroll calculations.
+`validate-uc002` (see Tasks).
 
-The implementation must remain consistent with ADR-001 through ADR-006. Workbook-derived golden payroll cases
-should be used to verify the calculated values. Formulas, rates and limits are in
-[calculations.md](reference/calculations.md).
+## Tasks
 
-UC-001 employment input sub-slice (Nano): weekly hours as H:MM kept as minutes,
-holiday weeks (4 or 5) instead of days, an optional end date and 2026-only start dates.
-See [UC-001](specs/UC-001-Set-Up-an-Employment.md).
-- Specify (phase 1): done.
-- Develop (phase 3): done, merged into `main` as PR #17. `POST /api/v1/setup` takes weekly hours as H:MM, holiday weeks
-  (4 or 5, default 4) and an optional end date, and accepts only 2026 start dates
-  (`tests/integration/test_setup_api.py`, `tests/unit/test_setup_service.py`). Weekly hours are whole minutes at the API
-  and in the `weekly_minutes` column, and float
-  hours inside `Employment`; `round(weekly_hours * 60)` converts exactly for every H:MM up to 99:59. Worked and
-  holiday time are already whole minutes; weekly hours inside `Employment` are the remaining float.
+One row per open task, under its owner. `After` lists the IDs that must be finished first,
+and `By` is a deadline the team has agreed; leave either empty when it does not apply. Status
+is `todo`, `doing` or `blocked`. Who adds and deletes rows is in `CONTRIBUTING.md`.
+Feature freeze is Sat 24 October: fixes only from then.
 
-UC-001 setup saving sub-slice (Nano): setup data survives a restart.
-- Specify (phase 1): done. Decided on 20 October 2026: an AHV number that is already saved reuses that employee
-  (see [UC-001](specs/UC-001-Set-Up-an-Employment.md)).
-- Develop (phase 3): done. `SqlAlchemySetupRepository` on the `employers`, `employees` and `employments`
-  tables replaces `InMemorySetupRepository` in `create_app()`, which builds the engine from `DATABASE_URL`,
-  keeps it on `app.state.engine` and disposes it on shutdown; start-up fails with `DatabaseConfigurationError`
-  when the variable is unset. `tests/conftest.py` always gives tests an in-memory `DATABASE_URL`.
-- Acceptance: the three rows are saved together or not at all; `6:30` is kept as 390 minutes and CHF 28.50
-  as 2850 centimes; a second setup with the same employee AHV number links a new employment to the saved
-  employee; data is still there after the app is created again on the same database file.
-- Evidence: `tests/integration/test_sqlalchemy_setup_repository.py`, `tests/integration/test_setup_api.py`
-  (`test_setup_survives_a_restart`, `test_app_does_not_start_without_database_url`),
-  `tests/unit/test_setup_service.py`.
-- Review: merged into `main` as [PR #28](https://github.com/Guin-Kiwi/pay-align-dev/pull/28) on 20 October 2026.
-  Review fix: tests always use an in-memory database, even when the developer has `DATABASE_URL` set
-  (`tests/conftest.py`, `tests/integration/test_test_database_isolation.py`).
-- Payroll wiring (done, [ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md) items 5 and 6): the payroll request
-  takes only an `employment_id`; `PayrollService` reads the employment's stored terms through its own port
-  (`employment_terms(id)`; see [PROJECT.md](PROJECT.md), `MonthlyRecord` fields).
+### Ayla
 
-AKBS alignment check (Nano, Fast Track): on 20 October 2026, UC-001,
-`calculations.md` and the code on PRs #28 and #29 were checked against the 2026 AKBS household-help pages, the
-[AKBS 2026 gross-to-net example](https://cms.ak-bs.ch/fileadmin/downloads/2026hd-beispiel-bruttonetto.pdf),
-[Merkblatt 2.07](https://www.ahv-iv.ch/p/2.07.d) and the Basel-Stadt minimum-wage FAQ. The contribution and tax
-rates, FAK, BU, NBU from 8 hours a week, the annual limits and the 30 January report match.
-- Admin fee (done in #29; `calculations.md` Step D and `payroll_calculation.py`): AKBS charges 5% of the whole
-  AHV/IV/EO contribution (gross × 10.6% × 5%; on CHF 880 the example shows 4.70). With 1-Rappen rounding
-  (ADR-003), CHF 880 gives 4.66, not 4.70.
-- Minimum wage (decided, UC-001): CHF 22.20 is the legal minimum only below 5 hours a week. Decided on
-  21 October 2026: setup keeps it as a single floor in v0.1.0, as a known limitation; see UC-001.
-- Age rules (not applied in v0.1.0): no birth date is stored, so the AHV rules from reference age (CHF 1,400 a
-  month allowance, no ALV) and up to age 25 (no contributions up to CHF 750 a year) are not applied. UC-001 lists
-  them as out of scope; UC-002 says the same in its Known limitations.
-- Annual wage report: no use case covers the annual aggregation for the AKBS wage declaration. Decided on
-  21 October 2026: it is out of scope for v0.1.0; `docs/PROJECT.md` lists it as out of scope.
-- Exclusions (not checked): the employer's spouse or children, and cross-border workers living in France;
-  listed in UC-001.
-- Monthly CHF 1,890 (open question for AKBS, 061 685 22 22; no code impact, not applied in v0.1.0): the AKBS page
-  names it as a monthly limit, while Merkblatt 2.07 ties it to the pension-fund rule for jobs shorter than a year.
-- Rounding (no change): AKBS rounds its example to 5 Rappen; ADR-003 keeps 1 Rappen, and AKBS bills from the
-  annual gross.
+| ID | Status | Task | Defined by | After | By |
+|---|---|---|---|---|---|
+| `project-endpoints` | todo | List the API endpoints in PROJECT.md (ADR-006 notes they are missing). | ADR-006 | | |
+| `readme-template` | todo | Move the template text of the README to `docs/TEMPLATE.md`. | Capstone brief | | Sat 24 Oct |
 
-Design sub-slice (phase 2): the persistence adapter for UC-002 saving, decided in
-[ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md).
+### Nano
 
-UC-002 saving sub-slice (phase 3): implemented end to end. Behaviour is in
-[UC-002](specs/UC-002-Process-the-Monthly-Employment.md), persistence and error mapping in ADR-005, the
-run snapshot in [ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-2-2026-10-20).
-- `SQLitePayrollRepository` is replaced by `SqlAlchemyPayrollRepository`; its tests
-  moved to `tests/integration/test_sqlalchemy_payroll_repository.py` first.
-- `WorkEntry` now carries `category` and `paid_minutes`; `MonthlyRecord` dropped its
-  hour fields and gained `employee_id`.
-- Human decisions of 20 October 2026 (run order, empty months, daily entries, public-holiday
-  category combinations) are recorded in UC-002, with its Known limitations section.
+| ID | Status | Task | Defined by | After | By |
+|---|---|---|---|---|---|
+| `decimal-wage` | todo | Make `Employment.hourly_wage` a `Decimal`, and remove the "Known exception" line in PROJECT.md in the same change. | ADR-003 | | |
+| `setup-port` | todo | Decide whether `SetupRepository.get_employment` stays (only tests use it), then make the code and ADR-006 item 3 agree. | ADR-006 | | |
+| `akbs-1890` | blocked | Ask AKBS (contact in `docs/reference/Employing_Household_Help_Basel.md`) about the monthly CHF 1,890: the AKBS page names it as a monthly limit, while Merkblatt 2.07 ties it to the pension-fund rule for jobs shorter than a year. Record the answer as a UC-002 decision, and as a constant if the app enforces it. | Merkblatt 2.07 | | |
+
+### Aaron
+
+| ID | Status | Task | Defined by | After | By |
+|---|---|---|---|---|---|
+| `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | `validate-uc002` | |
+| `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | |
+| `min-wage-floor` | todo | Decide a minimum-wage floor by weekly hours (known limitation in UC-001). | UC-001 | | |
+
+### Assvinth
+
+| ID | Status | Task | Defined by | After | By |
+|---|---|---|---|---|---|
+| `arch-test` | todo | Make the layer check in `tests/unit/test_architecture.py` recognise `src.app` imports; it must fail on a deliberate inner-to-outer import and pass on `main`. | ADR-001 | | |
+| `ui-merge` | doing | Finish the setup UI review and merge or close it. The UI branch also adds Node.js 22 to the PROJECT.md Commands and changes the devcontainer; CI and Release already install Node.js 22. | UC-001 | | Sat 24 Oct |
+| `readme-final` | todo | Finish the README for the capstone. | Capstone brief | `readme-template`, `ui-merge` | Tue 27 Oct |
+| `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `validate-uc002`, `readme-final` | Wed 28 Oct |
+| `align-gating` | todo | Align `docs/INDEX.json` and `.github/CODEOWNERS` on which files are review-gated. | INDEX.json | | |
+
+### Unassigned
+
+| ID | Status | Task | Defined by | After | By |
+|---|---|---|---|---|---|
+| `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
+| `env-requirements` | todo | Bring `environments/python/requirements.txt` in line with `requirements.txt` (it lacks `sqlalchemy`). | ADR-005 | | |
+| `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay; CI runs only the `.sh` versions. | `.github/workflows/ci.yml` | | |
+| `cd-template` | todo | Decide whether `.github/workflows/cd.yml` stays; PROJECT.md declares no deployment target. | PROJECT.md | | |
 
 ## Acceptance / validation cues
 
@@ -114,46 +92,16 @@ run snapshot in [ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-ho
 - Evidence: the two use-case specifications, ADR-001 to ADR-006 and the tests
   under `tests/`.
 
-## Risks / tradeoffs
-
-- Keeping repository ports at the application boundary preserves testability,
-  but requires explicit mapping between ORM records and domain entities.
-- A single transaction for the monthly record and payslip prevents partial
-  payroll saves, while making the persistence adapter responsible for
-  transaction coordination.
-- The 2026 ruleset is intentionally narrow; adding another year requires a
-  new version rather than changing historical calculations.
-- Foreign keys are enforced (ADR-005 item 6).
-
 ## Validation approach
 
-- Unit tests cover domain validation, exact payroll calculations, NBU
-  eligibility, reimbursement separation, and annual-limit rejection.
-- Integration tests verify repository foreign keys, employer uniqueness, and
-  atomic persistence of the monthly record and payslip.
-- Architecture tests check the inward dependency direction; their layer check
-  does not yet recognise `src.app` imports (see Person 4 below).
-- ADR-005 slice: integration tests cover the persistence cases of the UC-002
-  validation plan (duplicate month, failed save, annual limits per
-  [calculations.md §3](reference/calculations.md)), that start-up fails clearly when
-  `DATABASE_URL` is unset or unsupported, and that tests dispose their engines.
+Each use case's tests are named in its Validation plan ([UC-001](specs/UC-001-Set-Up-an-Employment.md),
+[UC-002](specs/UC-002-Process-the-Monthly-Employment.md)); trade-offs are in the ADR Consequences.
 
-## Blockers / assumptions / decisions
+## Blockers / assumptions
 
 - No architecture blocker found.
 - Assumption: the first implementation slice uses HTTP delivery and a
   relational ORM adapter as described by `docs/PROJECT.md`.
-- Decision: ADR-004 defines entry snapshots, the four normal-case hour
-  categories (Amendment 1), derived holiday balance, and the exclusion of sick-pay and
-  corrections.
-- Decision: ADR-005 (single SQLAlchemy persistence adapter, `DATABASE_URL`). The tables, the
-  `DATABASE_URL` format and the money type are in [PROJECT.md](PROJECT.md).
-- Decided on 16 October 2026: holiday weeks (4 or 5) replace the holiday entitlement
-  days, and holiday for an employment that starts or ends during the year is
-  pro-rated; see [ADR-004 Amendment 1](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-1-2026-10-16)
-  (items 2 and 3).
-- Decided on 16 October 2026: the app accepts only 2026, the only year with a
-  ruleset (ADR-002); see UC-001.
 - Human review remains required for the review-gated use-case specifications.
 
 ## Evidence links
@@ -167,62 +115,8 @@ run snapshot in [ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-ho
 - [ADR-005 SQLAlchemy persistence adapter](adr/ADR-005-sqlalchemy-persistence-adapter.md)
 - [ADR-006 UC-001 setup API and wiring](adr/ADR-006-uc-001-setup-api-and-wiring.md)
 - [PROJECT architecture](PROJECT.md)
+- [Calculations: formulas](reference/calculations.md)
+- [Constants: rates, limits and thresholds](../src/app/domain/constants.py)
 
-## Person 4 — CI, Docker, Release, setup UI and architecture tests
-
-- **CI:** Implemented and merged. The whitespace check covers changes in pull
-  requests and pushes. Node.js 22 is configured in both
-  [CI](../.github/workflows/ci.yml) and
-  [Release](../.github/workflows/release.yml) for the JavaScript UI tests.
-- **Docker:** Implemented and merged. Historical validation covered image build,
-  container startup and the health check. The health check does not verify
-  persistent data storage (see [PROJECT.md](PROJECT.md#commands)).
-- **Release workflow:** Implemented and merged. Historical validation covered
-  the Docker image build, isolated container startup, health check, image archive
-  creation and reload, and artifact upload. The publication job was skipped;
-  that validation did not exercise tag-triggered publication. See
-  [PROJECT.md](PROJECT.md#commands) for the release workflow and artifact usage.
-- **Documentation cleanup:** Completed and merged; historical trailing whitespace
-  errors were corrected. Project command instructions are available in English
-  in [PROJECT.md](PROJECT.md#commands).
-- **Setup UI:** Implemented and tested separately; it remains in draft review
-  and is not merged. Automated checks cover form validation, submission and error
-  handling using a JavaScript DOM harness and API tests. Historical user-reported
-  Safari checks covered page loading, saving, employer lookup after reload,
-  invalid weekly hours, keyboard focus and a narrow window. These are not
-  full-browser automation, a complete screenreader audit, physical mobile-device
-  validation, or proof of persistence across server restarts. Behaviour is defined
-  in [UC-001](specs/UC-001-Set-Up-an-Employment.md).
-- **Architecture tests:** The current layer check in
-  [test_architecture.py](../tests/unit/test_architecture.py) does not recognise
-  `src.app` imports. An extended check exists separately and is not integrated
-  into main. Historical validation of the extended work detected the payroll
-  router importing the SQLite repository. Payroll wiring has since changed, so
-  that historical failure does not establish the current result. Revalidate the
-  extended check against the updated payroll architecture before reporting it
-  as passing or complete. See [ADR-001](adr/ADR-001-clean-architecture-boundaries.md)
-  for the dependency rule.
-
-## Next smallest step
-
-Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and
-the end-to-end API test on a clean checkout, then review the slice.
-
-Run snapshot slice (phase 3): done. The run snapshot is defined in
-[ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-2-2026-10-20);
-the limit of its immutability is in the UC-002 Known limitations.
-
-## Backlog
-
-- Annual aggregation for the AKBS wage declaration (out of scope for v0.1.0).
-- Dedicated sick-pay and exception-management use case.
-
-## Working agreement
-
-- Keep one active use case small enough to deliver vertically.
-- Keep one current slice small enough to finish or re-evaluate quickly.
-- Prefer reality-based progress over placeholder completeness.
-- Update this file when the lifecycle phase, active objective, or current use case changes.
-- Record blockers, assumptions, and decisions when they affect delivery.
-- Link validation evidence from the relevant project artefact instead of duplicating it here.
-- End each work session with the next smallest step clearly stated.
+Which file owns each kind of fact is under Collaboration in `AGENTS.md`; this file holds what
+comes next.
