@@ -110,7 +110,7 @@ tier. Move down when a task turns out to be Fast Track.
   reconcile `docs/TASKS.md` and any UC or ADR numbers with what `main`
   already has.
 - ADR numbers: take the next unused number on `main`. CI rejects duplicates.
-- Change shared files (`AGENTS.md`, `docs/PROJECT.md`, `docs/INDEX.json`,
+- Change shared files (`AGENTS.md`, `docs/INDEX.json`,
   `.github/`) in their own small PR, not mixed into feature work.
 - App code, including app scripts and CLIs, lives under `src/app/` and its
   tests under `tests/`. `scripts/` is AI-SDLC tooling; do not put app code there.
