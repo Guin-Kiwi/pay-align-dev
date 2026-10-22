@@ -162,7 +162,7 @@ async function submitSetup(event) {
         throw new Error("response");
       }
       submissionLocked = true;
-      element("setup-success").textContent = "Employment set up successfully. Records are kept in memory and are lost after a server restart. Reload the page to set up another employment.";
+      element("setup-success").textContent = "Employment set up successfully. Setup records are saved in the configured database. Whether they remain available after a server restart depends on the database configuration. Reload the page to set up another employment.";
       element("setup-success").hidden = false;
       await loadEmployer();
     } else if ([400, 409, 422].includes(response.status)) {

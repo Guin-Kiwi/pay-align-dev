@@ -21,6 +21,9 @@ def test_setup_page_is_accessible_and_initially_cannot_submit():
     response = client.get('/setup')
     assert response.status_code == 200
     assert response.headers['content-type'].startswith('text/html')
+    assert 'Setup records are saved in the configured database.' in response.text
+    assert 'Whether they remain available after a server restart depends on the database configuration.' in response.text
+    assert 'lost after a server restart' not in response.text
     page = Page(response.text)
     assert ('html', {'lang': 'en'}) in page.tags
     for text in ('Set up employment', 'Employer', 'Employee', 'Employment', 'ordinary taxation'):
@@ -56,6 +59,10 @@ def test_setup_assets_are_available(asset, content_type):
     response = TestClient(create_app()).get('/setup-assets/' + asset)
     assert response.status_code == 200
     assert content_type in response.headers['content-type']
+    if asset == 'setup.js':
+        assert 'Setup records are saved in the configured database.' in response.text
+        assert 'Whether they remain available after a server restart depends on the database configuration.' in response.text
+        assert 'lost after a server restart' not in response.text
 
 
 def test_employer_lookup_uses_existing_api_without_configuring_an_employer():

@@ -309,3 +309,24 @@ Resolve the pending `admin_charge` and `total_employer_cost` discrepancy before 
 - Record blockers, assumptions, and decisions when they affect delivery.
 - Link validation evidence from the relevant project artefact instead of duplicating it here.
 - End each work session with the next smallest step clearly stated.
+
+## Fast Track: Datenbankhinweise der Setup-UI
+
+- Quelle: ausdrücklicher Auftrag zur Rekonstruktion der Speicherhinweise nach
+  der Worktree-Wiederherstellung; UC-001 verlangt Datenbankspeicherung.
+- Phase 3, Teilaufgabe umgesetzt und geprüft. SPECIFY verkürzt; DESIGN entfällt, da nur Texte
+  und zugehörige Assertions geändert werden. Der Projektstatus bleibt in-progress.
+- Umfang und Akzeptanz: Formular und Erfolgsmeldung erklären auf Englisch,
+  dass Setup-Datensätze in der konfigurierten Datenbank gespeichert werden
+  und der Erhalt nach einem Serverneustart von deren Konfiguration abhängt.
+  Keine Verbindungsdaten, Pfade oder Zugangsdaten; Validierung, Übermittlung,
+  API und Backend bleiben unverändert. Historische Nachweise oben bleiben erhalten.
+- Ausgangsprüfung: Branch person4-ui-setup, Commit eaabb89, sauberer Worktree;
+  29 bestehende UI-Tests bestanden.
+- Prüfungen nach der Korrektur: 29 UI-Tests bestanden; `bash scripts/test.sh`
+  bestanden: 159 Tests, 1 erwarteter Fehlschlag, 78 Subtests; 32 Prozess-Tests
+  und Lifecycle-Szenarien bestanden. Bekannte Starlette/HTTPX-Abkündigungswarnung.
+- Die frühere Integrationsnotiz oben ist historisch: PR #28 ist im geprüften
+  Stand eaabb89 bereits integriert. Die aktuellen UI-Texte berücksichtigen dies.
+- Nächster Schritt: menschliche Prüfung des lokalen Commits; kein Push, Merge
+  oder Rebase. PR #24 bleibt Draft.
