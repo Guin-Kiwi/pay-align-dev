@@ -122,6 +122,8 @@ The requesting human defined these five view boundaries on 2026-10-23 to identif
 | 3 — Employment months | Read one owned employment's completed months and their saved payslips; identify the next month allowed by UC-002. Completed months are view-only. |
 | 4 — Month entry | Create the next monthly run with the UC-002 inputs and show its resulting payslip. |
 
+The month-entry view submits a month's entries together for processing. Saving unfinished entries weekly as a persistent draft is outside this use case and may be developed later.
+
 The CRUD boundary is explicit: account and employer creation, setup creation, and monthly-run creation are supported by the cited use cases; owned employer, employment, month and payslip reads are required for these views. [UC-001](UC-001-Set-Up-an-Employment.md#scope) excludes changing or ending an employment after setup, and its saved employee details are reused rather than overwritten. [UC-002](UC-002-Process-the-Monthly-Employment.md#scope) excludes corrections and reversals of completed months. [UC-003](#scope) excludes account deletion and employer transfer. These views do not add update or delete operations contrary to those boundaries; any future edit/delete behavior needs its own use-case decision.
 
 All list and detail reads must use the signed-in account's employer scope. An absent or another employer's employment, month or payslip has the same not-found outcome. The browser view itself grants no authority; application and repository checks remain required by [ADR-007](../adr/ADR-007-employer-accounts-and-secure-access.md#decision).
