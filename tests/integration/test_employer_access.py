@@ -165,3 +165,76 @@ def test_payroll_write_requires_csrf_after_login(monkeypatch, tmp_path):
 
     assert response.status_code >= 400
     app.state.engine.dispose()
+
+
+def test_same_employee_ahv_is_kept_separate_for_two_employers(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'accounts.db'}")
+    monkeypatch.setenv("SESSION_SECRET_KEY", "test-secret-key-that-is-long-enough-for-session-signing")
+    app = create_app()
+
+    with TestClient(app, base_url="https://testserver") as first, TestClient(
+        app, base_url="https://testserver"
+    ) as second:
+        _register(first, "first@example.ch")
+        first_setup = _setup(first)
+        _register(second, "second@example.ch")
+        second_payload = {
+            **SETUP,
+            "employer": {
+                **SETUP["employer"],
+                "name": "Beatrice Beispiel",
+                "ahv_number": "756.2222.3333.44",
+            },
+            "employee": {**SETUP["employee"], "name": "Maria Rossi Second"},
+        }
+        second_setup = second.post(
+            "/api/v1/setup",
+            headers={"X-CSRF-Token": _csrf(second)},
+            json=second_payload,
+        )
+
+        assert first_setup.status_code == 201
+        assert second_setup.status_code == 201
+        assert first_setup.json()["employee_id"] != second_setup.json()["employee_id"]
+
+        repeat = first.post(
+            "/api/v1/setup",
+            headers={"X-CSRF-Token": _csrf(first)},
+            json={
+                "employee": {**SETUP["employee"], "name": "Changed by First"},
+                "employment": SETUP["employment"],
+            },
+        )
+        assert repeat.status_code == 201
+        assert repeat.json()["employee_id"] == first_setup.json()["employee_id"]
+
+    with app.state.engine.connect() as connection:
+        rows = connection.execute(
+            text("SELECT name FROM employees WHERE ahv_number = :ahv ORDER BY id"),
+            {"ahv": SETUP["employee"]["ahv_number"]},
+        ).scalars().all()
+    assert rows == ["Maria Rossi", "Maria Rossi Second"]
+    app.state.engine.dispose()
+
+
+def test_payroll_cannot_use_another_accounts_employment_id(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'accounts.db'}")
+    monkeypatch.setenv("SESSION_SECRET_KEY", "test-secret-key-that-is-long-enough-for-session-signing")
+    app = create_app()
+
+    with TestClient(app, base_url="https://testserver") as first, TestClient(
+        app, base_url="https://testserver"
+    ) as second:
+        _register(first, "first@example.ch")
+        first_setup = _setup(first)
+        _register(second, "second@example.ch")
+        response = second.post(
+            "/api/v1/monthly-payroll",
+            headers={"X-CSRF-Token": _csrf(second)},
+            json={**PAYROLL, "employment_id": first_setup.json()["employment_id"]},
+        )
+
+    assert response.status_code == 404
+    with app.state.engine.connect() as connection:
+        assert connection.execute(text("SELECT COUNT(*) FROM monthly_records")).scalar_one() == 0
+    app.state.engine.dispose()
