@@ -238,3 +238,89 @@ def test_payroll_cannot_use_another_accounts_employment_id(monkeypatch, tmp_path
     with app.state.engine.connect() as connection:
         assert connection.execute(text("SELECT COUNT(*) FROM monthly_records")).scalar_one() == 0
     app.state.engine.dispose()
+
+
+def test_employment_list_is_scoped_to_the_signed_in_account(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'accounts.db'}")
+    monkeypatch.setenv("SESSION_SECRET_KEY", "test-secret-key-that-is-long-enough-for-session-signing")
+    app = create_app()
+
+    with TestClient(app, base_url="https://testserver") as first, TestClient(
+        app, base_url="https://testserver"
+    ) as second, TestClient(app, base_url="https://testserver") as anonymous:
+        _register(first, "first@example.ch")
+        first_id = _setup(first).json()["employment_id"]
+        _register(second, "second@example.ch")
+        second_setup = second.post(
+            "/api/v1/setup",
+            headers={"X-CSRF-Token": _csrf(second)},
+            json={
+                **SETUP,
+                "employer": {
+                    **SETUP["employer"],
+                    "name": "Beatrice Beispiel",
+                    "ahv_number": "756.2222.3333.44",
+                },
+            },
+        )
+        assert second_setup.status_code == 201
+        second_id = second_setup.json()["employment_id"]
+
+        first_list = first.get("/api/v1/employments")
+        second_list = second.get("/api/v1/employments")
+        anonymous_list = anonymous.get("/api/v1/employments")
+
+    assert first_list.status_code == 200
+    assert [item["id"] for item in first_list.json()] == [first_id]
+    assert first_list.json()[0]["employee_name"] == "Maria Rossi"
+    assert second_list.status_code == 200
+    assert [item["id"] for item in second_list.json()] == [second_id]
+    assert anonymous_list.status_code == 401
+    app.state.engine.dispose()
+
+
+def test_completed_months_and_payslip_are_owned_and_view_only(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'accounts.db'}")
+    monkeypatch.setenv("SESSION_SECRET_KEY", "test-secret-key-that-is-long-enough-for-session-signing")
+    app = create_app()
+
+    with TestClient(app, base_url="https://testserver") as owner, TestClient(
+        app, base_url="https://testserver"
+    ) as other:
+        _register(owner, "owner@example.ch")
+        employment_id = _setup(owner).json()["employment_id"]
+        saved = owner.post(
+            "/api/v1/monthly-payroll",
+            headers={"X-CSRF-Token": _csrf(owner)},
+            json={**PAYROLL, "employment_id": employment_id},
+        )
+        assert saved.status_code == 201
+        _register(other, "other@example.ch")
+
+        months_url = f"/api/v1/employments/{employment_id}/months"
+        payslip_url = f"{months_url}/2026/1"
+        history = owner.get(months_url)
+        payslip = owner.get(payslip_url)
+        other_history = other.get(months_url)
+        other_payslip = other.get(payslip_url)
+        missing_history = other.get("/api/v1/employments/999/months")
+        change = owner.patch(payslip_url, json={"cash_bonus": "100.00"})
+        deletion = owner.delete(payslip_url)
+
+    assert history.status_code == 200
+    assert history.json()["next_month"] == {"year": 2026, "month": 2}
+    assert history.json()["months"] == [
+        {"year": 2026, "month": 1, "monthly_record_id": saved.json()["monthly_record_id"]}
+    ]
+    assert payslip.status_code == 200
+    assert payslip.json()["monthly_record_id"] == saved.json()["monthly_record_id"]
+    assert payslip.json()["gross_wage"] == saved.json()["gross_wage"]
+    assert payslip.json()["net_payout"] == saved.json()["net_payout"]
+    assert {"ahv_deduction", "alv_deduction", "nbu_deduction", "tax_deduction",
+            "total_employer_cost", "holiday_balance_minutes"} <= payslip.json().keys()
+    assert other_history.status_code == missing_history.status_code == 404
+    assert other_payslip.status_code == 404
+    assert change.status_code == deletion.status_code == 405
+    with app.state.engine.connect() as connection:
+        assert connection.execute(text("SELECT COUNT(*) FROM monthly_records")).scalar_one() == 1
+    app.state.engine.dispose()

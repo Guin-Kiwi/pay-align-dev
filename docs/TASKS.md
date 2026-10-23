@@ -1,7 +1,7 @@
 # TASKS.md
 
-PHASE: 2
-STATUS: done
+PHASE: 3
+STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -26,7 +26,7 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Return to DEVELOP with tests for account-scoped employment, month-history and payslip reads.
+Write and commit failing integration tests for account-scoped employment, month-history and saved-payslip reads; then implement the read paths without choosing UI layout.
 
 UC-003 TDD slices:
 1. Account persistence, password hashing, registration/login/logout and four-hour session; tests-only RED checkpoint is committed and the implementation passes focused tests.
