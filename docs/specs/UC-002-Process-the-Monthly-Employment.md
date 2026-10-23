@@ -134,6 +134,7 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - **Written-contract exception:** the app does not support a written contract in which the supplement is built into a higher wage.
 - **Age-dependent AHV rules:** no birth date is stored, so the AHV rules from reference age and up to age 25 are not applied; every employee gets the full contributions. UC-001 lists them as out of scope.
 - **Sick pay:** the app has no category for sick-leave hours. The Basel household NAV requires the employer to keep paying the wage while the employee is ill (one month in the first service year, more later; see [the reference guide](../reference/Employing_Household_Help_Basel.md#if-your-employee-is-ill-sick-pay)), so in a month with sick days the gross wage, the deductions, the payslip and the annual totals are too low.
+- **Monthly CHF 1,890:** the AKBS household-help page names CHF 1,890 a month as a limit, while [Merkblatt 2.07](https://www.ahv-iv.ch/p/2.07.d) ties it to the pension-fund rule for jobs shorter than a year. The app does not check it, and the question to AKBS (contact in [the reference guide](../reference/Employing_Household_Help_Basel.md)) is open.
 - **Corrections:** a saved month is final. Corrections, reversals and overpayment adjustments are not supported.
 - **Ruleset:** the run snapshot stores the ruleset version only. A run reproduces correctly only while a published ruleset is never edited in place (ADR-002).
 - **Immutability:** it is enforced in the application. Direct SQL can still edit stored rows.

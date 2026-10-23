@@ -1,7 +1,7 @@
 # ADR-006-uc-001-setup-api-and-wiring
 
 ## Status
-Accepted
+Accepted (amended: see Amendment 1)
 
 ## Context
 UC-001 saves an employer, an employee and an employment. It rejects invalid AHV numbers and missing fields, prevents a second employer, confirms success, and validates everything before saving. The UI needs a stable endpoint list. [ADR-001](ADR-001-clean-architecture-boundaries.md) forbids the interfaces layer from importing infrastructure, but the first payroll router builds its own repository, which the stricter architecture test reports.
@@ -16,7 +16,7 @@ UC-001 saves an employer, an employee and an employment. It rejects invalid AHV 
 ## Decision
 1. **Endpoints.** `GET /api/v1/employer` returns the one employer, or 404 before setup. `POST /api/v1/setup` takes `employer` (only when none exists), `employee` and `employment`, validates all three, then saves them in one transaction. It answers 201 with "Employment set up successfully" and the three ids, 400 for invalid input with the failing part named (for example `Employee: Address is required.`), and 409 when an employer is sent although one exists. `POST /api/v1/employments` is removed.
 2. **Input rules.** AHV numbers must match `756.XXXX.XXXX.XX` exactly. Employer name, address, AHV number and contact info, and employee name, address, AHV number and nationality are required. Blank or spaces-only values count as missing.
-3. **Port.** `SetupRepository` in `src/app/application/ports/` has `get_employer()` and `save(employer, employee, employment)`. `save` stores all three atomically and links the employment to the employer and employee.
+3. **Port.** `SetupRepository` in `src/app/application/ports/` has `get_employer()` and `save(employer, employee, employment)`. `save` stores all three atomically and links the employment to the employer and employee. Since [Amendment 1](#amendment-1-2026-10-23), it also has `get_employment(employment_id)`.
 4. **Wiring.** `create_app()` in `src/app/infrastructure/web/app.py` builds the services and stores them on `app.state`. Routers read them through a small dependency such as `get_setup_service`. Tests call `create_app()` with a fake repository. The module-level `app = create_app()` stays, so the Docker start path keeps working.
 
 Approved by Nano on 15 October 2026. The payroll router uses the same wiring pattern.
@@ -29,3 +29,7 @@ Approved by Nano on 15 October 2026. The payroll router uses the same wiring pat
 
 ## Supersedes
 none
+
+## Amendment 1 (2026-10-23)
+
+Decided on 23 October 2026: `SetupRepository` keeps `get_employment(employment_id)`, which returns the saved employment or `None`. Only tests use it, to check what setup saved; the application does not. Payroll reads the employment terms through its own port (`employment_terms`). Not chosen: removing it, which would change the port and its tests after the feature freeze without a gain for the user.
