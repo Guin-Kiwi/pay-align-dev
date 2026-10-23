@@ -1,7 +1,7 @@
 # ADR-004-payroll-entry-snapshots-and-holiday-balance
 
 ## Status
-Accepted (amended: see Amendment 1)
+Accepted (amended: see Amendments 1 and 2)
 
 ## Context
 Monthly payroll must remain reproducible after submission. The application
@@ -28,7 +28,8 @@ overpayment handling are outside the current use case.
 ## Decision
 
 For each monthly payroll run, persist the submitted daily entries with exactly
-three normal-case hour categories:
+three normal-case hour categories (four since
+[Amendment 1](#amendment-1-2026-10-16), item 6):
 
 1. worked hours;
 2. paid holiday hours;
@@ -60,8 +61,9 @@ monthly payroll flow.
   than maintained as an independent editable value.
 - A future correction workflow requires a separate use case and ADR or an
   explicit amendment to this decision.
-- The three categories must be validated so negative or overlapping entries
-  cannot enter a run.
+- The three categories (four since [Amendment 1](#amendment-1-2026-10-16),
+  item 6) must be validated so negative or overlapping entries cannot enter a
+  run.
 - Exception handling, including sick pay, requires a separate use case and
   design decision.
 
@@ -71,7 +73,7 @@ none
 
 ## Amendment 1 (2026-10-16)
 
-Approval: AYLA PROPOSES; review by Nano and Aaron in this PR.
+Approval: Proposed by Ayla. Approved by Aaron on 19 October 2026.
 
 The following decisions amend this ADR:
 
@@ -84,7 +86,7 @@ The following decisions amend this ADR:
   pro-rated by the days under contract in the calendar year, with both the
   start and end dates counted, divided by 365, and rounded half-up once to
   whole minutes (OR 329a para. 3). Source: team decision of 16 October 2026,
-  recorded in the UC-001 spec (PR #17).
+  recorded in the UC-001 spec.
 4. The app accepts 2026 only (ADR-002). Later years, including 366 days in
    2028, are a known limitation; cross-year carry-over remains dormant until a
    second ruleset exists.
@@ -125,6 +127,9 @@ The following decisions amend this ADR:
   a holiday changes to the category model.
 
 ## Amendment 2 (2026-10-20)
+
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
+
 Reason: "snapshot" was used for several different things across ADR-004, ADR-005
 and UC-002. This amendment defines the run snapshot once and replaces the earlier
 wording.
@@ -142,8 +147,10 @@ wording.
 3. The entries are not copied. The run's `work_entries` are the record of them and
    are immutable once saved.
 4. A run can be reproduced from its entries and its run snapshot, with the rules of
-   the named ruleset. Gross to date for the annual limits comes from the earlier
-   `monthly_records`, not from the snapshot.
+   the named ruleset. Gross to date for the annual limits comes from the
+   `monthly_records` of the whole calendar year, not from the snapshot. Item 4 was
+   reworded on 21 October 2026: "the earlier `monthly_records`" became the whole
+   calendar year.
 5. This replaces "a frozen snapshot of the submitted entries, the employment
    parameters, and the named payroll-ruleset version" and "calculated from that
    snapshot" in the Decision, and "the employment snapshot" in Amendment 1.

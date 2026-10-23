@@ -10,7 +10,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**PayAlign** is a local-only payroll management system for private household employers in Basel-Stadt. It simplifies the process of calculating monthly pay, applying social insurance and tax deductions, and generating compliant payslips for annual AKBS reporting.
+**PayAlign** is a local-only payroll management system for private household employers in Basel-Stadt. It simplifies the process of calculating monthly pay, applying social insurance and tax deductions, and generating compliant payslips.
 
 ### Monthly payroll saving (UC-002)
 
@@ -20,31 +20,18 @@ The request takes an `employment_id`, the year and month, the cash bonus, the ex
 reimbursements and the work entries; the employment (employer, employee, wage, weekly
 hours, holiday weeks and dates) is read from the saved setup in the `employments` table, and an unknown
 `employment_id` is a 404 before anything is saved.
-The run snapshot holds the employment terms, the ruleset version, the hour totals and the closing holiday balance of the run (ADR-004 Amendment 2). The application never updates or deletes it or the saved entries, but direct SQL can still edit stored rows.
+The run snapshot is defined in [ADR-004 Amendment 2](docs/adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-2-2026-10-20).
 
-- **Run order:** an employment's first run is the month of its start date; each
-  later run is the month after the last saved run. Duplicate and skipped months
-  are rejected.
-- **Empty months:** a month without entries is still a run, with a payslip
-  without hours, so the holiday balance is recorded.
-- **Daily entries:** start time, end time and breaks give the paid minutes.
-  Overlapping entries are rejected; several non-overlapping entries on one day
-  are valid. Entries are saved as submitted.
-- **Public holidays:** work on a public holiday is classified as
-  `public_holiday_worked` (50% premium). Paid holiday on a public holiday and
-  public-holiday work or leave on an ordinary day are rejected.
-
-Known limitations: work on a Sunday is paid at the normal rate (NAV Haushalt BS
-§ 27 requires a 50% supplement); a written contract that builds the supplement
-into a higher wage is not supported; a saved month is final, with no
-corrections.
+Run order, empty months, daily entries, public holidays and the known limitations are
+specified in [UC-002](docs/specs/UC-002-Process-the-Monthly-Employment.md); rates and
+limits are in [calculations.md](docs/reference/calculations.md).
 
 Starter repository for student and teaching projects that use the AI-Assisted
 Software Development Life Cycle (AI-SDLC).
 
-The method is documented canonically in [AISL Docs](https://docs.aisl.science/learning-and-resources/ai-sdlc). This repository contains only the executable, repository-local
-workflow artefacts. It does not contain a complete copy of the method or
-application-specific code.
+The method is documented canonically in [AISL Docs](https://docs.aisl.science/learning-and-resources/ai-sdlc). This repository contains the executable, repository-local
+workflow artefacts and the PayAlign application. It does not contain a complete
+copy of the method.
 
 ## How it works
 
@@ -59,7 +46,7 @@ blocks a merge.
 
 | | Paths | Licence |
 |---|---|---|
-| **Your project** (what is being built) | `src/app/` (domain, application, interfaces, infrastructure), `tests/`, `docs/PROJECT.md`, `docs/TASKS.md`, `docs/specs/`, `docs/adr/`, `README.md` | Your team's choice (`LICENSE` section 2) |
+| **Your project** (what is being built) | `src/app/` (domain, application, interfaces, infrastructure), `tests/`, `docs/PROJECT.md`, `docs/TASKS.md`, `docs/specs/`, `docs/adr/`, `README.md` | MIT (`LICENSE` section 2) |
 | **The AI-SDLC process** (how it is built) | `AGENTS.md`, `CONTRIBUTING.md`, `skills/`, `scripts/`, `.github/`, `environments/`, `docs/INDEX.json`, `docs/STANDARDS.md`, `docs/AGENT-GUIDANCE.md` | CC BY 4.0 (`LICENSE` section 1) |
 
 Both stay in the repository: the process files are your evidence of TDD,
@@ -137,7 +124,6 @@ For non-interactive setup, pass the same selection, for example `bash scripts/se
 - `docs/adr/` — architecture decision records and their template
 - `docs/STANDARDS.md` — security and quality references (NIST SSDF, OWASP ASVS)
 - `docs/AGENT-GUIDANCE.md` — worked examples for applying the agent rules
-- `docs/future/` — non-binding roadmap notes
 - `skills/ai-sdlc-*` — phase-specific execution guidance
 - `.devcontainer/` — Codespaces and VS Code baseline
 - `environments/python/` — default Python + FastAPI profile, including the
@@ -150,6 +136,6 @@ For non-interactive setup, pass the same selection, for example `bash scripts/se
 - `scripts/pr_advisory.py` — non-blocking PR warnings (model tier, Fast Track scope)
 - `scripts/sdlc.py review` — optional human review report, recorded in history
 - `.vscode/tasks.json` — "AI-SDLC: Run checks" and "AI-SDLC: Human review report"
-- `.github/` — Copilot instructions and `/ai-sdlc` prompt, CODEOWNERS, PR and
+- `.github/` — Copilot instructions, CODEOWNERS, PR and
   use-case issue templates, CI, release, bootstrap-issue and CD workflows,
   importable rulesets

@@ -7,7 +7,7 @@ description: Create or update a minimal use case specification.
 
 ## Fast Track
 
-Use the existing UC or task entry per `AGENTS.md`; no new UC required.
+Record the Fast Track in `docs/TASKS.md` per `AGENTS.md`; no new UC required.
 If on `main`, create and switch to a branch `fix-<short-name>` or
 `docs-<short-name>` first. In `docs/TASKS.md`, set "Current Use Case" to
 `Fast Track: <short description>`. Record acceptance and planned checks, then

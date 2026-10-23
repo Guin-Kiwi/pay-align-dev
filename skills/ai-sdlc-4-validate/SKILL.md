@@ -7,7 +7,8 @@ description: Verify repository readiness for release.
 
 ## Fast Track
 
-Run planned checks; record results, omitted checks with reasons, and phase 4.
+Run planned checks; put results and omitted checks with reasons in the commit
+message, then record phase 4.
 Skip the release-readiness checklist below; do not claim full release readiness.
 Required CI/review remain; no incidental release or deployment.
 
@@ -120,7 +121,8 @@ Unit and integration tests pass.
 
 Repository verified.
 
-Write the actual evidence (checks run, results, links) into the active UC
-file's "Evidence" section, so it stays with the use case after
-`docs/TASKS.md` moves on. Record phase 4 and status in `docs/TASKS.md` per
-`AGENTS.md`.
+In the active UC file's "Validation plan", name the test file or check that
+proves each acceptance criterion, so it stays true on `main` after
+`docs/TASKS.md` moves on. Put the results (checks run, pass or fail, omitted
+checks with reasons) in the commit message and the PR's Evidence section, not
+in the UC. Record phase 4 and status in `docs/TASKS.md` per `AGENTS.md`.
