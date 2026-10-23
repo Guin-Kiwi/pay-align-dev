@@ -26,12 +26,12 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Add Slice 3 integration tests for employer-scoped employee identity and payroll access, commit the RED checkpoint, then implement the smallest change that passes them.
+Define the minimum browser views for UC-003 before Slice 4 begins, then add browser tests as its RED checkpoint.
 
 UC-003 TDD slices:
 1. Account persistence, password hashing, registration/login/logout and four-hour session; tests-only RED checkpoint is committed and the implementation passes focused tests.
 2. Employer-to-account onboarding, authenticated setup ownership and CSRF on setup/payroll writes; tests-only RED checkpoint committed (6 failing), implementation passes focused and full project checks.
-3. Employer-scoped employee identity and payroll reads/writes; add failing integration tests, commit RED, then implement and commit GREEN.
+3. Employer-scoped employee identity and payroll access; tests-only RED checkpoint committed (one failing), implementation passes focused and full project checks.
 4. Browser login/registration/setup/payroll workflows; add failing end-to-end coverage, commit RED, then implement and commit GREEN.
 5. Run the full project validation after all slices; record results in the validation commit.
 

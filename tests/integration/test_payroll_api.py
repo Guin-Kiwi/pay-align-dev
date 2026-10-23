@@ -378,7 +378,7 @@ def bonus_only(**overrides):
 def test_wages_from_another_employer_do_not_count_towards_the_employee_limit(client):
     test_client, engine = client
     add_employment(
-        engine, employment_id=10, employer_id=4, employee_id=9, start_date=date(2026, 9, 1)
+        engine, employment_id=10, employer_id=4, employee_id=10, start_date=date(2026, 9, 1)
     )
 
     with AuthenticatedTestClient(

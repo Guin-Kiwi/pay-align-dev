@@ -27,8 +27,7 @@ class SqlAlchemySetupRepository(SetupRepository):
         with Session(self.engine) as session:
             row = session.scalars(
                 select(EmployeeRow)
-                .join(EmploymentRow, EmploymentRow.employee_id == EmployeeRow.id)
-                .join(EmployerRow, EmployerRow.id == EmploymentRow.employer_id)
+                .join(EmployerRow, EmployerRow.id == EmployeeRow.employer_id)
                 .where(
                     EmployeeRow.ahv_number == ahv_number,
                     EmployerRow.account_id == account_id,
@@ -70,14 +69,15 @@ class SqlAlchemySetupRepository(SetupRepository):
             ))
             if employee.id is not None:
                 linked = session.scalar(
-                    select(EmploymentRow.id).where(
-                        EmploymentRow.employee_id == employee.id,
-                        EmploymentRow.employer_id == employer_id,
+                    select(EmployeeRow.id).where(
+                        EmployeeRow.id == employee.id,
+                        EmployeeRow.employer_id == employer_id,
                     )
                 )
                 if linked is None:
                     raise ValueError("Employee not found.")
             employee_id = employee.id or _insert(session, EmployeeRow(
+                employer_id=employer_id,
                 name=employee.name,
                 address=employee.address,
                 ahv_number=employee.ahv_number,

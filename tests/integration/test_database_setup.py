@@ -160,7 +160,7 @@ def test_create_schema_preserves_foreign_key_relationships(tmp_path, engines):
 
     assert references("employments") == {
         (("employer_id",), "employers"),
-        (("employee_id",), "employees"),
+        (("employee_id", "employer_id"), "employees"),
     }
     assert references("monthly_records") == {
         (("employment_id",), "employments"),

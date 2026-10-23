@@ -65,6 +65,7 @@ def add_employment(
             session.add(
                 EmployeeRow(
                     id=employee_id,
+                    employer_id=employer_id,
                     name=f"Employee {employee_id}",
                     address="Clarastrasse 10, 4058 Basel",
                     ahv_number=f"employee-{employee_id}",
