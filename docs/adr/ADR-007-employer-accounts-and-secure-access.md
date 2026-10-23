@@ -70,3 +70,8 @@ none
 
 ## Open questions
 none identified for this design draft
+
+## Amendment 1 — 2026-10-23: Explicit session and CSRF protocol
+This amendment clarifies document ownership for the accepted session and CSRF decisions; it does not change the account ownership model. UC-003 Amendments 1 and 2 own the required session behavior and CSRF protocol. This amendment supersedes Decision item 4 and repeated session behavior elsewhere in this ADR; refer to UC-003 for the current requirements.
+
+- Implement browser sessions with Starlette's built-in `SessionMiddleware`, configured to satisfy UC-003 Amendments 1 and 2. Do not implement session-cookie signing or session middleware in application code. See the [Starlette session middleware guide](https://www.starlette.io/middleware/#sessionmiddleware) for middleware behavior and options.

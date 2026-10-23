@@ -1,7 +1,7 @@
 # TASKS.md
 
-PHASE: 2
-STATUS: done
+PHASE: 3
+STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -10,9 +10,9 @@ STATUS: done
 | Phase | Status | Notes |
 |---|---|---|
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
-| 1 — Specify | Done | UC-003 defines login-first entry, self-registration, one account per employer, browser-isolated identity and a fresh empty-database assumption. |
-| 2 — Design | Done | ADR-007 accepted by Ayla Allen on 23 October 2026; browser workflows, ownership boundaries and four-hour sessions are documented. Previous status: ADR-007 proposed account ownership, browser workflows and a four-hour signed-cookie session; copied-cookie use until expiry was recorded as a limitation. Human review was submitted; the separate PR reviewer feasibility check is deferred to implementation review. |
-| 3 — Develop | Ready | UC-003 implementation is next; existing payroll validation work remains tracked under its own tasks. Existing payroll calculation, persistent payroll saving and payroll-router database wiring are implemented; that slice goes through VALIDATE next. |
+| 1 — Specify | Done | UC-003 Amendment 2 specifies session and CSRF behavior; ADR-007 Amendment 1 selects Starlette `SessionMiddleware` and links to the owning requirements. |
+| 2 — Design | Done | ADR-007 and PROJECT architecture cover UC-003's application, interface and infrastructure components and use of Starlette `SessionMiddleware`. Earlier decision: accepted by Ayla Allen on 23 October 2026; the separate UI feasibility check is deferred to implementation review. |
+| 3 — Develop | In progress | UC-003 is being delivered in TDD slices; existing payroll validation work remains tracked under its own tasks. Existing payroll calculation, persistent payroll saving and payroll-router database wiring are implemented; that slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
 
@@ -26,7 +26,22 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Start DEVELOP with account persistence, password hashing, login/logout, and the four-hour session boundary; add tests before implementation.
+Complete the account/login foundation GREEN commit, then begin employer ownership and write-request CSRF with a tests-only RED commit.
+
+UC-003 TDD slices:
+1. Account persistence, password hashing, registration/login/logout and four-hour session; RED checkpoint is commit `cb57833`, focused tests currently pass against the uncommitted implementation.
+2. Employer-to-account onboarding, authenticated setup ownership and CSRF on setup/payroll writes; add failing integration tests, commit RED, then implement and commit GREEN.
+3. Employer-scoped employee identity and payroll reads/writes; add failing integration tests, commit RED, then implement and commit GREEN.
+4. Browser login/registration/setup/payroll workflows; add failing end-to-end coverage, commit RED, then implement and commit GREEN.
+5. Run the full project validation after all slices; record results in the validation commit.
+
+Previous next step: Resume DEVELOP by aligning the existing implementation with UC-003 Amendment 2 and ADR-007 Amendment 1.
+
+Previous next step: Review UC-003 Amendment 2 and ADR-007 Amendment 1 for requirement ownership and middleware choice; then return to DEVELOP and align the implementation with the UC-003 requirements.
+
+Previous next step: Write integration tests for account persistence, password hashing, registration/login/logout and the four-hour session boundary before implementing them.
+
+Previous next step: Start DEVELOP with account persistence, password hashing, login/logout, and the four-hour session boundary; add tests before implementation.
 
 Previous next step: Resolve PR reviewer feedback on browser UI/pages feasibility; accept ADR-007 and select DEVELOP. This was superseded on 23 October 2026 when Ayla chose to proceed and defer that feasibility check to implementation review.
 
@@ -78,7 +93,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
 | `uc003-design` | done | Human review is submitted. Obtain the PR reviewer check that browser UI/pages are feasible, then accept ADR-007 and UC-003 Amendment 1. Resolution 23 October 2026: Ayla Allen accepted ADR-007 and chose to defer the separate UI feasibility check to implementation review. | UC-003, PROJECT.md | | |
-| `uc003-auth` | todo | Implement account persistence, password hashing, registration/login/logout and the four-hour signed-cookie boundary as the first UC-003 vertical slice, with tests. Follow with employer-scoped operations and the browser pages defined by UC-003. | UC-003, ADR-007 | | |
+| `uc003-auth` | doing | Implement account persistence, password hashing, registration/login/logout and the four-hour signed-cookie boundary as the first UC-003 vertical slice, with tests. Follow with employer-scoped operations and the browser pages defined by UC-003. | UC-003, ADR-007 | | |
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
 
