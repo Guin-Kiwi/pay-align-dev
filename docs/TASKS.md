@@ -11,7 +11,7 @@ STATUS: in-progress
 |---|---|---|
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 defines login-first entry, self-registration, one account per employer, browser-isolated identity and a fresh empty-database assumption. |
-| 2 — Design | In progress | Map the minimal account, browser-session and ownership components; confirm post-login flow and session revocation/lifetime before completing ADR-007. |
+| 2 — Design | In progress | ADR-007 proposes account ownership, browser workflows and a two-hour signed-cookie session; copied-cookie use until expiry is recorded as a limitation. Await human review. |
 | 3 — Develop | In progress | Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; the slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
@@ -26,7 +26,7 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Confirm the post-login setup/profile flow and the required session/logout guarantees; then finalize ADR-007 for human review.
+Review and accept ADR-007 and UC-003 Amendment 1; then select DEVELOP.
 
 ## Tasks
 
@@ -77,7 +77,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 |---|---|---|---|---|---|
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
-| `uc003-design` | doing | Confirm the employer setup/profile flow and session/logout guarantees; then record the account, session and employer-ownership design in ADR-007. | UC-003, PROJECT.md | | |
+| `uc003-design` | doing | Review ADR-007 and UC-003 Amendment 1, which record browser setup/payroll pages, employer-first combined onboarding, and a two-hour signed-cookie session with copied-cookie use until expiry as a known limitation. | UC-003, PROJECT.md | | |
 
 ## Acceptance / validation cues
 
@@ -101,7 +101,7 @@ Each use case's tests are named in its Validation plan ([UC-001](specs/UC-001-Se
 
 ## Blockers / assumptions
 
-- Design is in progress. The current code has API-only setup/payroll routes and no HTML account pages; the first post-login destination and session revocation/lifetime remain open.
+- Design choices are recorded in proposed ADR-007 and UC-003 Amendment 1; human review is the remaining step before Develop.
 - Assumption: the first implementation slice uses HTTP delivery and a
   relational ORM adapter as described by `docs/PROJECT.md`.
 - Human review remains required for the review-gated use-case specifications.
