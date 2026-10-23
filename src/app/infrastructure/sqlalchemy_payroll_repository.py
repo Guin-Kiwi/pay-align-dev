@@ -28,7 +28,12 @@ from src.app.infrastructure.orm_models import (
 )
 
 
+POSTGRES_UNIQUE_VIOLATION = "23505"
+
+
 def _is_unique_violation(error: IntegrityError) -> bool:
+    if getattr(error.orig, "sqlstate", None) == POSTGRES_UNIQUE_VIOLATION:
+        return True
     return "UNIQUE constraint failed" in str(error.orig)
 
 

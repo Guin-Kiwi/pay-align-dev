@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 
 from src.app.infrastructure.orm_models import Base
 
-SUPPORTED_BACKENDS = ("sqlite",)
+SUPPORTED_BACKENDS = ("sqlite", "postgresql")
 
 
 class DatabaseConfigurationError(RuntimeError):
@@ -36,7 +36,13 @@ def _parse_url(url: str) -> URL:
             f"DATABASE_URL scheme '{parsed.get_backend_name()}' is not supported; "
             f"use one of: {', '.join(SUPPORTED_BACKENDS)}."
         )
+    if parsed.drivername == "postgresql":
+        parsed = parsed.set(drivername="postgresql+psycopg")
     return parsed
+
+
+def _is_sqlite(url: URL) -> bool:
+    return url.get_backend_name() == "sqlite"
 
 
 def _is_in_memory(url: URL) -> bool:
@@ -57,12 +63,16 @@ def create_database_engine(url: str | None = None) -> Engine:
     if raw_url == ":memory:":
         raw_url = "sqlite:///:memory:"
     parsed = _parse_url(raw_url)
-    options: dict = {"connect_args": {"check_same_thread": False}}
-    if _is_in_memory(parsed):
-        options["poolclass"] = StaticPool
+    if _is_sqlite(parsed):
+        options: dict = {"connect_args": {"check_same_thread": False}}
+        if _is_in_memory(parsed):
+            options["poolclass"] = StaticPool
+    else:
+        options = {"pool_pre_ping": True}
     try:
         engine = create_engine(parsed, **options)
-        event.listen(engine, "connect", _enable_foreign_keys)
+        if _is_sqlite(parsed):
+            event.listen(engine, "connect", _enable_foreign_keys)
         return engine
     except (ArgumentError, ValueError, NoSuchModuleError) as error:
         raise DatabaseConfigurationError(
