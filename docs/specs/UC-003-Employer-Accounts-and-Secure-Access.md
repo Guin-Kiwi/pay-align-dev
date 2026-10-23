@@ -112,7 +112,7 @@ At VALIDATE, record the actual test results in the commit message.
 
 ## Amendment 3 — 2026-10-23: Minimum browser views
 
-The requesting human defined these five view boundaries on 2026-10-23 to identify the logic the application must provide. Assvinth and Nano choose the presentation, navigation details and the data each view needs within the behavior owned by [UC-001](UC-001-Set-Up-an-Employment.md), [UC-002](UC-002-Process-the-Monthly-Employment.md) and this use case. The logic stays available through account-scoped application interfaces rather than being tied to one page layout.
+The requesting human defined these five view boundaries on 2026-10-23 to identify the logic the application must provide. The UI implementation chooses presentation, navigation details and the data each view needs within the behavior owned by [UC-001](UC-001-Set-Up-an-Employment.md), [UC-002](UC-002-Process-the-Monthly-Employment.md) and this use case. The logic stays available through account-scoped application interfaces rather than being tied to one page layout.
 
 | View | Required capability |
 |---|---|

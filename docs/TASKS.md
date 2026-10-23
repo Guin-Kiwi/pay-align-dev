@@ -11,7 +11,7 @@ STATUS: in-progress
 |---|---|---|
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 Amendment 2 specifies session and CSRF behavior; ADR-007 Amendment 1 selects Starlette `SessionMiddleware` and links to the owning requirements. |
-| 2 — Design | Done | UC-003 Amendment 3 defines the five view boundaries for application logic. Assvinth and Nano choose presentation details. ADR-007 already sets the account-scoped read boundary; no new domain rule or ADR is needed. |
+| 2 — Design | Done | UC-003 Amendment 3 defines the five view boundaries for application logic. Presentation details remain with the UI implementation task. ADR-007 already sets the account-scoped read boundary; no new domain rule or ADR is needed. |
 | 3 — Develop | In progress | UC-003 is being delivered in TDD slices; existing payroll validation work remains tracked under its own tasks. Existing payroll calculation, persistent payroll saving and payroll-router database wiring are implemented; that slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
@@ -28,14 +28,14 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Assvinth and Nano choose and test the browser presentation for the five UC-003 view boundaries, then connect it to the account-scoped setup, employment, month and payroll interfaces. Completed months remain view-only.
+Assign the `uc003-ui` task, test the browser journey across the five UC-003 view boundaries, then connect it to the account-scoped setup, employment, month and payroll interfaces. Completed months remain view-only.
 
 UC-003 TDD slices:
 1. Account persistence, password hashing, registration/login/logout and four-hour session; tests-only RED checkpoint is committed and the implementation passes focused tests.
 2. Employer-to-account onboarding, authenticated setup ownership and CSRF on setup/payroll writes; tests-only RED checkpoint committed (6 failing), implementation passes focused and full project checks.
 3. Employer-scoped employee identity and payroll access; tests-only RED checkpoint committed (one failing), implementation passes focused and full project checks.
 4. Account-scoped employment list/detail, month-history and saved-payslip reads for the five views; tests-only RED checkpoint committed (2 failing), implementation passes focused and full project checks.
-5. Browser views defined by UC-003 Amendment 3; Assvinth and Nano choose presentation and navigation details, add failing end-to-end coverage, then implement. Completed months are view-only. The owning use cases exclude employment changes/endings and completed-month corrections; no update or delete work is implied by these views.
+5. Browser views defined by UC-003 Amendment 3; the UI owner chooses presentation and navigation details, adds failing end-to-end coverage, then implements. Completed months are view-only. The owning use cases exclude employment changes/endings and completed-month corrections; no update or delete work is implied by these views.
 6. Run the full project validation after all slices; record results in the validation commit and PR evidence.
 7. After the reviewed UC-003 PR is merged to `main`, confirm its checks on `main` and record UC-003 acceptance. Passing local or PR checks alone does not accept the use case.
 
@@ -68,6 +68,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 |---|---|---|---|---|---|
 | `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | `validate-uc002` | |
 | `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | |
+| `uc003-payroll-review` | todo | Review the UC-003 draft PR's payroll boundary before merge: check that setup and monthly writes, employment/month reads and saved payslips stay within the signed-in employer; foreign IDs reveal no records, and completed months remain view-only. Report findings in the PR. | UC-003, ADR-007 | | |
 
 ### Assvinth
 
@@ -85,7 +86,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `uc003-ui` | todo | Assvinth and Nano choose the presentation and navigation for the five UC-003 Amendment 3 views, coordinating with the existing setup UI work. Build against the account-scoped read and write contracts; end-to-end tests cover registration/login, first and later setup, employment selection, month entry, completed-month/payslip viewing and two-account isolation. Completed months can be viewed but not changed or deleted. Employment changes/endings and completed-month corrections remain outside UC-001/UC-002. | UC-003 Amendment 3, UC-001, UC-002 | `ui-merge` | |
+| `uc003-ui` | todo | Assign an owner to choose presentation and navigation for the five UC-003 Amendment 3 views, coordinating with the existing setup UI work. Build against the account-scoped read and write contracts; end-to-end tests cover registration/login, first and later setup, employment selection, month entry, completed-month/payslip viewing and two-account isolation. Completed months can be viewed but not changed or deleted. Employment changes/endings and completed-month corrections remain outside UC-001/UC-002. | UC-003 Amendment 3, UC-001, UC-002 | `ui-merge` | |
 | `uc003-acceptance` | todo | After the reviewed UC-003 PR merges to `main`, confirm the merged implementation and required checks on `main`; only then record use-case acceptance and remove this task. ADR-007 decision approval is separate from use-case acceptance. | UC-003, human direction 2026-10-23 | `uc003-ui` | |
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
