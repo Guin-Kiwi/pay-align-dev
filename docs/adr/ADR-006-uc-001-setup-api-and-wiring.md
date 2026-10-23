@@ -32,4 +32,6 @@ none
 
 ## Amendment 1 (2026-10-23)
 
-Decided by Nano on 23 October 2026: `SetupRepository` keeps `get_employment(employment_id)`, which returns the saved employment or `None`. Only tests use it, to check what setup saved; the application does not. Payroll reads the employment terms through its own port (`employment_terms`). Not chosen: removing it, which would change the port and its tests after the feature freeze without a gain for the user.
+Approval: Proposed by Nano; accepted by a non-author reviewer's approval of the pull request that records this approval.
+
+Decision: `SetupRepository` keeps `get_employment(employment_id)`, which returns the saved employment or `None`. Only tests use it, to check what setup saved; the application does not. Payroll reads the employment terms through its own port (`employment_terms`). Not chosen: removing it, which would change the port and its tests after the feature freeze without a gain for the user.
