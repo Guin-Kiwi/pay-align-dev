@@ -70,6 +70,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 | `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `validate-uc002`, `readme-final` | Wed 28 Oct |
 | `align-gating` | todo | Align `docs/INDEX.json` and `.github/CODEOWNERS` on which files are review-gated. | INDEX.json | | |
 | `docker-312` | todo | Change the `Dockerfile` from `python:3.11-slim` to `python:3.12-slim`, so the image that runs on Render uses the same Python as CI and the tests. The release check tests only `/health` in the container, so a difference between 3.11 and 3.12 would show up only live. Update the Runtime line in PROJECT.md in the same change. | PROJECT.md | | Wed 28 Oct |
+| `docker-nonroot` | todo | The container runs as root. Add a non-root user to the `Dockerfile`, make `/app/data` writable by it, and remove the TODO comment at the top of the `Dockerfile` in the same change. Check with the release check that `/health` still answers and that setup saves to the database. | `AGENTS.md` (least privilege) | `docker-312` | |
 
 ### Unassigned
 

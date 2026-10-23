@@ -104,9 +104,10 @@ tier. Move down when a task turns out to be Fast Track.
   free number. Pick one way as a team so numbers do not clash.
 - One use case per branch and per PR. With an issue, the PR body says
   `Closes #42`.
-- `docs/TASKS.md` is the team's shared task list. Add rows under your own
-  name only (unowned work under Unassigned); the PR that finishes a task
-  deletes its row. Before merging, update the branch from `main` and
+- `docs/TASKS.md` is the team's shared task list. Add a row under the
+  person who owns the work (unowned work under Unassigned) and name them in
+  the PR description; an owner who disagrees changes or deletes the row. The
+  PR that finishes a task deletes its row. Before merging, update the branch from `main` and
   reconcile `docs/TASKS.md` and any UC or ADR numbers with what `main`
   already has.
 - ADR numbers: take the next unused number on `main`. CI rejects duplicates.
@@ -173,7 +174,7 @@ only settles the advisory; the teammate's approval is still required.
   from the arrow next to the merge button).
 - **`docs/TASKS.md` conflicts** are expected when two branches run in
   parallel. To resolve, keep `main`'s version, then delete the row your
-  branch finishes, put back the rows you added under your own name, and put
+  branch finishes, put back the rows you added (under whoever owns them), and put
   back your branch's PHASE, STATUS and current use case. You can ask your
   agent to do this.
 - If the `advisory` job warns, the reviewer looks harder at the flagged files,
