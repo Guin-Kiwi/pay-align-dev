@@ -148,7 +148,9 @@ wording.
    are immutable once saved.
 4. A run can be reproduced from its entries and its run snapshot, with the rules of
    the named ruleset. Gross to date for the annual limits comes from the
-   `monthly_records` of the whole calendar year, not from the snapshot.
+   `monthly_records` of the whole calendar year, not from the snapshot. Item 4 was
+   reworded on 21 October 2026 ("the earlier `monthly_records`" became the whole
+   calendar year); proposed by Ayla, accepted with the rest of this amendment.
 5. This replaces "a frozen snapshot of the submitted entries, the employment
    parameters, and the named payroll-ruleset version" and "calculated from that
    snapshot" in the Decision, and "the employment snapshot" in Amendment 1.

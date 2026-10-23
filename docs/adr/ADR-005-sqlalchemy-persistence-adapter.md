@@ -42,7 +42,7 @@ foundation.
 
 Holiday entitlement and the derived balance are defined by [ADR-004 Amendment 1](ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-1-2026-10-16).
 
-Approval: Approved by Nano on 21 October 2026.
+Approval: Approved verbally by Nano on 21 October 2026.
 
 ## Consequences
 - `SQLitePayrollRepository` was replaced by the SQLAlchemy adapter; its tests moved to the new adapter first (TDD).
