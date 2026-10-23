@@ -24,6 +24,9 @@ class EmployerRow(Base):
     __tablename__ = "employers"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey("accounts.id"), nullable=False, unique=True
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     address: Mapped[str] = mapped_column(String, nullable=False)
     ahv_number: Mapped[str] = mapped_column(String, nullable=False, unique=True)

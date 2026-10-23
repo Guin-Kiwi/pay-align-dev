@@ -12,16 +12,18 @@ class InMemorySetupRepository(SetupRepository):
         self.employees: list[Employee] = []
         self.employments: list[Employment] = []
 
-    def get_employer(self) -> Employer | None:
+    def get_employer(self, account_id: int) -> Employer | None:
         return self.employer
 
-    def get_employee(self, ahv_number: str) -> Employee | None:
+    def get_employee(self, ahv_number: str, account_id: int) -> Employee | None:
         return next((e for e in self.employees if e.ahv_number == ahv_number), None)
 
-    def get_employment(self, employment_id: int) -> Employment | None:
+    def get_employment(self, employment_id: int, account_id: int) -> Employment | None:
         return next((e for e in self.employments if e.id == employment_id), None)
 
-    def save(self, employer: Employer, employee: Employee, employment: Employment) -> SetupResult:
+    def save(
+        self, account_id: int, employer: Employer, employee: Employee, employment: Employment
+    ) -> SetupResult:
         if employer.id is None:
             employer.id = 1
             self.employer = employer

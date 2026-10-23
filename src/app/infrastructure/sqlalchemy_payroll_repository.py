@@ -21,6 +21,7 @@ from src.app.domain.errors import (
 )
 from src.app.infrastructure.orm_models import (
     EmploymentRow,
+    EmployerRow,
     MonthlyRecordRow,
     PayrollSnapshotRow,
     PayslipRow,
@@ -164,9 +165,16 @@ class SqlAlchemyPayrollRepository(PayrollRepositoryPort):
                 record.id, record.year, record.month, snapshot.holiday_balance_minutes
             )
 
-    def employment_terms(self, employment_id: int) -> StoredEmployment | None:
+    def employment_terms(
+        self, employment_id: int, account_id: int | None = None
+    ) -> StoredEmployment | None:
         with Session(self.engine) as session:
-            row = session.get(EmploymentRow, employment_id)
+            query = select(EmploymentRow).where(EmploymentRow.id == employment_id)
+            if account_id is not None:
+                query = query.join(EmployerRow).where(
+                    EmployerRow.account_id == account_id
+                )
+            row = session.scalar(query)
             if row is None:
                 return None
             return StoredEmployment(

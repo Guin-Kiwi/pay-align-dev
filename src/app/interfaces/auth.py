@@ -113,6 +113,21 @@ def current_account(
     return _to_response(account)
 
 
+def require_account_id(
+    request: Request,
+    service: AccountService = Depends(get_account_service),
+) -> int:
+    account_id = request.session.get("account_id")
+    if not isinstance(account_id, int) or isinstance(account_id, bool):
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    try:
+        service.get(account_id)
+    except AccountNotFoundError as error:
+        request.session.clear()
+        raise HTTPException(status_code=401, detail="Authentication required.") from error
+    return account_id
+
+
 @auth_router.post("/logout", status_code=204)
 def logout(
     request: Request,

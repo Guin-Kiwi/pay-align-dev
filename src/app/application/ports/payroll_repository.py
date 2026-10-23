@@ -112,5 +112,7 @@ class PayrollRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    def employment_terms(self, employment_id: int) -> StoredEmployment | None:
+    def employment_terms(
+        self, employment_id: int, account_id: int | None = None
+    ) -> StoredEmployment | None:
         ...

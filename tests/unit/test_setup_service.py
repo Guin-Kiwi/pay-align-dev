@@ -15,7 +15,7 @@ from src.app.infrastructure.in_memory_setup_repository import InMemorySetupRepos
 
 class TestSetupService(unittest.TestCase):
     def setUp(self):
-        self.service = SetupService(InMemorySetupRepository())
+        self.service = SetupService(InMemorySetupRepository(), account_id=1)
 
     def test_accepts_hourly_wage_of_22_50(self):
         employment = self.service.create_employment(
@@ -251,7 +251,7 @@ EMPLOYMENT_DETAILS = {
 class TestSetUpEmployment(unittest.TestCase):
     def setUp(self):
         self.repository = InMemorySetupRepository()
-        self.service = SetupService(self.repository)
+        self.service = SetupService(self.repository, account_id=1)
 
     def test_saves_employer_employee_and_employment_when_no_employer_exists(self):
         result = self.service.set_up_employment(
@@ -292,8 +292,8 @@ class TestSetUpEmployment(unittest.TestCase):
             employer=EMPLOYER_DETAILS, employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS
         )
 
-        self.assertEqual(self.repository.get_employment(result.employment_id).hourly_wage, 28.50)
-        self.assertIsNone(self.repository.get_employment(99))
+        self.assertEqual(self.repository.get_employment(result.employment_id, 1).hourly_wage, 28.50)
+        self.assertIsNone(self.repository.get_employment(99, 1))
 
     def test_rejects_a_second_employer_and_saves_nothing(self):
         self.repository.employer = make_employer(id=7)

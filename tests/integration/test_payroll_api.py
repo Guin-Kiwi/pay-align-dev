@@ -3,13 +3,15 @@
 from datetime import date
 
 import pytest
-from fastapi.testclient import TestClient
+from tests.integration.authenticated_client import AuthenticatedTestClient
 from sqlalchemy import text
 
 from src.app.infrastructure.database import create_database_engine, create_schema
 from src.app.infrastructure.sqlalchemy_payroll_repository import (
     SqlAlchemyPayrollRepository,
 )
+from src.app.infrastructure.sqlalchemy_account_repository import SqlAlchemyAccountRepository
+from src.app.infrastructure.sqlalchemy_setup_repository import SqlAlchemySetupRepository
 from src.app.infrastructure.web.app import create_app
 from tests.database_helpers import add_employment
 
@@ -42,8 +44,12 @@ def client(tmp_path):
         employee_id=9,
         start_date=date(2026, 10, 1),
     )
-    app = create_app(payroll_repository=SqlAlchemyPayrollRepository(engine))
-    with TestClient(app) as test_client:
+    app = create_app(
+        payroll_repository=SqlAlchemyPayrollRepository(engine),
+        setup_repository=SqlAlchemySetupRepository(engine),
+        account_repository=SqlAlchemyAccountRepository(engine),
+    )
+    with AuthenticatedTestClient(app, email="employer-3@example.ch", register=False) as test_client:
         yield test_client, engine
     engine.dispose()
 
@@ -375,10 +381,13 @@ def test_wages_from_another_employer_do_not_count_towards_the_employee_limit(cli
         engine, employment_id=10, employer_id=4, employee_id=9, start_date=date(2026, 9, 1)
     )
 
-    other_employer = test_client.post(
-        "/api/v1/monthly-payroll",
-        json=bonus_only(employment_id=10, month=9, cash_bonus=3_000),
-    )
+    with AuthenticatedTestClient(
+        test_client.app, email="employer-4@example.ch", register=False
+    ) as other_client:
+        other_employer = other_client.post(
+            "/api/v1/monthly-payroll",
+            json=bonus_only(employment_id=10, month=9, cash_bonus=3_000),
+        )
     this_employer = test_client.post(
         "/api/v1/monthly-payroll", json=bonus_only(cash_bonus=20_000)
     )

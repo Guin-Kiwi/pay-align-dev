@@ -66,7 +66,7 @@ def create_app(
     )
     app.state.engine = engine
     app.state.session_cookie_secure = session_cookie_secure
-    app.state.setup_service = SetupService(setup_repository)
+    app.state.setup_repository = setup_repository
     app.state.payroll_service = PayrollService()
     app.state.payroll_repository = payroll_repository
     app.state.account_service = AccountService(
