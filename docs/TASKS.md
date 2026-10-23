@@ -1,7 +1,7 @@
 # TASKS.md
 
-PHASE: 3
-STATUS: in-progress
+PHASE: 1
+STATUS: done
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -10,24 +10,23 @@ STATUS: in-progress
 | Phase | Status | Notes |
 |---|---|---|
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
-| 1 — Specify | Established; review as needed | UC-001 and UC-002 are documented. |
-| 2 — Design | Established; amend as needed | ADR-001 to ADR-006 are Accepted. |
+| 1 — Specify | Done | UC-003 defines login-first entry, self-registration, one account per employer, browser-isolated identity and a fresh empty-database assumption. |
+| 2 — Design | Ready | Design the account, browser-session and employer-ownership components for UC-003; record the decision in ADR-007 before development. |
 | 3 — Develop | In progress | Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; the slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
 
 ## Active objective
 
-Implement and validate the initial vertical slice for employment setup and monthly payroll,
-following the accepted architecture decisions and use-case specifications.
+Specify and deliver employer accounts, login and employer-scoped access for PayAlign through the repository lifecycle.
 
 ## Current Use Case
 
-docs/specs/UC-002-Process-the-Monthly-Employment.md
+docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-`validate-uc002` (see Tasks).
+Start DESIGN by checking the existing architecture against UC-003, then record the account, session and ownership components in ADR-007 for human review.
 
 ## Tasks
 
@@ -78,6 +77,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 |---|---|---|---|---|---|
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
+| `uc003-design` | todo | Design the account, browser-session and employer-ownership components that satisfy UC-003; record the proposed decision in ADR-007 before development. | UC-003, PROJECT.md | | |
 
 ## Acceptance / validation cues
 
@@ -89,18 +89,19 @@ Feature freeze is Sat 24 October: fixes only from then.
   atomic monthly record/payslip persistence.
 - Invalid inputs and annual-limit breaches fail before persistence; success
   returns a confirmation after the transaction completes.
-- The architecture remains consistent with ADR-001 through ADR-006 (see Evidence links).
-- Evidence: the two use-case specifications, ADR-001 to ADR-006 and the tests
+- The architecture remains consistent with ADR-001 through ADR-006 (see Evidence links); UC-003's architecture will be recorded during DESIGN.
+- UC-003 records account registration, browser-isolated identity, employer ownership and the initial empty-database assumption.
+- Evidence: the three use-case specifications, ADR-001 to ADR-006 and the tests
   under `tests/`.
 
 ## Validation approach
 
 Each use case's tests are named in its Validation plan ([UC-001](specs/UC-001-Set-Up-an-Employment.md),
-[UC-002](specs/UC-002-Process-the-Monthly-Employment.md)); trade-offs are in the ADR Consequences.
+[UC-002](specs/UC-002-Process-the-Monthly-Employment.md), [UC-003](specs/UC-003-Employer-Accounts-and-Secure-Access.md)); trade-offs are in the ADR Consequences.
 
 ## Blockers / assumptions
 
-- No architecture blocker found.
+- Specify is complete for UC-003. Design must reconcile ADR-007 with self-registration from the login page and the absence of existing data before implementation.
 - Assumption: the first implementation slice uses HTTP delivery and a
   relational ORM adapter as described by `docs/PROJECT.md`.
 - Human review remains required for the review-gated use-case specifications.
@@ -109,6 +110,7 @@ Each use case's tests are named in its Validation plan ([UC-001](specs/UC-001-Se
 
 - [UC-001 specification](specs/UC-001-Set-Up-an-Employment.md)
 - [UC-002 specification](specs/UC-002-Process-the-Monthly-Employment.md)
+- [UC-003 specification](specs/UC-003-Employer-Accounts-and-Secure-Access.md)
 - [ADR-001 Clean Architecture boundaries](adr/ADR-001-clean-architecture-boundaries.md)
 - [ADR-002 Versioned AKBS payroll rules](adr/ADR-002-versioned-akbs-payroll-rules.md)
 - [ADR-003 Monetary precision and rounding](adr/ADR-003-monetary-precision-and-rounding.md)
