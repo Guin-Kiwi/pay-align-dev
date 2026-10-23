@@ -26,16 +26,18 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Begin Slice 2 by adding failing integration tests for employer ownership and CSRF protection on setup/payroll writes; commit the RED checkpoint before implementation.
+Implement Slice 2 against the committed RED checkpoint: authenticate setup and payroll operations, enforce CSRF on their writes, and associate each employer profile with its account.
 
 UC-003 TDD slices:
 1. Account persistence, password hashing, registration/login/logout and four-hour session; tests-only RED checkpoint is committed and the implementation passes focused tests.
-2. Employer-to-account onboarding, authenticated setup ownership and CSRF on setup/payroll writes; add failing integration tests, commit RED, then implement and commit GREEN.
+2. Employer-to-account onboarding, authenticated setup ownership and CSRF on setup/payroll writes; tests-only RED checkpoint committed (6 failing), implementation remains.
 3. Employer-scoped employee identity and payroll reads/writes; add failing integration tests, commit RED, then implement and commit GREEN.
 4. Browser login/registration/setup/payroll workflows; add failing end-to-end coverage, commit RED, then implement and commit GREEN.
 5. Run the full project validation after all slices; record results in the validation commit.
 
 Previous next step: Resume DEVELOP by aligning the existing implementation with UC-003 Amendment 2 and ADR-007 Amendment 1.
+
+Previous next step: Add and commit Slice 2 integration tests for employer ownership, protected setup/payroll writes and CSRF; the RED checkpoint has six expected failures.
 
 Previous next step: Complete the account/login foundation GREEN commit, then begin employer ownership and write-request CSRF with a tests-only RED commit.
 
