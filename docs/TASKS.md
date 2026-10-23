@@ -11,7 +11,7 @@ STATUS: in-progress
 |---|---|---|
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 defines login-first entry, self-registration, one account per employer, browser-isolated identity and a fresh empty-database assumption. |
-| 2 — Design | In progress | ADR-007 proposes account ownership, browser workflows and a two-hour signed-cookie session; copied-cookie use until expiry is recorded as a limitation. Await human review. |
+| 2 — Design | In progress | ADR-007 proposes account ownership, browser workflows and a four-hour signed-cookie session; copied-cookie use until expiry is recorded as a limitation. Await human review. |
 | 3 — Develop | In progress | Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; the slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
@@ -77,7 +77,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 |---|---|---|---|---|---|
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
-| `uc003-design` | doing | Review ADR-007 and UC-003 Amendment 1, which record browser setup/payroll pages, employer-first combined onboarding, and a two-hour signed-cookie session with copied-cookie use until expiry as a known limitation. | UC-003, PROJECT.md | | |
+| `uc003-design` | doing | Review ADR-007 and UC-003 Amendment 1, which record browser setup/payroll pages, employer-first combined onboarding, and a four-hour signed-cookie session with copied-cookie use until expiry as a known limitation. | UC-003, PROJECT.md | | |
 
 ## Acceptance / validation cues
 

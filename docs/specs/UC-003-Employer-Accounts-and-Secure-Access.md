@@ -99,5 +99,5 @@ At VALIDATE, record the actual test results in the commit message.
 ## Amendment 1 — 2026-10-23: Browser workflows and session lifetime
 - Add browser pages for employer setup, employee/employment setup and monthly payroll entry. They expose the fields and follow the behavior already defined by UC-001 and UC-002; Swagger remains a developer tool, not the employer workflow.
 - First-time onboarding presents employer details before the first employee and employment details, then submits them together through the setup operation.
-- A login session has a fixed two-hour lifetime from successful login. After expiry, the employer must log in again. There is no inactivity-based timeout in this slice. Session implementation and the known limitation that a copied cookie remains usable until expiry are specified in ADR-007.
+- A login session has a fixed four-hour lifetime from successful login. After expiry, the employer must log in again. There is no inactivity-based timeout in this slice. Session implementation and the known limitation that a copied cookie remains usable until expiry are specified in ADR-007.
 - Given a registered employer, when they complete setup and process payroll, then both workflows are available through browser pages using the UC-001 and UC-002 fields and rules.
