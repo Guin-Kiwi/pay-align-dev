@@ -60,7 +60,6 @@ Feature freeze is Sat 24 October: fixes only from then.
 |---|---|---|---|---|---|
 | `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | `validate-uc002` | |
 | `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | |
-| `min-wage-floor` | todo | Decide a minimum-wage floor by weekly hours (known limitation in UC-001). | UC-001 | | |
 
 ### Assvinth
 
