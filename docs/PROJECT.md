@@ -19,7 +19,7 @@ We are using **Clean Architecture** to ensure the core payroll logic is complete
 * **Interfaces:** Contains the web routing (e.g., FastAPI controllers) and request/response models.
 * **Infrastructure:** Contains the ORM mappings (e.g., SQLAlchemy), database connection, and the web server wiring.
 
-**Deployment & Data-store:** The application is a containerized full-stack web application. It uses a relational database via an ORM (SQLite locally and in the tests, PostgreSQL on Neon for the Render deployment; see `DATABASE_URL` under Data conventions). It runs locally via Docker, and on a free Render web service at https://pay-align-dev.onrender.com, which builds the `Dockerfile` from `main`. On Render, `DATABASE_URL` is the connection URL of a free Neon PostgreSQL database, so the data survives deploys and restarts ([ADR-005 Amendment 1](adr/ADR-005-sqlalchemy-persistence-adapter.md#amendment-1-2026-10-23)).
+**Deployment & Data-store:** The application is a containerized full-stack web application. It uses a relational database via an ORM. The code on `main` supports SQLite for local runs and tests and PostgreSQL on Neon for the Render deployment (see `DATABASE_URL` under Data conventions). It runs locally via Docker and on a free Render web service at https://pay-align-dev.onrender.com, which builds the `Dockerfile` from `main`. Render's active database is selected by its `DATABASE_URL` environment variable. After the PostgreSQL-capable code is deployed, setting that variable to the Neon URL makes data survive deploys and restarts ([ADR-005 Amendment 1](adr/ADR-005-sqlalchemy-persistence-adapter.md#amendment-1-2026-10-23)).
 
 ## Structure
 

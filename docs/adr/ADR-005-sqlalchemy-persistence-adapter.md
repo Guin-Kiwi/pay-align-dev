@@ -57,9 +57,9 @@ none
 
 ## Amendment 1 (2026-10-23)
 
-Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
+Approval: Proposed by Ayla; this amendment becomes accepted when a non-author reviewer approves the pull request and it is merged into `main`.
 
-Decision: the Render deployment stores its data in a free Neon PostgreSQL database. SQLite stays for local runs, Docker Compose and the tests.
+Decision: use a free Neon PostgreSQL database for the Render deployment. SQLite stays for local runs, Docker Compose and the tests.
 
 1. `DATABASE_URL` accepts `sqlite` and `postgresql` URLs (item 5). A `postgresql://` URL is opened with the psycopg 3 driver; `postgres://` is rejected.
 2. The SQLite connection settings (`PRAGMA foreign_keys=ON`, `check_same_thread`, `StaticPool` for in-memory databases) apply to SQLite only. PostgreSQL enforces foreign keys itself, so item 6 holds for both.
