@@ -25,7 +25,7 @@ Approved by Nano on 15 October 2026. The payroll router uses the same wiring pat
 - Routers stay free of infrastructure imports. The payroll router adopted the same pattern, which cleared the architecture violation that the first payroll router caused.
 - `create_app()` wires `SqlAlchemySetupRepository`, so setup data survives a restart. `InMemorySetupRepository` remains for tests.
 - A JSON field that is missing entirely, or a wage with more than two decimals, returns FastAPI's 422. A blank value returns 400 from the domain.
-- Follow-ups: PR #9 has merged, but `docs/PROJECT.md` does not list the endpoints yet; a human may add the input rules to the review-gated UC-001 spec; both routers now use the wiring pattern, so it can be proposed as a durable rule for `AGENTS.md`.
+- Follow-ups: `docs/PROJECT.md` does not list the endpoints yet; a human may add the input rules to the review-gated UC-001 spec; both routers now use the wiring pattern, so it can be proposed as a durable rule for `AGENTS.md`.
 
 ## Supersedes
 none

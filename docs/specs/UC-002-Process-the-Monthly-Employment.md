@@ -51,11 +51,11 @@ The employer selects **"Process Monthly Payroll"** in the application.
    - Derives the remaining holiday balance from the employment's configured entitlement and prior persisted runs, less paid holiday hours.
    - Prepares the run snapshot: the employment terms, the ruleset version, the hour totals and the holiday balance after the run. The entries are saved as `work_entries`.
    - Calculates **Gross wage** (worked and paid holiday/public-holiday hours × hourly rate + applicable supplements + bonus).
-   - Calculates **Deductions** (AHV/IV/EO, ALV, 5% tax, NBU if weekly hours ≥ 8).
+   - Calculates **Deductions** (AHV/IV/EO, ALV, tax, and NBU when it applies), as in [calculations.md Step B](../reference/calculations.md#step-b-calculate-employee-deductions).
    - Calculates **Net payout** (gross wage - deductions + expenses).
 5. The system checks that the month is not after the employment's end month, that the month is the next run in sequence, that every entry is dated within the employment, if the monthly run exceeds annual limits, rejects duplicate months, and verifies the derived holiday balance is valid. The annual limits count the whole calendar year, whatever the month of the run:
-   - Employee: CHF 22,680 gross. Only wages from this employer count, across all of the employee's employments with this employer. Wages from other employers do not.
-   - Employer: CHF 60,480 gross. All of this employer's employees count.
+   - Employee limit ([`EMPLOYEE_GROSS_LIMIT`](../../src/app/domain/constants.py), gross wage): only wages from this employer count, across all of the employee's employments with this employer. Wages from other employers do not.
+   - Employer limit ([`EMPLOYER_GROSS_LIMIT`](../../src/app/domain/constants.py), gross wage): all of this employer's employees count.
 6. The system saves the staged entries, run snapshot (ADR-004 Amendment 2), `MonthlyRecord`, and `Payslip` in one transaction.
 7. The system displays a **confirmation message** (e.g., "Payroll processed successfully").
 
@@ -87,9 +87,9 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - The system must calculate **hours worked** for each day (end time - start time - unpaid breaks).
 - The system must identify public holidays and apply the correct pay rate.
 - The system must derive remaining holiday balance from the employment's entitlement and prior persisted runs, less paid holiday hours.
-- The system must apply 2026 deduction rates (5.3% AHV/IV/EO, 1.1% ALV, 5% tax, 1.432% NBU if applicable).
-- The system must reject a monthly run that takes the employee's calendar-year gross wage from this employer above CHF 22,680, counting every employment of that employee with this employer and no wages from other employers.
-- The system must reject a monthly run that takes the calendar-year gross wage of all of this employer's employees above CHF 60,480.
+- The system must apply the 2026 deduction rates in [`constants.py`](../../src/app/domain/constants.py) (5.3% AHV/IV/EO, 1.1% ALV, 5% tax, 1.432% NBU if applicable).
+- The system must reject a monthly run that takes the employee's calendar-year gross wage from this employer above CHF 22,680 ([`EMPLOYEE_GROSS_LIMIT`](../../src/app/domain/constants.py)), counting every employment of that employee with this employer and no wages from other employers.
+- The system must reject a monthly run that takes the calendar-year gross wage of all of this employer's employees above CHF 60,480 ([`EMPLOYER_GROSS_LIMIT`](../../src/app/domain/constants.py)).
 - The system must count the whole calendar year for both limits.
 - The system must reject duplicate monthly runs and skipped months.
 - The system must reject a run for a month after the employment's end month.
@@ -107,12 +107,12 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - The employer must authenticate to access the system (future consideration).
 
 ## Validation plan
-- **Unit Tests**: Assert exact mathematical correctness of net pay calculation for employments *under* and *over* 8 hours/week.
+- **Unit Tests**: Assert exact mathematical correctness of net pay calculation for employments below and at or above the NBU threshold (`NBU_MIN_WEEKLY_MINUTES`).
 - **Unit Tests**: Assert that expense reimbursements do not inflate the taxable/AHV-liable gross wage base.
 - **Unit Tests**: Assert that the four normal-case hour categories are classified and that holiday balance starts from employment entitlement and decreases only by paid holiday hours.
 - **Integration Tests**: Assert that submitted entries and the run snapshot (ADR-004 Amendment 2) are saved atomically with the monthly record and payslip.
 - **Integration Tests**: Assert that duplicate months and rejected annual-limit checks persist no entries, snapshot, record, or payslip.
-- **Unit Tests**: Assert that the service throws an `AnnualLimitExceededError` if a payroll run breaches the CHF 22,680 employee limit or the CHF 60,480 employer limit.
+- **Unit Tests**: Assert that the service throws an `AnnualLimitExceededError` if a payroll run breaches the employee limit or the employer limit.
 - **Integration Tests**: Assert on the real repository that the employee total ignores other employers' wages (two-employers test), that it adds up two employments of one employee with the same employer including months after the processed one (two-employments test), and that the employer total adds up all of its employees for the whole year.
 - **Unit Tests**: Assert that a run after the employment's end month is rejected, that the end month itself is accepted, and that entries on the start date and end date are accepted while the day before the start and the day after the end are rejected.
 - **Integration Tests**: Assert that a constraint failure other than the duplicate month is rejected as invalid input without the database's text, and persists nothing.

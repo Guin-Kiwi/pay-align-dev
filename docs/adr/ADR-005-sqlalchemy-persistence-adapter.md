@@ -6,7 +6,7 @@ Accepted
 ## Context
 UC-002 must save daily entries, a frozen run snapshot, the `MonthlyRecord` and the `Payslip` in one transaction ([ADR-004](ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). `docs/PROJECT.md` names a relational database reached through an ORM and configured by `DATABASE_URL`.
 
-The first database setup on `uc-002-payroll-saving` and its review exposed gaps that this decision must close:
+The first database setup and its review exposed gaps that this decision must close:
 
 - The schema for `monthly_records` and `payslips` is defined twice: in the ORM models and in the raw DDL of `SQLitePayrollRepository`. The two differ (foreign keys) and the repository's legacy migration recreates tables without them.
 - The repository is SQLite-only but `DATABASE_URL` accepts any URL. It is also handed the raw driver connection of a pooled SQLAlchemy connection, so pool resets and threads can interfere with its transactions.
@@ -25,7 +25,7 @@ The first database setup on `uc-002-payroll-saving` and its review exposed gaps 
 Infrastructure has one persistence adapter, built on SQLAlchemy 2.x, and the ORM models are the only schema definition.
 
 The database foundation (`database.py`, `orm_models.py`, and the five skeleton
-tables) is delivered separately in PR #18. `work_entries`,
+tables) is delivered separately. `work_entries`,
 `payroll_snapshots`, and `monthly_records.employee_id` are not included in that
 foundation.
 
@@ -45,7 +45,7 @@ Holiday entitlement and the derived balance are defined by [ADR-004 Amendment 1]
 Approval: Approved by Nano on 21 October 2026.
 
 ## Consequences
-- `SQLitePayrollRepository` was replaced during DEVELOP on `uc-002-payroll-saving`; its tests moved to the new adapter first (TDD).
+- `SQLitePayrollRepository` was replaced by the SQLAlchemy adapter; its tests moved to the new adapter first (TDD).
 - SQLAlchemy imports stay in infrastructure; the architecture test keeps enforcing this.
 - `requirements.txt` pins `sqlalchemy>=2.0`.
 - `create_all` does not alter existing tables; an existing `data/payroll.db` on the Docker volume must be deleted until migrations are decided.

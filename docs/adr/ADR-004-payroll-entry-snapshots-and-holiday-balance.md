@@ -86,7 +86,7 @@ The following decisions amend this ADR:
   pro-rated by the days under contract in the calendar year, with both the
   start and end dates counted, divided by 365, and rounded half-up once to
   whole minutes (OR 329a para. 3). Source: team decision of 16 October 2026,
-  recorded in the UC-001 spec (PR #17).
+  recorded in the UC-001 spec.
 4. The app accepts 2026 only (ADR-002). Later years, including 366 days in
    2028, are a known limitation; cross-year carry-over remains dormant until a
    second ruleset exists.
