@@ -1,7 +1,7 @@
 # TASKS.md
 
 PHASE: 2
-STATUS: in-progress
+STATUS: done
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -11,8 +11,8 @@ STATUS: in-progress
 |---|---|---|
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 defines login-first entry, self-registration, one account per employer, browser-isolated identity and a fresh empty-database assumption. |
-| 2 — Design | In progress | ADR-007 proposes account ownership, browser workflows and a four-hour signed-cookie session; copied-cookie use until expiry is recorded as a limitation. Human review is submitted; await the PR reviewer feasibility check. |
-| 3 — Develop | In progress | Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; the slice goes through VALIDATE next. |
+| 2 — Design | Done | ADR-007 accepted by Ayla Allen on 23 October 2026; browser workflows, ownership boundaries and four-hour sessions are documented. Previous status: ADR-007 proposed account ownership, browser workflows and a four-hour signed-cookie session; copied-cookie use until expiry was recorded as a limitation. Human review was submitted; the separate PR reviewer feasibility check is deferred to implementation review. |
+| 3 — Develop | Ready | UC-003 implementation is next; existing payroll validation work remains tracked under its own tasks. Existing payroll calculation, persistent payroll saving and payroll-router database wiring are implemented; that slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
 
@@ -26,7 +26,9 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Resolve PR reviewer feedback on browser UI/pages feasibility; accept ADR-007 and select DEVELOP.
+Start DEVELOP with account persistence, password hashing, login/logout, and the four-hour session boundary; add tests before implementation.
+
+Previous next step: Resolve PR reviewer feedback on browser UI/pages feasibility; accept ADR-007 and select DEVELOP. This was superseded on 23 October 2026 when Ayla chose to proceed and defer that feasibility check to implementation review.
 
 ## Tasks
 
@@ -75,9 +77,10 @@ Feature freeze is Sat 24 October: fixes only from then.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
+| `uc003-design` | done | Human review is submitted. Obtain the PR reviewer check that browser UI/pages are feasible, then accept ADR-007 and UC-003 Amendment 1. Resolution 23 October 2026: Ayla Allen accepted ADR-007 and chose to defer the separate UI feasibility check to implementation review. | UC-003, PROJECT.md | | |
+| `uc003-auth` | todo | Implement account persistence, password hashing, registration/login/logout and the four-hour signed-cookie boundary as the first UC-003 vertical slice, with tests. Follow with employer-scoped operations and the browser pages defined by UC-003. | UC-003, ADR-007 | | |
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
-| `uc003-design` | doing | Human review is submitted. Obtain the PR reviewer check that browser UI/pages are feasible, then accept ADR-007 and UC-003 Amendment 1. | UC-003, PROJECT.md | | |
 
 ## Acceptance / validation cues
 
@@ -89,10 +92,12 @@ Feature freeze is Sat 24 October: fixes only from then.
   atomic monthly record/payslip persistence.
 - Invalid inputs and annual-limit breaches fail before persistence; success
   returns a confirmation after the transaction completes.
-- The architecture remains consistent with ADR-001 through ADR-006 (see Evidence links); UC-003's architecture will be recorded during DESIGN.
+- The architecture remains consistent with ADR-001 through ADR-007 (see Evidence links); UC-003's architecture is recorded in ADR-007.
+- Previously tracked design acceptance cue: the architecture remains consistent with ADR-001 through ADR-006; UC-003's architecture will be recorded during DESIGN. This cue is now satisfied by ADR-007.
 - UC-003 records account registration, browser-isolated identity, employer ownership and the initial empty-database assumption.
 - Evidence: the three use-case specifications, ADR-001 to ADR-006 and the tests
   under `tests/`.
+- Additional UC-003 design evidence: ADR-007 and UC-003 Amendment 1.
 
 ## Validation approach
 
@@ -102,6 +107,7 @@ Each use case's tests are named in its Validation plan ([UC-001](specs/UC-001-Se
 ## Blockers / assumptions
 
 - Human review is submitted; ADR-007 remains proposed pending PR reviewer feasibility feedback on the browser UI/pages plan and explicit acceptance.
+- Resolution 23 October 2026: ADR-007 is accepted. The separate UI feasibility check is deferred to implementation review and does not block DEVELOP.
 - Assumption: the first implementation slice uses HTTP delivery and a
   relational ORM adapter as described by `docs/PROJECT.md`.
 - Human review remains required for the review-gated use-case specifications.
@@ -117,6 +123,7 @@ Each use case's tests are named in its Validation plan ([UC-001](specs/UC-001-Se
 - [ADR-004 Payroll entry snapshots and holiday balance](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)
 - [ADR-005 SQLAlchemy persistence adapter](adr/ADR-005-sqlalchemy-persistence-adapter.md)
 - [ADR-006 UC-001 setup API and wiring](adr/ADR-006-uc-001-setup-api-and-wiring.md)
+- [ADR-007 employer accounts and secure access](adr/ADR-007-employer-accounts-and-secure-access.md)
 - [PROJECT architecture](PROJECT.md)
 - [Calculations: formulas](reference/calculations.md)
 - [Constants: rates, limits and thresholds](../src/app/domain/constants.py)
