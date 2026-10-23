@@ -55,6 +55,7 @@ The employer registers or logs in to manage employment and payroll data.
 - Invalid login returns a generic authentication error.
 - Protected requests without a valid session are rejected.
 - Requests for another employer's employment, employee, payroll run or payslip are denied without revealing whether the record exists.
+- Persistence error handling follows [UC-002 acceptance criteria](UC-002-Process-the-Monthly-Employment.md#acceptance-criteria) and [ADR-005's persistence error decision](../adr/ADR-005-sqlalchemy-persistence-adapter.md#decision).
 
 ## Acceptance criteria
 - Given two accounts logged in from separate browser sessions, when both use PayAlign concurrently, each request uses only the employer belonging to the account logged in through that browser; neither user's identity overwrites the other's.
