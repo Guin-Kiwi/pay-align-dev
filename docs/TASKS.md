@@ -12,7 +12,7 @@ STATUS: in-progress
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 Amendment 2 specifies session and CSRF behavior; ADR-007 Amendment 1 selects Starlette `SessionMiddleware` and links to the owning requirements. |
 | 2 — Design | Done | UC-003 Amendment 3 defines the five view boundaries for application logic. Presentation details remain with the UI implementation task. ADR-007 already sets the account-scoped read boundary; no new domain rule or ADR is needed. |
-| 3 — Develop | In progress | UC-003 is being delivered in TDD slices; existing payroll validation work remains tracked under its own tasks. Existing payroll calculation, persistent payroll saving and payroll-router database wiring are implemented; that slice goes through VALIDATE next. |
+| 3 — Develop | In progress | UC-003 account-scoped logic and backend slices are complete and locally verified; the browser UI slice remains open. Existing payroll validation work remains tracked under its own tasks. Existing payroll calculation, persistent payroll saving and payroll-router database wiring are implemented; that slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
 
@@ -68,7 +68,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 |---|---|---|---|---|---|
 | `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | `validate-uc002` | |
 | `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | |
-| `uc003-payroll-review` | todo | Review the UC-003 draft PR's payroll boundary before merge: check that setup and monthly writes, employment/month reads and saved payslips stay within the signed-in employer; foreign IDs reveal no records, and completed months remain view-only. Report findings in the PR. | UC-003, ADR-007 | | |
+| `uc003-payroll-review` | todo | Review the UC-003 PR's payroll boundary before merge: check that setup and monthly writes, employment/month reads and saved payslips stay within the signed-in employer; foreign IDs reveal no records, and completed months remain view-only. Report findings in the PR. | UC-003, ADR-007 | | |
 
 ### Assvinth
 
