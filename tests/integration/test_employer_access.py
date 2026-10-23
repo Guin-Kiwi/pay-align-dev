@@ -269,6 +269,9 @@ def test_employment_list_is_scoped_to_the_signed_in_account(monkeypatch, tmp_pat
         first_list = first.get("/api/v1/employments")
         second_list = second.get("/api/v1/employments")
         anonymous_list = anonymous.get("/api/v1/employments")
+        owned_detail = first.get(f"/api/v1/employments/{first_id}")
+        other_detail = second.get(f"/api/v1/employments/{first_id}")
+        missing_detail = second.get("/api/v1/employments/999")
 
     assert first_list.status_code == 200
     assert [item["id"] for item in first_list.json()] == [first_id]
@@ -276,6 +279,9 @@ def test_employment_list_is_scoped_to_the_signed_in_account(monkeypatch, tmp_pat
     assert second_list.status_code == 200
     assert [item["id"] for item in second_list.json()] == [second_id]
     assert anonymous_list.status_code == 401
+    assert owned_detail.status_code == 200
+    assert owned_detail.json()["id"] == first_id
+    assert other_detail.status_code == missing_detail.status_code == 404
     app.state.engine.dispose()
 
 

@@ -26,29 +26,15 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Write and commit failing integration tests for account-scoped employment, month-history and saved-payslip reads; then implement the read paths without choosing UI layout.
+Assvinth and Nano choose and test the browser presentation for the five UC-003 view boundaries, then connect it to the account-scoped setup, employment, month and payroll interfaces. Completed months remain view-only.
 
 UC-003 TDD slices:
 1. Account persistence, password hashing, registration/login/logout and four-hour session; tests-only RED checkpoint is committed and the implementation passes focused tests.
 2. Employer-to-account onboarding, authenticated setup ownership and CSRF on setup/payroll writes; tests-only RED checkpoint committed (6 failing), implementation passes focused and full project checks.
 3. Employer-scoped employee identity and payroll access; tests-only RED checkpoint committed (one failing), implementation passes focused and full project checks.
-4. Account-scoped employment list/detail, month-history and saved-payslip reads for the five views; add failing integration tests, commit RED, then implement and commit GREEN.
-5. Browser views defined by UC-003 Amendment 3; Assvinth and Nano choose presentation and navigation details, add failing end-to-end coverage, then implement. Completed months are view-only.
+4. Account-scoped employment list/detail, month-history and saved-payslip reads for the five views; tests-only RED checkpoint committed (2 failing), implementation passes focused and full project checks.
+5. Browser views defined by UC-003 Amendment 3; Assvinth and Nano choose presentation and navigation details, add failing end-to-end coverage, then implement. Completed months are view-only. The owning use cases exclude employment changes/endings and completed-month corrections; no update or delete work is implied by these views.
 6. Run the full project validation after all slices; record results in the validation commit.
-
-Previous next step: Resume DEVELOP by aligning the existing implementation with UC-003 Amendment 2 and ADR-007 Amendment 1.
-
-Previous next step: Add and commit Slice 2 integration tests for employer ownership, protected setup/payroll writes and CSRF; the RED checkpoint has six expected failures.
-
-Previous next step: Complete the account/login foundation GREEN commit, then begin employer ownership and write-request CSRF with a tests-only RED commit.
-
-Previous next step: Review UC-003 Amendment 2 and ADR-007 Amendment 1 for requirement ownership and middleware choice; then return to DEVELOP and align the implementation with the UC-003 requirements.
-
-Previous next step: Write integration tests for account persistence, password hashing, registration/login/logout and the four-hour session boundary before implementing them.
-
-Previous next step: Start DEVELOP with account persistence, password hashing, login/logout, and the four-hour session boundary; add tests before implementation.
-
-Previous next step: Resolve PR reviewer feedback on browser UI/pages feasibility; accept ADR-007 and select DEVELOP. This was superseded on 23 October 2026 when Ayla chose to proceed and defer that feasibility check to implementation review.
 
 ## Tasks
 
@@ -61,11 +47,9 @@ Feature freeze is Sat 24 October: fixes only from then.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `project-endpoints` | todo | List the API endpoints in PROJECT.md (ADR-006 notes they are missing). | ADR-006 | | |
 | `readme-template` | todo | Move the template text of the README to `docs/TEMPLATE.md`. | Capstone brief | | Sat 24 Oct |
 | `payslip-response` | todo | Show the user the whole payslip. Today the 201 response of `POST /api/v1/monthly-payroll` has only `monthly_record_id`, `gross_wage` and `net_payout`, and no endpoint returns a payslip later, so the deductions are calculated and saved but never shown. Add to the response the employee deductions (`ahv_deduction`, `alv_deduction`, `nbu_deduction`, `tax_deduction`), the employer costs (`employer_ahv`, `employer_alv`, `employer_fak`, `employer_bu`, `admin_charge`, `total_employer_cost`) and the holiday balance after the month (`holiday_balance_minutes` of the run snapshot), with `PayslipResponse` as the response model instead of `dict`. Why: UC-002 promises a compliant payslip, and the Basel household NAV requires one with all deductions and the holiday balance. Done when UC-002 has an acceptance line for it and an API test checks every field. Aaron reviews. | UC-002 | | Sat 24 Oct |
 | `db-choice` | todo | Decide which database the Render deployment uses, and record it in ADR-005. (a) SQLite: no code change; set `DATABASE_URL=sqlite:////tmp/payroll.db` on Render, because `data/` is not in the Docker image. The data is empty after every deploy and after every sleep of the free instance (15 minutes without visitors), so the demo starts empty. (b) Neon Postgres (neon.com, free, no credit card): the data stays, but it needs a Postgres driver in `requirements.txt`, `postgresql` in `SUPPORTED_BACKENDS`, the SQLite-only connection settings in `database.py` applied to SQLite only, a duplicate-month check in `sqlalchemy_payroll_repository.py` that also recognises the Postgres error, a test against Postgres and a PROJECT.md update. Someone signs up at Neon, and the connection URL goes into Render as a secret, never into a file. The grading criteria name "Render + PostgreSQL" as the example of a cloud deployment. | ADR-005 | | Sat 24 Oct |
-| `uc003-auth` | doing | Account/session foundation, authenticated setup/payroll writes and employer-scoped employee identity are implemented. Next: tested account-scoped employment list/detail, month-history and saved-payslip reads. Keep read contracts independent of UI layout. | UC-003 Amendment 3, ADR-007 | | |
 | `limit-message` | todo | When a monthly run exceeds an annual limit, the 400 message says only "Employee annual gross wage limit (CHF 22680) exceeded." (or the employer one, CHF 60480). Make it say what that means for the employer: the simplified procedure no longer applies, and the employer has to contact AKBS about the ordinary procedure, which this app does not support. Change the two messages in `payroll_calculation.py`, say in UC-002 what the warning tells the employer, and check the text in a test (no test checks it today). Aaron reviews. | UC-002 | | Wed 28 Oct |
 
 ### Nano
@@ -99,7 +83,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
 | `uc003-design` | done | Human review is submitted. Obtain the PR reviewer check that browser UI/pages are feasible, then accept ADR-007 and UC-003 Amendment 1. Resolution 23 October 2026: Ayla Allen accepted ADR-007 and chose to defer the separate UI feasibility check to implementation review. | UC-003, PROJECT.md | | |
-| `uc003-ui` | todo | Assvinth and Nano choose the presentation and navigation for the five UC-003 Amendment 3 views, coordinating with the existing setup UI work. Build against the account-scoped read and write contracts; end-to-end tests cover the browser journey and two-account isolation. Completed months can be viewed but not changed or deleted. | UC-003 Amendment 3, UC-001, UC-002 | `uc003-auth`, `ui-merge` | |
+| `uc003-ui` | todo | Assvinth and Nano choose the presentation and navigation for the five UC-003 Amendment 3 views, coordinating with the existing setup UI work. Build against the account-scoped read and write contracts; end-to-end tests cover registration/login, first and later setup, employment selection, month entry, completed-month/payslip viewing and two-account isolation. Completed months can be viewed but not changed or deleted. Employment changes/endings and completed-month corrections remain outside UC-001/UC-002. | UC-003 Amendment 3, UC-001, UC-002 | `ui-merge` | |
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
 
@@ -116,6 +100,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 - The architecture remains consistent with ADR-001 through ADR-007 (see Evidence links); UC-003's architecture is recorded in ADR-007.
 - Previously tracked design acceptance cue: the architecture remains consistent with ADR-001 through ADR-006; UC-003's architecture will be recorded during DESIGN. This cue is now satisfied by ADR-007.
 - UC-003 records account registration, browser-isolated identity, employer ownership and the initial empty-database assumption.
+- The UC-003 account and read contracts are verified for authenticated setup/payroll writes, account-scoped employment and month reads, and view-only completed payslips. The browser journey remains under `uc003-ui`.
 - Evidence: the three use-case specifications, ADR-001 to ADR-006 and the tests
   under `tests/`.
 - Additional UC-003 design evidence: ADR-007 and UC-003 Amendment 1.
@@ -127,8 +112,7 @@ Each use case's tests are named in its Validation plan ([UC-001](specs/UC-001-Se
 
 ## Blockers / assumptions
 
-- Human review is submitted; ADR-007 remains proposed pending PR reviewer feasibility feedback on the browser UI/pages plan and explicit acceptance.
-- Resolution 23 October 2026: ADR-007 is accepted. The separate UI feasibility check is deferred to implementation review and does not block DEVELOP.
+- ADR-007 was accepted on 23 October 2026. The browser UI feasibility check was deferred to implementation review.
 - Assumption: the first implementation slice uses HTTP delivery and a
   relational ORM adapter as described by `docs/PROJECT.md`.
 - Human review remains required for the review-gated use-case specifications.
