@@ -1,5 +1,3 @@
-# TODO(PR #3 review): service is named api but docs/PROJECT.md says app; DATABASE_URL format follows Ayla's database recipe. Owner: person 4.
-# TODO: Verify DATABASE_URL against Ayla's database recipe after Wednesday 14 October. Owner: Assvinth
 services:
   api:
     build:
