@@ -9,6 +9,13 @@ on:
         required: true
         default: production
   workflow_call:
+    inputs:
+      environment:
+        type: string
+        default: production
+    secrets:
+      RENDER_DEPLOY_HOOK_URL:
+        required: false
 
 permissions:
   contents: read
@@ -43,8 +50,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Deploy validated artifact
+      - name: Start Render deploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: ./scripts/deploy.sh
 
       - name: Run post-deployment smoke test
+        env:
+          APP_URL: https://pay-align-dev.onrender.com
         run: ./scripts/smoke-test.sh

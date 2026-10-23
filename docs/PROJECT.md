@@ -67,6 +67,8 @@ The release workflow runs the existing tests, builds and starts a Docker image f
 
 Pushes of version tags matching `v*` publish the archive to a GitHub Release after successful checks. Manual runs only validate and store the archive as an Actions artifact by default. Manual publication requires explicitly selecting `publish_release` and running from a `v*` tag.
 
+A published release also deploys the application: the release workflow's `deploy` job calls the CD workflow, which starts a Render deploy with `scripts/deploy.sh` (from the `RENDER_DEPLOY_HOOK_URL` secret) and then runs `scripts/smoke-test.sh` until `/health` on the Render URL answers. CD runs only while the repository variable `CD_ENABLED` is `true`; Actions → CD → Run workflow deploys by hand. Render builds the `Dockerfile` from `main`, not the released archive, and serves the previous version while it builds, so the smoke test shows that the application answers, not that the new version is live.
+
 ## Dependencies
 
 * **Runtime:** Docker, Python 3.11+
