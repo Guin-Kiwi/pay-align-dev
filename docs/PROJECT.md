@@ -56,6 +56,7 @@ Run all commands from the project directory. Docker must be available for Docker
 | Health check | `curl --fail --include http://localhost:8000/health` |
 | Unit tests | `.venv/bin/python -m pytest tests/unit/` |
 | Integration tests | `.venv/bin/python -m pytest tests/integration/` |
+| End-to-end tests (start the app as a server) | `.venv/bin/python -m pytest tests/e2e/` |
 | All project checks | `bash scripts/test.sh` |
 | Build image without cache | `docker compose build --no-cache api` |
 
