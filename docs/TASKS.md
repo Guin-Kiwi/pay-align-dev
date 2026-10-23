@@ -51,6 +51,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 | `decimal-wage` | todo | Make `Employment.hourly_wage` a `Decimal`, and remove the "Known exception" line in PROJECT.md in the same change. | ADR-003 | | |
 | `setup-port` | todo | Decide whether `SetupRepository.get_employment` stays (only tests use it), then make the code and ADR-006 item 3 agree. | ADR-006 | | |
 | `akbs-1890` | blocked | Ask AKBS (contact in `docs/reference/Employing_Household_Help_Basel.md`) about the monthly CHF 1,890: the AKBS page names it as a monthly limit, while Merkblatt 2.07 ties it to the pension-fund rule for jobs shorter than a year. Record the answer as a UC-002 decision, and as a constant if the app enforces it. | Merkblatt 2.07 | | |
+| `demo-path` | todo | Prepare the demo of both use cases on the Render deployment. Proposed on 23 October 2026 (teammates who disagree say so before Sat 24 Oct): setup through the setup page (`/setup`, from `ui-merge`) and payroll through Swagger (`/docs`); no payroll page and no endpoint listing employments for v0.1.0. If the setup page is not merged, setup also goes through Swagger. Prepare the request bodies to paste (one setup, two or three payroll months) with made-up names and AHV numbers only, since anyone with the link can save data, and open the app two minutes before the demo so the free instance is awake. Done when the whole flow has run once on the Render URL. | Capstone brief | `payslip-response` | Wed 28 Oct |
 
 ### Aaron
 
