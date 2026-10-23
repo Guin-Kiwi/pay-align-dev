@@ -109,3 +109,21 @@ At VALIDATE, record the actual test results in the commit message.
 - The browser obtains a random CSRF token from `GET /api/v1/auth/csrf`. PayAlign sets the token in a separate browser-readable `csrf_token` cookie and returns it to the UI. The UI sends the same token in `X-CSRF-Token` on every state-changing cookie-authenticated request, including registration, login, logout, setup and payroll writes. The CSRF token carries no identity authority and is not a signed session credential.
 - Given a missing or non-matching CSRF cookie/header pair, when a state-changing cookie-authenticated request is made, then PayAlign rejects it before performing the operation, comparing the values in constant time.
 - Given ordinary authenticated requests before session expiry, when they occur, then the session expiry is not extended.
+
+## Amendment 3 — 2026-10-23: Minimum browser views
+
+The requesting human defined these five view boundaries on 2026-10-23 to identify the logic the application must provide. Assvinth and Nano choose the presentation, navigation details and the data each view needs within the behavior owned by [UC-001](UC-001-Set-Up-an-Employment.md), [UC-002](UC-002-Process-the-Monthly-Employment.md) and this use case. The logic stays available through account-scoped application interfaces rather than being tied to one page layout.
+
+| View | Required capability |
+|---|---|
+| 0 — Login | Register, log in, log out and resolve the current account. |
+| 1 — Setup | Create the employer profile and first employee/employment as in UC-001; add later employments under the same employer. |
+| 2 — Employments | List the signed-in employer's employments and select one. |
+| 3 — Employment months | Read one owned employment's completed months and their saved payslips; identify the next month allowed by UC-002. Completed months are view-only. |
+| 4 — Month entry | Create the next monthly run with the UC-002 inputs and show its resulting payslip. |
+
+The CRUD boundary is explicit: account and employer creation, setup creation, and monthly-run creation are supported by the cited use cases; owned employer, employment, month and payslip reads are required for these views. [UC-001](UC-001-Set-Up-an-Employment.md#scope) excludes changing or ending an employment after setup, and its saved employee details are reused rather than overwritten. [UC-002](UC-002-Process-the-Monthly-Employment.md#scope) excludes corrections and reversals of completed months. [UC-003](#scope) excludes account deletion and employer transfer. These views do not add update or delete operations contrary to those boundaries; any future edit/delete behavior needs its own use-case decision.
+
+All list and detail reads must use the signed-in account's employer scope. An absent or another employer's employment, month or payslip has the same not-found outcome. The browser view itself grants no authority; application and repository checks remain required by [ADR-007](../adr/ADR-007-employer-accounts-and-secure-access.md#decision).
+
+Acceptance: Two concurrent accounts see only their own employment lists, months and payslips. A new account can complete setup, find its employment, create its first eligible month and read its saved payslip without Swagger. A completed month remains readable and has no update or delete action.
