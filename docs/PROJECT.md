@@ -19,7 +19,7 @@ We are using **Clean Architecture** to ensure the core payroll logic is complete
 * **Interfaces:** Contains the web routing (e.g., FastAPI controllers) and request/response models.
 * **Infrastructure:** Contains the ORM mappings (e.g., SQLAlchemy), database connection, and the web server wiring.
 
-**Deployment & Data-store:** The application is a local, containerized full-stack web application. It uses a relational database via an ORM (SQLite in v0.1.0; see `DATABASE_URL` under Data conventions). It runs locally via Docker and is accessed via a local web browser.
+**Deployment & Data-store:** The application is a containerized full-stack web application. It uses a relational database via an ORM (SQLite in v0.1.0; see `DATABASE_URL` under Data conventions). It runs locally via Docker, and on a free Render web service at https://pay-align-dev.onrender.com, which builds the `Dockerfile` from `main`. On Render, `DATABASE_URL` points to `/tmp`, so the data is lost on every deploy and restart, including when the free instance wakes up after a time without visitors.
 
 ## Structure
 
