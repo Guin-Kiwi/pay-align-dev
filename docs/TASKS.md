@@ -16,6 +16,8 @@ STATUS: in-progress
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
 
+Phase status records verified phase outputs, not final UC-003 acceptance. UC-003 acceptance is pending until the reviewed PR is merged to `main` and its checks are confirmed there.
+
 ## Active objective
 
 Specify and deliver employer accounts, login and employer-scoped access for PayAlign through the repository lifecycle.
@@ -34,7 +36,8 @@ UC-003 TDD slices:
 3. Employer-scoped employee identity and payroll access; tests-only RED checkpoint committed (one failing), implementation passes focused and full project checks.
 4. Account-scoped employment list/detail, month-history and saved-payslip reads for the five views; tests-only RED checkpoint committed (2 failing), implementation passes focused and full project checks.
 5. Browser views defined by UC-003 Amendment 3; Assvinth and Nano choose presentation and navigation details, add failing end-to-end coverage, then implement. Completed months are view-only. The owning use cases exclude employment changes/endings and completed-month corrections; no update or delete work is implied by these views.
-6. Run the full project validation after all slices; record results in the validation commit.
+6. Run the full project validation after all slices; record results in the validation commit and PR evidence.
+7. After the reviewed UC-003 PR is merged to `main`, confirm its checks on `main` and record UC-003 acceptance. Passing local or PR checks alone does not accept the use case.
 
 ## Tasks
 
@@ -82,12 +85,14 @@ Feature freeze is Sat 24 October: fixes only from then.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `uc003-design` | done | Human review is submitted. Obtain the PR reviewer check that browser UI/pages are feasible, then accept ADR-007 and UC-003 Amendment 1. Resolution 23 October 2026: Ayla Allen accepted ADR-007 and chose to defer the separate UI feasibility check to implementation review. | UC-003, PROJECT.md | | |
 | `uc003-ui` | todo | Assvinth and Nano choose the presentation and navigation for the five UC-003 Amendment 3 views, coordinating with the existing setup UI work. Build against the account-scoped read and write contracts; end-to-end tests cover registration/login, first and later setup, employment selection, month entry, completed-month/payslip viewing and two-account isolation. Completed months can be viewed but not changed or deleted. Employment changes/endings and completed-month corrections remain outside UC-001/UC-002. | UC-003 Amendment 3, UC-001, UC-002 | `ui-merge` | |
+| `uc003-acceptance` | todo | After the reviewed UC-003 PR merges to `main`, confirm the merged implementation and required checks on `main`; only then record use-case acceptance and remove this task. ADR-007 decision approval is separate from use-case acceptance. | UC-003, human direction 2026-10-23 | `uc003-ui` | |
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
 
 ## Acceptance / validation cues
+
+These cues guide review and validation. UC-003 acceptance is recorded only after its reviewed PR is merged to `main` and the merged result is checked there; branch-local results are evidence for the PR, not final acceptance.
 
 - Both use cases have an explicit component path through domain, application,
   interfaces, and infrastructure.
@@ -100,7 +105,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 - The architecture remains consistent with ADR-001 through ADR-007 (see Evidence links); UC-003's architecture is recorded in ADR-007.
 - Previously tracked design acceptance cue: the architecture remains consistent with ADR-001 through ADR-006; UC-003's architecture will be recorded during DESIGN. This cue is now satisfied by ADR-007.
 - UC-003 records account registration, browser-isolated identity, employer ownership and the initial empty-database assumption.
-- The UC-003 account and read contracts are verified for authenticated setup/payroll writes, account-scoped employment and month reads, and view-only completed payslips. The browser journey remains under `uc003-ui`.
+- Branch-local tests verify authenticated setup/payroll writes, account-scoped employment and month reads, and view-only completed payslips. The browser journey remains under `uc003-ui`; UC-003 acceptance remains pending merge to `main`.
 - Evidence: the three use-case specifications, ADR-001 to ADR-006 and the tests
   under `tests/`.
 - Additional UC-003 design evidence: ADR-007 and UC-003 Amendment 1.
