@@ -6,6 +6,9 @@ on:
     inputs:
       environment:
         description: Deployment environment
+        type: choice
+        options:
+          - production
         required: true
         default: production
   workflow_call:
@@ -35,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$CD_ENABLED" != "true" ]; then
-            echo "CD template is present but inactive. Set CD_ENABLED=true after adding the project deployment and smoke-test commands."
+            echo "CD is off, so nothing was deployed. Set the repository variable CD_ENABLED=true to deploy."
             exit 0
           fi
           test -x scripts/deploy.sh
