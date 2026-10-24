@@ -61,13 +61,14 @@ Run all commands from the project directory. Docker must be available for Docker
 | End-to-end tests (start the app as a server) | `.venv/bin/python -m pytest tests/e2e/` |
 | Tests against PostgreSQL (skipped without the variable) | `TEST_POSTGRES_URL=postgresql://user:password@host/dbname .venv/bin/python -m pytest` |
 | All project checks | `bash scripts/test.sh` |
-| Regenerate dependency lock (uv 0.13.5, generation only) | `uv pip compile requirements.in --python-version 3.12 --universal --generate-hashes --only-binary :all: -o requirements.txt` |
+| Regenerate runtime lock (uv 0.13.5, generation only) | `uv pip compile requirements.in --python-version 3.12 --universal --generate-hashes --only-binary :all: -o requirements.txt` |
+| Regenerate development lock (after runtime lock) | `uv pip compile requirements-dev.in --python-version 3.12 --universal --generate-hashes --only-binary :all: -o requirements-dev.txt` |
 | Container runtime checks (after building) | `docker build -t payalign:local .` then `TEST_DOCKER_IMAGE=payalign:local .venv/bin/python -m pytest tests/e2e/test_docker_runtime.py` |
 | Build image without cache | `docker compose build --no-cache api` |
 
 Warning: PostgreSQL tests drop every table in the database pointed to by `TEST_POSTGRES_URL`. Use a throwaway database only; never use the Neon database used by Render.
 
-Run tests outside the runtime container in the local `.venv` Python environment. Set up this environment with the dependencies from `requirements.txt`, using `.venv/bin/python -m pip install --require-hashes --only-binary=:all: -r requirements.txt`. `.dockerignore` excludes tests and process scripts from the runtime image.
+Run tests outside the runtime container in the local `.venv` Python environment. Set up this environment with the dependencies from `requirements-dev.txt`, using `.venv/bin/python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.txt`. `scripts/setup-python.sh` also selects the development lock when it exists. The Dockerfile explicitly copies `src/`, the runtime `requirements.txt` and LICENSE; it creates an empty data directory. `.dockerignore` also excludes local data, tests and process files from the build context.
 
 The image runs as `payalign` (UID/GID 10001) and includes an empty, writable
 `/app/data` directory. Compose retains the `./data:/app/data` bind mount, so host
@@ -89,19 +90,25 @@ A published `v*` release calls the CD workflow after publication. When `CD_ENABL
 ## Dependencies
 
 * **Runtime:** Docker, Python 3.12 (`.python-version`, CI, the dev container and the container image)
-* **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), psycopg 3 (PostgreSQL driver), Pydantic (Validation), Pytest (Testing)
+* **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), psycopg 3 (PostgreSQL driver), Pydantic (Validation)
+* **Test Libraries:** pytest, httpx and packaging (build-input assertions)
 * **Environment Variables:** `DATABASE_URL` (Required for infrastructure configuration). 
 * Never commit `.env` credentials to version control.
 
-`requirements.in` declares direct dependencies; `requirements.txt` is the
-generated lock for Python 3.12, including transitive versions, platform markers
-and artifact SHA-256 hashes. Docker, CI and release tests install this lock with
-hash checking and wheels only, so source builds cannot fetch unpinned build tools.
+`requirements.in` declares direct runtime dependencies; `requirements.txt` is the
+generated runtime lock for Python 3.12, including transitive versions, platform
+markers and artifact SHA-256 hashes. Docker and Render's Docker builds install this lock with hash
+checking and wheels only, so source builds cannot fetch unpinned build tools.
+`requirements-dev.in` includes those runtime declarations, constrains them to the
+runtime lock, and adds the test libraries. `requirements-dev.txt` is the resulting
+complete development lock. CI and release tests install it with hash checking and
+wheels only. pytest and httpx are absent from the runtime image.
 Hashes also enable pip's hash checking automatically
 ([pip hash-checking mode](https://pip.pypa.io/en/stable/topics/secure-installs/)).
 
 Use uv 0.13.5 only to generate the lock; it is not an application dependency.
-Edit direct requirements in `requirements.in`, then regenerate `requirements.txt`.
+Edit direct requirements in the appropriate `.in` file, then regenerate the runtime
+lock followed by the development lock.
 Regeneration retains existing pins; add `--upgrade-package <name>` for a selected
 update or `--upgrade` for a deliberate full refresh
 ([uv lock maintenance](https://docs.astral.sh/uv/pip/compile/)). Review the inputs and generated locks

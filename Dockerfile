@@ -7,8 +7,8 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --require-hashes --only-binary=:all: -r requirements.txt
 
-# Copy the rest of the application
-COPY . /app
+COPY src/ /app/src/
+COPY LICENSE /app/LICENSE
 
 RUN groupadd --gid 10001 payalign \
     && useradd --uid 10001 --gid payalign --no-create-home --shell /usr/sbin/nologin payalign \

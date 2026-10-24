@@ -30,6 +30,29 @@ def test_image_defaults_to_nonroot_with_writable_data_directory():
     )
 
 
+def test_image_contains_only_declared_runtime_files():
+    docker(
+        "run", "--rm", "--entrypoint", "python", IMAGE, "-c",
+        "from pathlib import Path; "
+        "root = Path('/app'); "
+        "assert {p.name for p in root.iterdir()} == "
+        "{'src', 'requirements.txt', 'LICENSE', 'data'}, 'Unexpected image contents'; "
+        "assert (root / 'src/app/infrastructure/web/app.py').is_file(); "
+        "assert (root / 'requirements.txt').is_file(); "
+        "assert (root / 'LICENSE').is_file(); "
+        "assert (root / 'data').is_dir() and not any((root / 'data').iterdir())",
+    )
+
+
+def test_image_excludes_test_dependencies():
+    docker(
+        "run", "--rm", "--entrypoint", "python", IMAGE, "-c",
+        "import importlib.util; "
+        "assert importlib.util.find_spec('pytest') is None, 'pytest is in the runtime image'; "
+        "assert importlib.util.find_spec('httpx') is None, 'httpx is in the runtime image'",
+    )
+
+
 @contextmanager
 def running_container(storage):
     name = f"payalign-nonroot-test-{uuid4().hex}"

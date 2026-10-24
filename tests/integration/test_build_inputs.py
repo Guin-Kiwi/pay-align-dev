@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 
+import pytest
 from packaging.requirements import Requirement
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,8 +23,9 @@ def lock_lines(filename):
             if line.strip() and not line.lstrip().startswith("#")]
 
 
-def test_every_locked_dependency_has_an_exact_version_and_sha256_hash():
-    requirements = lock_lines("requirements.txt")
+@pytest.mark.parametrize("filename", ["requirements.txt", "requirements-dev.txt"])
+def test_every_locked_dependency_has_an_exact_version_and_sha256_hash(filename):
+    requirements = lock_lines(filename)
     assert requirements, "The dependency lock must not be empty"
     for line in requirements:
         declaration, *hashes = line.split("--hash=")
@@ -35,3 +37,13 @@ def test_every_locked_dependency_has_an_exact_version_and_sha256_hash():
         assert hashes and all(re.fullmatch(r"sha256:[0-9a-f]{64}", value.strip())
                               for value in hashes), f"{requirement.name} needs SHA-256 hashes"
 
+
+def test_development_lock_preserves_runtime_dependency_versions():
+    runtime = [Requirement(line.split("--hash=")[0].strip())
+               for line in lock_lines("requirements.txt")]
+    development = {}
+    for line in lock_lines("requirements-dev.txt"):
+        requirement = Requirement(line.split("--hash=")[0].strip())
+        development[requirement.name] = requirement.specifier
+    for requirement in runtime:
+        assert development.get(requirement.name) == requirement.specifier, requirement.name
