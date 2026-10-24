@@ -101,9 +101,14 @@ jobs:
           '
 
       - name: Start isolated test container
+        shell: bash
         run: |
+          SESSION_SECRET_KEY=$(python -c 'import secrets; print(secrets.token_urlsafe(32))')
+          export SESSION_SECRET_KEY
           docker run --detach --platform linux/amd64 --name "$TEST_CONTAINER" \
             --env DATABASE_URL=sqlite:///:memory: \
+            --env SESSION_SECRET_KEY \
+            --env SESSION_COOKIE_SECURE=false \
             --publish 127.0.0.1::8000 "$IMAGE_NAME"
 
       - name: Check health endpoint

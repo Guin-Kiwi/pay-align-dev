@@ -28,20 +28,14 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Address the remaining UC-003 release review finding before requesting review
-again: supply test session configuration to release verification and document
-Render's session secret. Authentication and ownership corrections are implemented
-as specified in [UC-003 Amendments 4 and 5](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-4--2026-10-24-registration-policy-and-csrf-token-return).
-Keep this work separate from container hardening.
-
-The review correction slice is in progress. Acceptance: release verification can
-start the authenticated app with a test-only session secret; two accounts can
-save the same employer AHV independently; authentication returns its rotated CSRF
-token for the next write; malformed CSRF values return 403; payroll cannot omit
-ownership context; and the in-memory setup adapter enforces the same ownership
-boundary. Password registration follows the policy selected by the human during
-this correction. Add regression coverage before implementation, then run the
-focused tests, `bash scripts/test.sh` and the isolated container startup check.
+Request human review of the UC-003 authentication, ownership and release
+configuration corrections, and confirm the team's decision on including UC-003
+in the release. The corrected authentication and ownership contracts are in
+[UC-003 Amendments 4 and 5](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-4--2026-10-24-registration-policy-and-csrf-token-return).
+The release workflow supplies its own test-only session secret; Render still
+needs the deployment configuration documented in [PROJECT.md](PROJECT.md#architecture).
+Container hardening remains separate. These corrections do not complete the
+browser UI or accept UC-003.
 
 Assign the `uc003-ui` task, test the browser journey across the five UC-003 view boundaries, then connect it to the account-scoped setup, employment, month and payroll interfaces. Completed months remain view-only.
 
