@@ -19,7 +19,7 @@ We are using **Clean Architecture** to ensure the core payroll logic is complete
 * **Interfaces:** Contains the web routing (e.g., FastAPI controllers) and request/response models.
 * **Infrastructure:** Contains the ORM mappings (e.g., SQLAlchemy), database connection, and the web server wiring.
 
-**Deployment & Data-store:** The application is a containerized full-stack web application that uses a relational database via an ORM. The code on `main` supports SQLite for local runs, Docker Compose and tests, and PostgreSQL on Neon for the Render deployment ([ADR-005 Amendment 1](adr/ADR-005-sqlalchemy-persistence-adapter.md#amendment-1-2026-10-23)). Render builds the `Dockerfile` from the release commit on a release, or from the latest commit on `main` on a manual deploy. Render's active database is selected by its `DATABASE_URL` environment variable; until it is switched to the Neon URL, it points to `/tmp`, so data is lost on every deploy and restart, including when the free instance wakes up after a time without visitors.
+**Deployment & Data-store:** The application is a containerized full-stack web application that uses a relational database via an ORM. The code on `main` supports SQLite for local runs, Docker Compose and tests, and PostgreSQL on Neon for the Render deployment ([ADR-005 Amendment 1](adr/ADR-005-sqlalchemy-persistence-adapter.md#amendment-1-2026-10-23)). Render builds the `Dockerfile` from the release commit on a release, or from the latest commit on `main` on a manual deploy. Render's active database is selected by its `DATABASE_URL` environment variable, which points to the Neon database (a `postgresql://` URL, checked in the Render dashboard on 24 October 2026), so saved data no longer lives in the container's `/tmp`.
 
 ## Structure
 
@@ -139,6 +139,20 @@ to build from source using these inputs.
 
 * **`DATABASE_URL` format:** a SQLAlchemy URL, e.g. `sqlite:////app/data/payroll.db` (four slashes for an absolute path inside the container). It is required; there is no silent in-memory fallback. `sqlite` and `postgresql` URLs are accepted (for example `postgresql://user:password@host/dbname?sslmode=require`); any other scheme, including `postgres://`, fails at start-up.
 * **Tables:** `employers`, `employees`, `employments`, `monthly_records`, `payslips`, `work_entries` and `payroll_snapshots`, one per core entity or persisted payroll run. `employments` stores integer `weekly_minutes` and `holiday_weeks` and a nullable `end_date`. `monthly_records` stores `employee_id` alongside `employment_id` and `employer_id`. The holiday balance is not stored on `employments`; it is derived from persisted runs ([ADR-004](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). `payroll_snapshots` stores the run snapshot ([ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-2-2026-10-20)).
+
+The current HTTP endpoints are:
+
+| Method and path | Purpose |
+|---|---|
+| `GET /health` | Health check. |
+| `GET /api/v1/employer` | Read the saved employer profile, or return 404 before setup. |
+| `POST /api/v1/setup` | Create the employer profile and first employment, or add an employment under the saved employer. |
+| `POST /api/v1/monthly-payroll` | Calculate and save the next monthly run. |
+
+FastAPI also provides Swagger UI at `/docs`, ReDoc at `/redoc` and the OpenAPI
+schema at `/openapi.json`. Setup behavior is defined in [ADR-006](adr/ADR-006-uc-001-setup-api-and-wiring.md#decision);
+monthly payroll behavior is defined in [UC-002](specs/UC-002-Process-the-Monthly-Employment.md).
+
 * **Money type** ([ADR-003](adr/ADR-003-monetary-precision-and-rounding.md)): never a binary float. The APIs read amounts as `Decimal`, payroll calculation and `PayrollService` use `Decimal`, and the database stores integer centimes (columns suffixed `_cents`). Amounts become centimes once, before saving, rounding half-up and never truncating: in `PayrollService` for payroll, in `SqlAlchemySetupRepository` for setup. `cash_bonus` and `expense_reimbursements` are rounded half-up to CHF 0.01 once, on entry to `PayrollService`. Known exception in v0.1.0: setup's `Employment.hourly_wage` is still declared `float`. It holds the API's `Decimal` and is saved through `Decimal(str(...))`; `get_employment`, which only tests use, reads it back as centimes divided by 100, a `float`. Payroll does not use it: it reads the wage in centimes and calculates in `Decimal`.
 * **`MonthlyRecord` fields:** `id`, `employment_id`, `employee_id`, `employer_id`, `month` (1-12), `year` (2026 only, the one year with a ruleset; ADR-002), `cash_bonus` and `expense_reimbursements` (stored as `_cents`). Hour totals are derived from persisted `work_entries`, not stored on `monthly_records`. A run names an `employment_id`; employer, employee and the employment terms are read from `employments` through the payroll port, and an unknown id is rejected before anything is saved (404).
 * **Run sequence:** defined in [UC-002](specs/UC-002-Process-the-Monthly-Employment.md) (alternate flows). `PriorRun` carries `year` and `month`.

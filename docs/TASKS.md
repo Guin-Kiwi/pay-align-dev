@@ -1,7 +1,7 @@
 # TASKS.md
 
-PHASE: 3
-STATUS: done
+PHASE: 5
+STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -14,7 +14,7 @@ STATUS: done
 | 2 — Design | Established; amend as needed | ADR-001 to ADR-006 are Accepted. |
 | 3 — Develop | Done for current slice | The container persistence-verification slice is verified. Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; that slice still needs VALIDATE. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
-| 5 — Deploy | Not started | Release readiness has not yet been established. |
+| 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
 ## Active objective
 
@@ -53,22 +53,19 @@ Feature freeze is Sat 24 October: fixes only from then.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `project-endpoints` | todo | List the API endpoints in PROJECT.md (ADR-006 notes they are missing). | ADR-006 | | |
-| `readme-template` | todo | Move the template text of the README to `docs/TEMPLATE.md`. | Capstone brief | | Sat 24 Oct |
-| `payslip-response` | todo | Show the user the whole payslip. Today the 201 response of `POST /api/v1/monthly-payroll` has only `monthly_record_id`, `gross_wage` and `net_payout`, and no endpoint returns a payslip later, so the deductions are calculated and saved but never shown. Add to the response the employee deductions (`ahv_deduction`, `alv_deduction`, `nbu_deduction`, `tax_deduction`), the employer costs (`employer_ahv`, `employer_alv`, `employer_fak`, `employer_bu`, `admin_charge`, `total_employer_cost`) and the holiday balance after the month (`holiday_balance_minutes` of the run snapshot), with `PayslipResponse` as the response model instead of `dict`. Why: UC-002 promises a compliant payslip, and the Basel household NAV requires one with all deductions and the holiday balance. Done when UC-002 has an acceptance line for it and an API test checks every field. Aaron reviews. | UC-002 | | Sat 24 Oct |
 | `limit-message` | todo | When a monthly run exceeds an annual limit, the 400 message says only "Employee annual gross wage limit (CHF 22680) exceeded." (or the employer one, CHF 60480). Make it say what that means for the employer: the simplified procedure no longer applies, and the employer has to contact AKBS about the ordinary procedure, which this app does not support. Change the two messages in `payroll_calculation.py`, say in UC-002 what the warning tells the employer, and check the text in a test (no test checks it today). Aaron reviews. | UC-002 | | Wed 28 Oct |
 
 ### Nano
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `demo-path` | todo | Prepare the demo of both use cases on the Render deployment. Proposed on 23 October 2026 (teammates who disagree say so before Sat 24 Oct): setup through the setup page (`/setup`, from `ui-merge`) and payroll through Swagger (`/docs`); no payroll page and no endpoint listing employments for v0.1.0. If the setup page is not merged, setup also goes through Swagger. Prepare the request bodies to paste (one setup, two or three payroll months) with made-up names and AHV numbers only, since anyone with the link can save data, and open the app two minutes before the demo so the free instance is awake. Done when the whole flow has run once on the Render URL. | Capstone brief | `payslip-response`, `deploy-render` | Wed 28 Oct |
-| `deploy-render` | doing | Deploy the app to Render (capstone Task 2, steps 5 and 6). Done: the free Render web service `pay-align-dev` builds the `Dockerfile` from `main` with auto-deploy off and `DATABASE_URL=sqlite:////tmp/payroll.db`, and setup and payroll work at https://pay-align-dev.onrender.com/docs. Left: (1) Ayla has added Render's deploy hook as the GitHub secret `RENDER_DEPLOY_HOOK_URL` (her statement; a secret cannot be checked in the repository) and sets the repository variable `CD_ENABLED=true` once the CD change is merged. (2) Merge the CD change: `scripts/deploy.sh` calls the hook, `scripts/smoke-test.sh` waits until `/health` answers, and `release.yml` calls `cd.yml` after a `v*` tag. Proposed on 23 October 2026: deploy only on a release, not on every merged PR, so a half-finished merge cannot break the live app. Once the PostgreSQL code has been deployed to Render by a release or a manual CD run (not merely merged), Nano first checks in the Render dashboard that the live commit is the commit that merged the PostgreSQL code; the smoke test only confirms that the app answers. Then Nano switches Render's `DATABASE_URL` to the Neon connection URL Ayla passes to him privately. Switching earlier restarts the old SQLite-only build with a PostgreSQL URL, and the app does not start ([ADR-005 Amendment 1](adr/ADR-005-sqlalchemy-persistence-adapter.md#amendment-1-2026-10-23)). Done when a CD run has deployed and its smoke test passed. | Capstone brief | | Wed 28 Oct |
+| `demo-path` | todo | Prepare the demo of both use cases on the Render deployment. Proposed on 23 October 2026 (teammates who disagree say so before Sat 24 Oct): setup through the setup page (`/setup`, from `ui-merge`) and payroll through Swagger (`/docs`); no payroll page and no endpoint listing employments for v0.1.0. If the setup page is not merged, setup also goes through Swagger. Prepare the request bodies to paste (one setup, two or three payroll months) with made-up names and AHV numbers only, since anyone with the link can save data, and open the app two minutes before the demo so the free instance is awake. Done when the whole flow has run once on the Render URL. | Capstone brief | `payslip-response` | Wed 28 Oct |
 
 ### Aaron
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
+| `payslip-response` | todo | Show the user the whole payslip. Today the 201 response of `POST /api/v1/monthly-payroll` has only `monthly_record_id`, `gross_wage` and `net_payout`, and no endpoint returns a payslip later, so the deductions are calculated and saved but never shown. Add to the response the employee deductions (`ahv_deduction`, `alv_deduction`, `nbu_deduction`, `tax_deduction`), the employer costs (`employer_ahv`, `employer_alv`, `employer_fak`, `employer_bu`, `admin_charge`, `total_employer_cost`) and the holiday balance after the month (`holiday_balance_minutes` of the run snapshot), with `PayslipResponse` as the response model instead of `dict`. Why: UC-002 promises a compliant payslip, and the Basel household NAV requires one with all deductions and the holiday balance. Done when UC-002 has an acceptance line for it and an API test checks every field. Ayla reviews. | UC-002 | | |
 | `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | `validate-uc002` | |
 | `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | Mon 26 Oct |
 
@@ -78,7 +75,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 |---|---|---|---|---|---|
 | `arch-test` | todo | Make the layer check in `tests/unit/test_architecture.py` recognise `src.app` imports; it must fail on a deliberate inner-to-outer import and pass on `main`. An extended check exists separately and is not integrated into `main`; it was validated against an earlier payroll router, so re-validate it against the current wiring before reporting it passing. | ADR-001 | | |
 | `ui-merge` | doing | Finish the setup UI review and merge or close it. Before merging, change two lines in `setup.html`: (1) delete "Employee tax status defaults to ordinary taxation.", because the simplified procedure takes 5% source tax from every employee, which is what payroll does; (2) extend the wage note with the known limitation of UC-001, for example: "Minimum CHF 22.20 per hour, with at most two decimal places. From 5 hours a week, the NAV Hauswirtschaft minimum applies instead (CHF 20.35, or 22.30 with 4 years' experience or EBA, or 24.55 with EFZ); this version accepts only CHF 22.20 or more and does not check the NAV category." Assvinth reported manual Safari checks (page load, saving, employer lookup after reload, invalid weekly hours, keyboard focus, a narrow window); they are unverified, and are not browser automation, a screenreader audit, a device test or proof of persistence across restarts. The UI branch also adds Node.js 22 to the PROJECT.md Commands and changes the devcontainer; CI and Release already install Node.js 22. | UC-001 | | Sat 24 Oct |
-| `readme-final` | todo | Finish the README for the capstone, with a diagram of the four layers and the main components (the grading criteria ask for a clear architecture presentation; PROJECT.md describes the layers only in text). | Capstone brief | `readme-template`, `ui-merge` | Tue 27 Oct |
+| `readme-final` | todo | Finish the README for the capstone, with a diagram of the four layers and the main components (the grading criteria ask for a clear architecture presentation; PROJECT.md describes the layers only in text). | Capstone brief | `ui-merge` | Tue 27 Oct |
 | `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `validate-uc002`, `readme-final` | Wed 28 Oct |
 | `align-gating` | todo | Align `docs/INDEX.json` and `.github/CODEOWNERS` on which files are review-gated. | INDEX.json | | |
 
