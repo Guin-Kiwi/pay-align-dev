@@ -1,11 +1,12 @@
 import pytest
-from sqlalchemy import Date, Integer, String, Time, inspect, text
+from sqlalchemy import Date, event, Integer, String, Time, inspect, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.pool import StaticPool
 
 from src.app.infrastructure.database import (
     DatabaseConfigurationError,
     create_database_engine,
+    _enable_foreign_keys,
     create_schema,
     get_database_url,
 )
@@ -52,7 +53,7 @@ def test_unset_or_blank_database_url_is_rejected(monkeypatch, value):
 
 
 @pytest.mark.parametrize(
-    "url", ["postgresql://user:pw@host/db", "mysql://host/db", "not a url", "payroll.db"]
+    "url", ["postgres://user:pw@host/db", "mysql://host/db", "not a url", "payroll.db"]
 )
 def test_unsupported_or_malformed_database_url_is_rejected(url):
     with pytest.raises(DatabaseConfigurationError, match="DATABASE_URL"):
@@ -309,3 +310,10 @@ def test_schema_persists_in_the_file_named_by_the_url(tmp_path, engines):
     url = f"sqlite:///{tmp_path / 'payroll.db'}"
     create_schema(engines(url))
     assert set(inspect(engines(url)).get_table_names()) == ENTITY_TABLES
+
+
+def test_postgresql_url_uses_psycopg_without_the_sqlite_settings():
+    engine = create_database_engine("postgresql://user:pw@localhost/payalign")
+
+    assert engine.url.drivername == "postgresql+psycopg"
+    assert not event.contains(engine, "connect", _enable_foreign_keys)

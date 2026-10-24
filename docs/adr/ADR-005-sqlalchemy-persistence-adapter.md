@@ -36,7 +36,7 @@ foundation.
    - save one run atomically: entries, snapshot, `MonthlyRecord`, `Payslip`.
 3. **Errors.** The domain defines `DuplicateMonthError` and `InvalidHolidayBalanceError` in `src/app/domain/errors.py`, beside `AnnualLimitExceededError` and `InvalidPayrollInputError`. The adapter translates the unique-constraint failure on `(employment_id, month, year)` into `DuplicateMonthError`; any other `IntegrityError` becomes `InvalidPayrollInputError` with a fixed message; no raw database error text reaches the interfaces.
 4. **Records.** `monthly_records` also stores `employee_id` (like `employer_id`), so the employee limit does not depend on employment persistence. New tables: `work_entries` (one row per submitted daily entry, belonging to a monthly record) and `payroll_snapshots` (one per monthly record). `payroll_snapshots` stores the run snapshot defined in ADR-004 Amendment 2: the employment terms (hourly wage, weekly minutes, holiday weeks, employment start and end dates), the ruleset version, the minute totals per hour category and the holiday balance after the run. The submitted entries are the record's `work_entries` and are not copied. Hour totals are not stored on `monthly_records`; they derive from `work_entries`; time is integer minutes ([ADR-004](ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). Both tables are written in the run's transaction and have no update path. Money stays integer centimes ([ADR-003](ADR-003-monetary-precision-and-rounding.md)); the adapter converts from `Decimal`.
-5. **Configuration.** `DATABASE_URL` is required and startup fails with a clear message if it is unset or has an unsupported scheme. The engine is created in `create_app()` (`src/app/infrastructure/web/app.py`), using the wiring pattern of [ADR-006](ADR-006-uc-001-setup-api-and-wiring.md), and disposed on application shutdown. Tests can replace it. In-memory SQLite is recognised from the parsed URL and uses a single shared connection; in-memory SQLite is for tests only; with `StaticPool` all requests share one connection.
+5. **Configuration.** `DATABASE_URL` is required and startup fails with a clear message if it is unset or has an unsupported scheme. The engine is created in `create_app()` (`src/app/infrastructure/web/app.py`), using the wiring pattern of [ADR-006](ADR-006-uc-001-setup-api-and-wiring.md), and disposed on application shutdown. Tests can replace it. In-memory SQLite is recognised from the parsed URL and uses a single shared connection; in-memory SQLite is for tests only; with `StaticPool` all requests share one connection. PostgreSQL: see [Amendment 1](#amendment-1-2026-10-23).
 6. **Foreign keys.** Declared in the schema. Enforcement is now switched on (`PRAGMA foreign_keys=ON` per connection), because UC-001 saves employers and employments; a payroll row must reference an existing employment.
 7. **Delivery.** The payroll router maps `AnnualLimitExceededError`, `InvalidPayrollInputError`, `DuplicateMonthError` and `InvalidHolidayBalanceError` to 4xx responses, never 500.
 
@@ -54,3 +54,24 @@ Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the 
 
 ## Supersedes
 none
+
+## Amendment 1 (2026-10-23)
+
+Approval: Proposed by Ayla; this amendment becomes accepted when a non-author reviewer approves the pull request and it is merged into `main`.
+
+Decision: use a free Neon PostgreSQL database for the Render deployment. SQLite stays for local runs, Docker Compose and the tests.
+
+1. `DATABASE_URL` accepts `sqlite` and `postgresql` URLs (item 5). A `postgresql://` URL is opened with the psycopg 3 driver; `postgres://` is rejected.
+2. The SQLite connection settings (`PRAGMA foreign_keys=ON`, `check_same_thread`, `StaticPool` for in-memory databases) apply to SQLite only. PostgreSQL enforces foreign keys itself, so item 6 holds for both.
+3. The adapter recognises the unique-constraint failure of item 3 by the SQLite message or by PostgreSQL's SQLSTATE `23505`.
+4. The repository-error tests and the end-to-end demo flow also run on PostgreSQL where `TEST_POSTGRES_URL` is set; CI sets it.
+
+Why: on Render, SQLite lives in `/tmp`, so the data is lost on every deploy and whenever the free instance wakes up after sleeping. The grading criteria name "Render + PostgreSQL" as their example of a cloud deployment.
+
+Not chosen: Render's free PostgreSQL, which expires 30 days after it is created; SQLite in `/tmp`, which loses the data.
+
+Consequences:
+- `requirements.txt` adds `psycopg[binary]`.
+- The Neon connection URL contains a password. It is set only as `DATABASE_URL` in Render's environment, never in a file, pull request or chat.
+- Neon's free compute pauses when idle, so the first request after a pause is slower; `pool_pre_ping` replaces connections that were closed meanwhile.
+- `create_all` does not alter existing tables (see Consequences), so a later schema change needs the Neon tables dropped until migrations are decided.
