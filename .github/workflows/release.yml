@@ -38,9 +38,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          req=requirements.txt
-          [ -f "$req" ] || req=environments/python/requirements.txt
-          python -m pip install -r "$req"
+          python -m pip install --require-hashes --only-binary=:all: -r requirements.txt
 
       - name: Check AI-SDLC lifecycle artefacts
         run: bash scripts/check-lifecycle.sh

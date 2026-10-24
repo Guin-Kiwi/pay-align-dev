@@ -61,12 +61,13 @@ Run all commands from the project directory. Docker must be available for Docker
 | End-to-end tests (start the app as a server) | `.venv/bin/python -m pytest tests/e2e/` |
 | Tests against PostgreSQL (skipped without the variable) | `TEST_POSTGRES_URL=postgresql://user:password@host/dbname .venv/bin/python -m pytest` |
 | All project checks | `bash scripts/test.sh` |
+| Regenerate dependency lock (uv 0.13.5, generation only) | `uv pip compile requirements.in --python-version 3.12 --universal --generate-hashes --only-binary :all: -o requirements.txt` |
 | Container runtime checks (after building) | `docker build -t payalign:local .` then `TEST_DOCKER_IMAGE=payalign:local .venv/bin/python -m pytest tests/e2e/test_docker_runtime.py` |
 | Build image without cache | `docker compose build --no-cache api` |
 
 Warning: PostgreSQL tests drop every table in the database pointed to by `TEST_POSTGRES_URL`. Use a throwaway database only; never use the Neon database used by Render.
 
-Run tests outside the runtime container in the local `.venv` Python environment. Set up this environment with the dependencies from `requirements.txt`, using `.venv/bin/python -m pip install -r requirements.txt`. `.dockerignore` excludes tests and process scripts from the runtime image.
+Run tests outside the runtime container in the local `.venv` Python environment. Set up this environment with the dependencies from `requirements.txt`, using `.venv/bin/python -m pip install --require-hashes --only-binary=:all: -r requirements.txt`. `.dockerignore` excludes tests and process scripts from the runtime image.
 
 The image runs as `payalign` (UID/GID 10001) and includes an empty, writable
 `/app/data` directory. Compose retains the `./data:/app/data` bind mount, so host
@@ -91,6 +92,30 @@ A published `v*` release calls the CD workflow after publication. When `CD_ENABL
 * **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), psycopg 3 (PostgreSQL driver), Pydantic (Validation), Pytest (Testing)
 * **Environment Variables:** `DATABASE_URL` (Required for infrastructure configuration). 
 * Never commit `.env` credentials to version control.
+
+`requirements.in` declares direct dependencies; `requirements.txt` is the
+generated lock for Python 3.12, including transitive versions, platform markers
+and artifact SHA-256 hashes. Docker, CI and release tests install this lock with
+hash checking and wheels only, so source builds cannot fetch unpinned build tools.
+Hashes also enable pip's hash checking automatically
+([pip hash-checking mode](https://pip.pypa.io/en/stable/topics/secure-installs/)).
+
+Use uv 0.13.5 only to generate the lock; it is not an application dependency.
+Edit direct requirements in `requirements.in`, then regenerate `requirements.txt`.
+Regeneration retains existing pins; add `--upgrade-package <name>` for a selected
+update or `--upgrade` for a deliberate full refresh
+([uv lock maintenance](https://docs.astral.sh/uv/pip/compile/)). Review the inputs and generated locks
+and run the project and container checks after dependency changes.
+
+The `Dockerfile` owns the Python base-image tag and multi-platform digest.
+To update it, inspect the intended Python 3.12 tag with
+`docker buildx imagetools inspect <tag>`, update the tag and digest together, and
+repeat the image build and container checks. Pinning the digest keeps the base
+fixed until this explicit update
+([Docker digest pins](https://docs.docker.com/build/building/best-practices/#pin-base-image-versions)).
+These pins fix dependency and base-image selection; they do not promise identical
+image bytes across build tools or different target platforms. Render continues
+to build from source using these inputs.
 
 ## Data conventions
 

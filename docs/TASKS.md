@@ -12,7 +12,7 @@ STATUS: done
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Established; review as needed | UC-001 and UC-002 are documented. |
 | 2 — Design | Established; amend as needed | ADR-001 to ADR-006 are Accepted. |
-| 3 — Develop | Done for current slice | The non-root container slice is verified. Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; that slice still needs VALIDATE. |
+| 3 — Develop | Done for current slice | The fixed build-input slice is verified. Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; that slice still needs VALIDATE. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
 
@@ -27,17 +27,18 @@ docs/specs/UC-002-Process-the-Monthly-Employment.md
 
 ## Next smallest step
 
-`docker-reproducible` (see Tasks). `validate-uc002` remains queued.
+`docker-runtime-contents` (see Tasks). `validate-uc002` remains queued.
 
-### Current development slice: non-root container
+### Current development slice: fixed build inputs
 
-- Source: Docker investigation issue 1 and the `docker-312` and `docker-nonroot` tasks.
-- Scope: retain the intentional Python 3.12 correction, run as a dedicated user,
-  and document preparation of Compose bind-mount ownership.
-- Acceptance: the default UID/GID is non-root, `/app/data` is writable, and
-  health and setup saving work with prepared bind-mounted SQLite storage.
-- Verification: [container runtime tests](../tests/e2e/test_docker_runtime.py),
-  Compose ownership preparation and `bash scripts/test.sh` with Docker tests enabled.
+- Source: Docker investigation issue 2.
+- Scope: pin the Python 3.12 base image by digest and lock all direct and
+  transitive dependencies with versions and hashes; enforce hashed wheel installs.
+- Acceptance: rebuilds select the same base and dependency versions; missing
+  pins and missing or invalid hashes are rejected. Render keeps building source.
+- Verification: [build-input checks](../tests/integration/test_build_inputs.py),
+  clean image builds with matching installed versions, pip rejection checks,
+  container runtime tests and `bash scripts/test.sh` with Docker tests enabled.
 
 ## Tasks
 
@@ -85,8 +86,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 |---|---|---|---|---|---|
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
-| `docker-reproducible` | todo | Pin the Python 3.12 image and all dependency versions and hashes. | Docker investigation, issue 2 | | |
-| `docker-runtime-contents` | todo | Explicitly copy runtime files and separate test dependencies. | Docker investigation, issue 3 | `docker-reproducible` | |
+| `docker-runtime-contents` | todo | Explicitly copy runtime files and separate test dependencies. | Docker investigation, issue 3 | | |
 | `docker-persistence-check` | todo | Extend release verification to save through setup, recreate the container with the same storage and verify the saved record remains. | Docker investigation, issue 4 | | |
 
 ## Acceptance / validation cues
