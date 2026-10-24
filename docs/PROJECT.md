@@ -63,7 +63,7 @@ Run all commands from the project directory. Docker must be available for Docker
 | All project checks | `bash scripts/test.sh` |
 | Regenerate runtime lock (uv 0.13.5, generation only) | `uv pip compile requirements.in --python-version 3.12 --universal --generate-hashes --only-binary :all: -o requirements.txt` |
 | Regenerate development lock (after runtime lock) | `uv pip compile requirements-dev.in --python-version 3.12 --universal --generate-hashes --only-binary :all: -o requirements-dev.txt` |
-| Container runtime checks (after building) | `docker build -t payalign:local .` then `TEST_DOCKER_IMAGE=payalign:local .venv/bin/python -m pytest tests/e2e/test_docker_runtime.py` |
+| Container runtime and persistence checks (after building) | `docker build -t payalign:local .` then `TEST_DOCKER_IMAGE=payalign:local .venv/bin/python -m pytest tests/e2e/test_docker_runtime.py` |
 | Build image without cache | `docker compose build --no-cache api` |
 
 Warning: PostgreSQL tests drop every table in the database pointed to by `TEST_POSTGRES_URL`. Use a throwaway database only; never use the Neon database used by Render.
@@ -81,7 +81,18 @@ normal application startup uses the non-root image user.
 
 Run the health check while the application is running. It should return HTTP 200 and `{"status":"ok"}`. This does not verify persistent data storage.
 
-The release workflow runs the existing tests, builds and starts a Docker image for `linux/amd64` using an isolated in-memory database, and provides the verified image as `payalign-<Commit-ID>-linux-amd64.tar.gz`. The archive contains the image, not running containers or payroll data. After downloading it, load it with `docker load --input payalign-<Commit-ID>-linux-amd64.tar.gz`, replacing `<Commit-ID>` with the actual ID in the filename. The resulting image name is `payalign:<Commit-ID>`. This image is not native to ARM Macs; Docker requires support for running `linux/amd64` images.
+The release workflow runs the existing tests, builds a Docker image for `linux/amd64`, and runs the container runtime and persistence checks against that image before providing it as `payalign-<Commit-ID>-linux-amd64.tar.gz`. The archive contains the image, not running containers or payroll data. After downloading it, load it with `docker load --input payalign-<Commit-ID>-linux-amd64.tar.gz`, replacing `<Commit-ID>` with the actual ID in the filename. The resulting image name is `payalign:<Commit-ID>`. This image is not native to ARM Macs; Docker requires support for running `linux/amd64` images.
+
+The container checks verify the runtime file allowlist and absence of test
+libraries, then save made-up setup data through the API with a prepared, isolated
+SQLite bind mount. They remove the first container and create a second one using
+the same storage. Both run as the image's non-root user and must become healthy;
+the second must return the saved employer through the API and retain identical
+employer, employee and employment database rows. Failures print container logs.
+The checks remove their containers and test storage on success and failure;
+they use neither the Compose database nor any deployment database. The release
+step runs these checks from the host's development environment, with a five-minute
+timeout; pytest and httpx remain outside the runtime image.
 
 Pushes of version tags matching `v*` publish the archive to a GitHub Release after successful checks. Manual runs only validate and store the archive as an Actions artifact by default. Manual publication requires explicitly selecting `publish_release` and running from a `v*` tag.
 

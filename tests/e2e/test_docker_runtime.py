@@ -1,6 +1,7 @@
 """Run explicitly with TEST_DOCKER_IMAGE pointing to a locally built image."""
 
 import os
+import shutil
 import subprocess
 import time
 from contextlib import contextmanager
@@ -75,39 +76,61 @@ def running_container(storage):
                     pass
                 time.sleep(0.1)
             else:
-                pytest.fail(f"Container did not become healthy:\n{docker('logs', name)}")
+                pytest.fail("Container did not become healthy")
             yield client, name
+    except BaseException:
+        subprocess.run(["docker", "logs", name], check=False)
+        raise
     finally:
         docker("rm", "--force", name)
 
 
-def test_nonroot_server_saves_setup_to_prepared_bind_mount(tmp_path):
+def setup_snapshot(name):
+    return docker(
+        "exec", name, "python", "-c",
+        "import json, sqlite3; "
+        "db = sqlite3.connect('/app/data/payroll.db'); "
+        "rows = {table: db.execute(f'SELECT * FROM {table} ORDER BY id').fetchall() "
+        "for table in ('employers', 'employees', 'employments')}; "
+        "assert all(len(records) == 1 for records in rows.values()); "
+        "print(json.dumps(rows, sort_keys=True))",
+    )
+
+
+def test_nonroot_setup_survives_container_recreation(tmp_path):
     storage = tmp_path / "data"
     storage.mkdir()
     mount = f"type=bind,source={storage},target=/app/data"
-    # The same one-time preparation as Compose (PROJECT.md Commands).
-    docker(
-        "run", "--rm", "--user", "root", "--entrypoint", "chown",
-        "--mount", mount, IMAGE, "-R", "10001:10001", "/app/data",
-    )
     try:
+        # The same one-time preparation as Compose (PROJECT.md Commands).
+        docker(
+            "run", "--rm", "--user", "root", "--entrypoint", "chown",
+            "--mount", mount, IMAGE, "-R", "10001:10001", "/app/data",
+        )
         with running_container(storage) as (client, name):
             assert docker("exec", name, "id", "-u") != "0"
+            original_container = docker("inspect", "--format", "{{.Id}}", name)
             response = client.post("/api/v1/setup", json=SETUP)
             assert response.status_code == 201, response.text
-            assert client.get("/api/v1/employer").json() == {
+            expected_employer = {
                 "id": response.json()["employer_id"], **SETUP["employer"],
             }
-            docker(
-                "exec", name, "python", "-c",
-                "import sqlite3; "
-                "db = sqlite3.connect('/app/data/payroll.db'); "
-                "assert all(db.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0] == 1 "
-                "for table in ('employers', 'employees', 'employments'))",
-            )
+            employer = client.get("/api/v1/employer")
+            assert employer.status_code == 200, employer.text
+            assert employer.json() == expected_employer
+            saved_rows = setup_snapshot(name)
             assert (storage / "payroll.db").stat().st_uid == int(docker("exec", name, "id", "-u"))
+
+        with running_container(storage) as (client, name):
+            assert docker("inspect", "--format", "{{.Id}}", name) != original_container
+            assert docker("exec", name, "id", "-u") != "0"
+            employer = client.get("/api/v1/employer")
+            assert employer.status_code == 200, employer.text
+            assert employer.json() == expected_employer
+            assert setup_snapshot(name) == saved_rows
     finally:
         docker(
             "run", "--rm", "--user", "root", "--entrypoint", "chown",
             "--mount", mount, IMAGE, "-R", f"{os.getuid()}:{os.getgid()}", "/app/data",
         )
+        shutil.rmtree(storage)

@@ -12,7 +12,7 @@ STATUS: done
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Established; review as needed | UC-001 and UC-002 are documented. |
 | 2 — Design | Established; amend as needed | ADR-001 to ADR-006 are Accepted. |
-| 3 — Develop | Done for current slice | The runtime image-contents and dependency-separation slice is verified. Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; that slice still needs VALIDATE. |
+| 3 — Develop | Done for current slice | The container persistence-verification slice is verified. Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; that slice still needs VALIDATE. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
 
@@ -27,22 +27,20 @@ docs/specs/UC-002-Process-the-Monthly-Employment.md
 
 ## Next smallest step
 
-`docker-persistence-check` (see Tasks). `validate-uc002` remains queued.
+`validate-uc002` (see Tasks).
 
-### Current development slice: explicit runtime image contents
+### Current development slice: container persistence verification
 
-- Source: Docker investigation issue 3.
-- Scope: explicitly copy `src/`, the runtime lock and LICENSE; separate runtime
-  and development locks without upgrading their shared versions. Update local,
-  CI and release test installation to use the development lock.
-- Acceptance: `/app` contains only `src/`, `requirements.txt`, LICENSE and the
-  empty runtime data directory; pytest and httpx are absent from the image;
-  shared dependency versions agree between locks; health and setup still work.
-- Verification: [image-content and runtime tests](../tests/e2e/test_docker_runtime.py),
-  [lock regression checks](../tests/integration/test_build_inputs.py), a clean
-  image build and the release content check, installation of the development lock
-  in a clean container, and `bash scripts/test.sh` with Docker tests enabled.
-- Persistent-storage release verification remains issue 4.
+- Source: Docker investigation issue 4 and `docker-persistence-check`.
+- Scope: run the built image's container tests during release verification and
+  extend setup saving to check the same SQLite storage after container recreation.
+- Acceptance: both containers run non-root, health succeeds, setup returns 201,
+  and the saved employer, employee and employment survive recreation. Test
+  containers and isolated storage are cleaned up on success and failure.
+- Verification: [container runtime tests](../tests/e2e/test_docker_runtime.py),
+  a negative check using an image that clears its database at startup, execution
+  of the release verification command, and `bash scripts/test.sh` with Docker
+  tests enabled.
 
 ## Tasks
 
@@ -90,7 +88,6 @@ Feature freeze is Sat 24 October: fixes only from then.
 |---|---|---|---|---|---|
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
-| `docker-persistence-check` | todo | Extend release verification to save through setup, recreate the container with the same storage and verify the saved record remains. | Docker investigation, issue 4 | | |
 
 ## Acceptance / validation cues
 
