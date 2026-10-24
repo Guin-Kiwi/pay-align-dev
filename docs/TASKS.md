@@ -1,7 +1,7 @@
 # TASKS.md
 
-PHASE: 3
-STATUS: in-progress
+PHASE: 1
+STATUS: done
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -23,11 +23,11 @@ following the accepted architecture decisions and use-case specifications.
 
 ## Current Use Case
 
-docs/specs/UC-002-Process-the-Monthly-Employment.md
+docs/specs/UC-001-Set-Up-an-Employment.md
 
 ## Next smallest step
 
-`validate-uc002` (see Tasks).
+`setup-input-limits` (see Tasks), then `validate-uc002`.
 
 ## Tasks
 
@@ -52,6 +52,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 |---|---|---|---|---|---|
 | `demo-path` | todo | Prepare the demo of both use cases on the Render deployment. Proposed on 23 October 2026 (teammates who disagree say so before Sat 24 Oct): setup through the setup page (`/setup`, from `ui-merge`) and payroll through Swagger (`/docs`); no payroll page and no endpoint listing employments for v0.1.0. If the setup page is not merged, setup also goes through Swagger. Prepare the request bodies to paste (one setup, two or three payroll months) with made-up names and AHV numbers only, since anyone with the link can save data, and open the app two minutes before the demo so the free instance is awake. Done when the whole flow has run once on the Render URL. | Capstone brief | `payslip-response`, `deploy-render` | Wed 28 Oct |
 | `deploy-render` | doing | Deploy the app to Render (capstone Task 2, steps 5 and 6). Done: the free Render web service `pay-align-dev` builds the `Dockerfile` from `main` with auto-deploy off and `DATABASE_URL=sqlite:////tmp/payroll.db`, and setup and payroll work at https://pay-align-dev.onrender.com/docs. Left: (1) Ayla has added Render's deploy hook as the GitHub secret `RENDER_DEPLOY_HOOK_URL` (her statement; a secret cannot be checked in the repository) and sets the repository variable `CD_ENABLED=true` once the CD change is merged. (2) Merge the CD change: `scripts/deploy.sh` calls the hook, `scripts/smoke-test.sh` waits until `/health` answers, and `release.yml` calls `cd.yml` after a `v*` tag. Proposed on 23 October 2026: deploy only on a release, not on every merged PR, so a half-finished merge cannot break the live app. Render builds from `main`, not from the tag, so tag only when `main` is what should go live. If `db-choice` picks Neon, change `DATABASE_URL` on Render. Done when a CD run has deployed and its smoke test passed. | Capstone brief | | Wed 28 Oct |
+| `setup-input-limits` | doing | Setup rejects an hourly wage above CHF 500 and NUL characters in text fields with a 400 error, so setup never returns 500 on PostgreSQL (found in the review of PR #35). Specified in UC-001; next: tests first, then the check. Done when the UC-001 acceptance lines for these limits pass in unit and API tests. | UC-001 | | |
 
 ### Aaron
 
