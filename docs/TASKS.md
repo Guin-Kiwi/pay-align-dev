@@ -1,7 +1,7 @@
 # TASKS.md
 
 PHASE: 3
-STATUS: in-progress
+STATUS: done
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -12,7 +12,7 @@ STATUS: in-progress
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Established; review as needed | UC-001 and UC-002 are documented. |
 | 2 — Design | Established; amend as needed | ADR-001 to ADR-006 are Accepted. |
-| 3 — Develop | In progress | Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; the slice goes through VALIDATE next. |
+| 3 — Develop | Done for current slice | The container persistence-verification slice is verified. Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; that slice still needs VALIDATE. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | Not started | Release readiness has not yet been established. |
 
@@ -28,6 +28,19 @@ docs/specs/UC-002-Process-the-Monthly-Employment.md
 ## Next smallest step
 
 `validate-uc002` (see Tasks).
+
+### Current development slice: container persistence verification
+
+- Source: Docker investigation issue 4 and `docker-persistence-check`.
+- Scope: run the built image's container tests during release verification and
+  extend setup saving to check the same SQLite storage after container recreation.
+- Acceptance: both containers run non-root, health succeeds, setup returns 201,
+  and the saved employer, employee and employment survive recreation. Test
+  containers and isolated storage are cleaned up on success and failure.
+- Verification: [container runtime tests](../tests/e2e/test_docker_runtime.py),
+  a negative check using an image that clears its database at startup, execution
+  of the release verification command, and `bash scripts/test.sh` with Docker
+  tests enabled.
 
 ## Tasks
 
@@ -68,8 +81,6 @@ Feature freeze is Sat 24 October: fixes only from then.
 | `readme-final` | todo | Finish the README for the capstone, with a diagram of the four layers and the main components (the grading criteria ask for a clear architecture presentation; PROJECT.md describes the layers only in text). | Capstone brief | `readme-template`, `ui-merge` | Tue 27 Oct |
 | `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `validate-uc002`, `readme-final` | Wed 28 Oct |
 | `align-gating` | todo | Align `docs/INDEX.json` and `.github/CODEOWNERS` on which files are review-gated. | INDEX.json | | |
-| `docker-312` | todo | Change the `Dockerfile` from `python:3.11-slim` to `python:3.12-slim`, so the image that runs on Render uses the same Python as CI and the tests. The release check tests only `/health` in the container, so a difference between 3.11 and 3.12 would show up only live. Update the Runtime line in PROJECT.md in the same change. | PROJECT.md | | Wed 28 Oct |
-| `docker-nonroot` | todo | The container runs as root. Add a non-root user to the `Dockerfile`, make `/app/data` writable by it, and remove the TODO comment at the top of the `Dockerfile` in the same change. Check with the release check that `/health` still answers and that setup saves to the database. | `AGENTS.md` (least privilege) | `docker-312` | |
 
 ### Unassigned
 

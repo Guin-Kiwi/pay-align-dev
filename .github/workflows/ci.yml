@@ -40,13 +40,11 @@ jobs:
         with:
           python-version-file: ${{ hashFiles('.python-version') != '' && '.python-version' || 'environments/python/.python-version' }}
           cache: pip
-          cache-dependency-path: "**/requirements.txt"
+          cache-dependency-path: "**/requirements*.txt"
 
       - name: Install dependencies
         run: |
-          req=requirements.txt
-          [ -f "$req" ] || req=environments/python/requirements.txt
-          python -m pip install -r "$req"
+          python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.txt
 
       - name: Check AI-SDLC lifecycle artefacts
         run: bash scripts/check-lifecycle.sh
