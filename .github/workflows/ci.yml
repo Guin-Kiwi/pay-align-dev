@@ -13,6 +13,22 @@ permissions:
 jobs:
   structure:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: payalign
+          POSTGRES_PASSWORD: payalign
+          POSTGRES_DB: payalign_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U payalign"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_POSTGRES_URL: postgresql://payalign:payalign@localhost:5432/payalign_test
     steps:
       - name: Checkout
         uses: actions/checkout@v5

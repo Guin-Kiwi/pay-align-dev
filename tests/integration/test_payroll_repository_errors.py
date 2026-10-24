@@ -1,18 +1,25 @@
 from dataclasses import replace
 
+from sqlalchemy.exc import IntegrityError
+
 import pytest
 from src.app.domain.errors import DuplicateMonthError, InvalidPayrollInputError
-from tests.database_helpers import add_employment, count_rows
+from tests.database_helpers import add_employment, count_rows, empty_postgres_url
 from src.app.infrastructure.database import create_database_engine, create_schema
 from src.app.infrastructure.sqlalchemy_payroll_repository import (
     SqlAlchemyPayrollRepository,
+    _is_unique_violation,
 )
 from tests.integration.test_sqlalchemy_payroll_repository import make_run
 
 
-@pytest.fixture
-def repository(tmp_path):
-    engine = create_database_engine(f"sqlite:///{tmp_path / 'payroll.db'}")
+@pytest.fixture(params=["sqlite", "postgresql"])
+def repository(request, tmp_path):
+    if request.param == "postgresql":
+        url = empty_postgres_url()
+    else:
+        url = f"sqlite:///{tmp_path / 'payroll.db'}"
+    engine = create_database_engine(url)
     create_schema(engine)
     add_employment(engine, employment_id=7, employer_id=3, employee_id=9)
     yield SqlAlchemyPayrollRepository(engine)
@@ -48,3 +55,25 @@ def test_port_is_abstract_and_the_adapter_implements_it(repository):
     with pytest.raises(TypeError):
         PayrollRepositoryPort()
     assert isinstance(repository, PayrollRepositoryPort)
+
+
+def test_a_run_for_an_unknown_employment_is_not_a_duplicate_month(repository):
+    record, entries, snapshot, payslip = make_run(employment_id=99)
+
+    with pytest.raises(InvalidPayrollInputError) as raised:
+        repository.save_payroll_run(record, entries, snapshot, payslip)
+
+    assert not isinstance(raised.value, DuplicateMonthError)
+
+
+class _PostgresError(Exception):
+    def __init__(self, sqlstate):
+        super().__init__("postgres error")
+        self.sqlstate = sqlstate
+
+
+@pytest.mark.parametrize("sqlstate, is_duplicate", [("23505", True), ("23503", False), ("23514", False)])
+def test_postgres_errors_are_told_apart_by_their_sqlstate(sqlstate, is_duplicate):
+    error = IntegrityError("INSERT", {}, _PostgresError(sqlstate))
+
+    assert _is_unique_violation(error) is is_duplicate
