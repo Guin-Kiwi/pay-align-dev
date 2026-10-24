@@ -1,7 +1,7 @@
 # TASKS.md
 
-PHASE: 3
-STATUS: done
+PHASE: 5
+STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -14,7 +14,7 @@ STATUS: done
 | 2 — Design | Established; amend as needed | ADR-001 to ADR-006 are Accepted. |
 | 3 — Develop | In progress | Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; the slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
-| 5 — Deploy | Not started | Release readiness has not yet been established. |
+| 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
 ## Active objective
 
@@ -49,8 +49,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `demo-path` | todo | Prepare the demo of both use cases on the Render deployment. Proposed on 23 October 2026 (teammates who disagree say so before Sat 24 Oct): setup through the setup page (`/setup`, from `ui-merge`) and payroll through Swagger (`/docs`); no payroll page and no endpoint listing employments for v0.1.0. If the setup page is not merged, setup also goes through Swagger. Prepare the request bodies to paste (one setup, two or three payroll months) with made-up names and AHV numbers only, since anyone with the link can save data, and open the app two minutes before the demo so the free instance is awake. Done when the whole flow has run once on the Render URL. | Capstone brief | `payslip-response`, `deploy-render` | Wed 28 Oct |
-| `deploy-render` | doing | Deploy the app to Render (capstone Task 2, steps 5 and 6). Done: the free Render web service `pay-align-dev` builds the `Dockerfile` from `main` with auto-deploy off and `DATABASE_URL=sqlite:////tmp/payroll.db`, and setup and payroll work at https://pay-align-dev.onrender.com/docs. Left: (1) Ayla has added Render's deploy hook as the GitHub secret `RENDER_DEPLOY_HOOK_URL` (her statement; a secret cannot be checked in the repository) and sets the repository variable `CD_ENABLED=true` once the CD change is merged. (2) Merge the CD change: `scripts/deploy.sh` calls the hook, `scripts/smoke-test.sh` waits until `/health` answers, and `release.yml` calls `cd.yml` after a `v*` tag. Proposed on 23 October 2026: deploy only on a release, not on every merged PR, so a half-finished merge cannot break the live app. Once the PostgreSQL code has been deployed to Render by a release or a manual CD run (not merely merged), Nano first checks in the Render dashboard that the live commit is the commit that merged the PostgreSQL code; the smoke test only confirms that the app answers. Then Nano switches Render's `DATABASE_URL` to the Neon connection URL Ayla passes to him privately. Switching earlier restarts the old SQLite-only build with a PostgreSQL URL, and the app does not start ([ADR-005 Amendment 1](adr/ADR-005-sqlalchemy-persistence-adapter.md#amendment-1-2026-10-23)). Done when a CD run has deployed and its smoke test passed. | Capstone brief | | Wed 28 Oct |
+| `demo-path` | todo | Prepare the demo of both use cases on the Render deployment. Proposed on 23 October 2026 (teammates who disagree say so before Sat 24 Oct): setup through the setup page (`/setup`, from `ui-merge`) and payroll through Swagger (`/docs`); no payroll page and no endpoint listing employments for v0.1.0. If the setup page is not merged, setup also goes through Swagger. Prepare the request bodies to paste (one setup, two or three payroll months) with made-up names and AHV numbers only, since anyone with the link can save data, and open the app two minutes before the demo so the free instance is awake. Done when the whole flow has run once on the Render URL. | Capstone brief | `payslip-response` | Wed 28 Oct |
 
 ### Aaron
 
