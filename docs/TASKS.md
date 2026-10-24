@@ -1,7 +1,7 @@
 # TASKS.md
 
 PHASE: 3
-STATUS: in-progress
+STATUS: done
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -23,7 +23,7 @@ following the accepted architecture decisions and use-case specifications.
 
 ## Current Use Case
 
-docs/specs/UC-002-Process-the-Monthly-Employment.md
+docs/specs/UC-001-Set-Up-an-Employment.md
 
 ## Next smallest step
 

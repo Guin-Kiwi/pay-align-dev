@@ -5,7 +5,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional
 
-from src.app.domain.constants import MIN_HOURLY_WAGE
+from src.app.domain.constants import MAX_HOURLY_WAGE, MIN_HOURLY_WAGE
 
 
 @dataclass
@@ -26,6 +26,11 @@ class Employment:
             raise ValueError(
                 f"Hourly wage (CHF {self.hourly_wage:.2f}) is below the Basel-Stadt "
                 f"minimum wage (CHF {MIN_HOURLY_WAGE:.2f})."
+            )
+        if Decimal(str(self.hourly_wage)) > Decimal(str(MAX_HOURLY_WAGE)):
+            raise ValueError(
+                f"Hourly wage (CHF {self.hourly_wage:.2f}) is above the maximum of "
+                f"CHF {MAX_HOURLY_WAGE:.2f}."
             )
         if self.weekly_hours <= 0:
             raise ValueError("Weekly hours must be positive.")
