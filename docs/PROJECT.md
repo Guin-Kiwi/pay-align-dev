@@ -5,7 +5,7 @@
 - **Project name:** PayAlign
 - **User or organisational problem:** Private individuals employing household help need a way to legally and accurately manage monthly payroll under the AKBS simplified settlement procedure without facing heavy corporate HR administration.
 - **Intended users:** Private household employers in Basel-Stadt.
-- **In scope:** Single-employer onboarding, employee registration and contract parameter generation, monthly payroll processing (gross-to-net calculations using 2026 rates), and payslip generation.
+- **In scope:** Employer accounts and login, employer onboarding, employee registration and contract parameter generation, monthly payroll processing (gross-to-net calculations using 2026 rates), and payslip generation.
 - **Out of scope:** The annual aggregation for the AKBS wage declaration (for v0.1.0), exception management (including sick pay, occupational accidents, property damage, and disputes), termination workflows, employer account closure, and the standard settlement procedure (Standard-Abrechnung). The normal-case monthly payroll use case does not record or calculate sick-pay hours.
 
 ## Architecture
@@ -14,10 +14,10 @@ We are using **Clean Architecture** to ensure the core payroll logic is complete
 
 `domain ← application ← interfaces ← infrastructure`
 
-* **Domain:** Contains the five core entities (Employer, Employee, Employment, MonthlyRecord, Payslip) and the immutable 2026 AKBS payroll calculation rules. 
-* **Application:** Contains the core services (`SetupService`, `PayrollService`) and defines the repository interfaces (Ports).
-* **Interfaces:** Contains the web routing (e.g., FastAPI controllers) and request/response models.
-* **Infrastructure:** Contains the ORM mappings (e.g., SQLAlchemy), database connection, and the web server wiring.
+* **Domain:** Contains Account, Employer, Employee, Employment, MonthlyRecord and Payslip, plus the immutable 2026 AKBS payroll calculation rules.
+* **Application:** Contains the core services (`SetupService`, `PayrollService`, `AccountService`) and defines repository and password-hashing interfaces (Ports).
+* **Interfaces:** Contains the web routing (e.g., FastAPI controllers), request/response models, authentication boundary and CSRF checks.
+* **Infrastructure:** Contains the ORM mappings (e.g., SQLAlchemy), database connection, Argon2 password-hasher adapter, signed-cookie session middleware and web server wiring.
 
 **Deployment & Data-store:** The application is a containerized full-stack web application. It uses a relational database via an ORM (SQLite in v0.1.0; see `DATABASE_URL` under Data conventions). It runs locally via Docker, and on a free Render web service at https://pay-align-dev.onrender.com, which builds the `Dockerfile` from the release commit on a release, or from the latest commit on `main` on a manual deploy. On Render, `DATABASE_URL` points to `/tmp`, so the data is lost on every deploy and restart, including when the free instance wakes up after a time without visitors.
 
@@ -53,7 +53,7 @@ Run all commands from the project directory. Docker must be available for Docker
 | Activity | Command |
 |---|---|
 | Build Docker image | `docker compose build api` |
-| Start application | `docker compose up api` |
+| Start application | Set `SESSION_SECRET_KEY` in `.env` to a random value from `python -c "import secrets; print(secrets.token_urlsafe(32))"`, then run `docker compose up api` |
 | Health check | `curl --fail --include http://localhost:8000/health` |
 | Unit tests | `.venv/bin/python -m pytest tests/unit/` |
 | Integration tests | `.venv/bin/python -m pytest tests/integration/` |
@@ -74,14 +74,36 @@ A published `v*` release calls the CD workflow after publication. When `CD_ENABL
 ## Dependencies
 
 * **Runtime:** Docker, Python 3.11+ (`.python-version` pins 3.12 for CI and the dev container; the container image uses 3.11)
-* **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), Pydantic (Validation), Pytest (Testing)
-* **Environment Variables:** `DATABASE_URL` (Required for infrastructure configuration). 
+* **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), Pydantic (Validation), pwdlib with Argon2 (password hashing), itsdangerous (Starlette signed sessions), Pytest (Testing)
+* **Environment Variables:** `DATABASE_URL` (required for infrastructure configuration), `SESSION_SECRET_KEY` (required, random secret of at least 32 characters), `SESSION_COOKIE_SECURE` (set to `true` when serving over HTTPS; Docker Compose defaults it to `false` for local HTTP development).
 * Never commit `.env` credentials to version control.
 
 ## Data conventions
 
 * **`DATABASE_URL` format:** a SQLAlchemy URL, e.g. `sqlite:////app/data/payroll.db` (four slashes for an absolute path inside the container). It is required; there is no silent in-memory fallback. Only `sqlite` URLs are accepted in v0.1.0; any other scheme fails at start-up.
-* **Tables:** `employers`, `employees`, `employments`, `monthly_records`, `payslips`, `work_entries` and `payroll_snapshots`, one per core entity or persisted payroll run. `employments` stores integer `weekly_minutes` and `holiday_weeks` and a nullable `end_date`. `monthly_records` stores `employee_id` alongside `employment_id` and `employer_id`. The holiday balance is not stored on `employments`; it is derived from persisted runs ([ADR-004](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). `payroll_snapshots` stores the run snapshot ([ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-2-2026-10-20)).
+* **Tables:** `accounts`, `employers`, `employees`, `employments`, `monthly_records`, `payslips`, `work_entries` and `payroll_snapshots`, one per core entity or persisted payroll run. `accounts` stores normalized login email, adaptive password hash and account first/last name; it does not store passwords. Each `employers` row has one unique `account_id`. Each `employees` row belongs to an employer, with AHV unique within that employer; an employment links an employee of the same employer. `employments` stores integer `weekly_minutes` and `holiday_weeks` and a nullable `end_date`. `monthly_records` stores `employee_id` alongside `employment_id` and `employer_id`. The holiday balance is not stored on `employments`; it is derived from persisted runs ([ADR-004](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). `payroll_snapshots` stores the run snapshot ([ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-2-2026-10-20)).
+
+Authentication endpoints are under `/api/v1/auth`: `GET /csrf` issues a CSRF token; `POST /register`, `POST /login` and `POST /logout` change authentication state; `GET /me` returns the current account. Registration and login create a four-hour signed session cookie containing only the account ID. The cookie is HttpOnly and SameSite=Lax; configure `SESSION_COOKIE_SECURE=true` over HTTPS. A separate CSRF token cookie is sent back in the `X-CSRF-Token` header on state-changing auth requests. Session limits and known copied-cookie behavior are recorded in [ADR-007](adr/ADR-007-employer-accounts-and-secure-access.md).
+
+The current HTTP endpoints are:
+
+| Method and path | Purpose |
+|---|---|
+| `GET /health` | Health check. |
+| `GET /api/v1/auth/csrf` | Issue a CSRF token. |
+| `POST /api/v1/auth/register` | Register an account and start its session. |
+| `POST /api/v1/auth/login` | Start an account session. |
+| `GET /api/v1/auth/me` | Read the signed-in account. |
+| `POST /api/v1/auth/logout` | End the account session. |
+| `GET /api/v1/employer` | Read the signed-in account's employer profile. |
+| `POST /api/v1/setup` | Create an employer profile and first employment, or add an employment under the signed-in employer. |
+| `GET /api/v1/employments` | List the signed-in employer's employments. |
+| `GET /api/v1/employments/{employment_id}` | Read one owned employment's summary. |
+| `GET /api/v1/employments/{employment_id}/months` | List saved months and the next eligible 2026 month. |
+| `GET /api/v1/employments/{employment_id}/months/{year}/{month}` | Read an owned month's saved payslip and holiday balance. |
+| `POST /api/v1/monthly-payroll` | Save the next monthly run. |
+
+Employment and month reads require a session and return 404 for absent or other-account records. Completed months have no update or delete endpoint; the scope decision is in [UC-003 Amendment 3](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views).
 * **Money type** ([ADR-003](adr/ADR-003-monetary-precision-and-rounding.md)): never a binary float. The APIs read amounts as `Decimal`, payroll calculation and `PayrollService` use `Decimal`, and the database stores integer centimes (columns suffixed `_cents`). Amounts become centimes once, before saving, rounding half-up and never truncating: in `PayrollService` for payroll, in `SqlAlchemySetupRepository` for setup. `cash_bonus` and `expense_reimbursements` are rounded half-up to CHF 0.01 once, on entry to `PayrollService`. Known exception in v0.1.0: setup's `Employment.hourly_wage` is still declared `float`. It holds the API's `Decimal` and is saved through `Decimal(str(...))`; `get_employment`, which only tests use, reads it back as centimes divided by 100, a `float`. Payroll does not use it: it reads the wage in centimes and calculates in `Decimal`.
 * **`MonthlyRecord` fields:** `id`, `employment_id`, `employee_id`, `employer_id`, `month` (1-12), `year` (2026 only, the one year with a ruleset; ADR-002), `cash_bonus` and `expense_reimbursements` (stored as `_cents`). Hour totals are derived from persisted `work_entries`, not stored on `monthly_records`. A run names an `employment_id`; employer, employee and the employment terms are read from `employments` through the payroll port, and an unknown id is rejected before anything is saved (404).
 * **Run sequence:** defined in [UC-002](specs/UC-002-Process-the-Monthly-Employment.md) (alternate flows). `PriorRun` carries `year` and `month`.

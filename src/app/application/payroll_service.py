@@ -57,6 +57,7 @@ class PayrollService:
         work_entries: list[WorkEntry],
         cash_bonus: Decimal = Decimal("0.00"),
         expense_reimbursements: Decimal = Decimal("0.00"),
+        account_id: int | None = None,
     ) -> tuple[MonthlyRecord, Payslip]:
         """Calculate, validate and persist one monthly payroll run."""
         if year != RULES_YEAR:
@@ -64,7 +65,11 @@ class PayrollService:
                 f"Payroll rules exist for {RULES_YEAR} only."
             )
 
-        stored = repository.employment_terms(employment_id)
+        stored = (
+            repository.employment_terms(employment_id)
+            if account_id is None
+            else repository.employment_terms(employment_id, account_id)
+        )
         if stored is None:
             raise EmploymentNotFoundError(f"Employment {employment_id} not found.")
         terms = stored.terms

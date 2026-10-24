@@ -1,7 +1,7 @@
 import unittest
 
 import pytest
-from fastapi.testclient import TestClient
+from tests.integration.authenticated_client import AuthenticatedTestClient
 
 from src.app.infrastructure.database import DatabaseConfigurationError
 from src.app.infrastructure.in_memory_setup_repository import InMemorySetupRepository
@@ -24,7 +24,7 @@ EMPLOYMENT = {"start_date": "2026-01-01", "hourly_wage": 28.50, "weekly_hours": 
 
 def set_up_fresh(**employment):
     repository = InMemorySetupRepository()
-    client = TestClient(create_app(setup_repository=repository))
+    client = AuthenticatedTestClient(create_app(setup_repository=repository))
     response = client.post(
         "/api/v1/setup",
         json={"employer": EMPLOYER, "employee": EMPLOYEE, "employment": {**EMPLOYMENT, **employment}},
@@ -34,10 +34,10 @@ def set_up_fresh(**employment):
 
 def test_setup_survives_a_restart(monkeypatch, tmp_path):
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'payroll.db'}")
-    with TestClient(create_app()) as client:
+    with AuthenticatedTestClient(create_app()) as client:
         client.post("/api/v1/setup", json={"employer": EMPLOYER, "employee": EMPLOYEE, "employment": EMPLOYMENT})
 
-    with TestClient(create_app()) as client:
+    with AuthenticatedTestClient(create_app(), register=False) as client:
         assert client.get("/api/v1/employer").json() == {"id": 1, **EMPLOYER}
 
 
@@ -50,7 +50,7 @@ def test_app_does_not_start_without_database_url(monkeypatch):
 
 class TestSetupApi(unittest.TestCase):
     def setUp(self):
-        self.client = TestClient(create_app(setup_repository=InMemorySetupRepository()))
+        self.client = AuthenticatedTestClient(create_app(setup_repository=InMemorySetupRepository()))
 
     def set_up(self, **body):
         return self.client.post("/api/v1/setup", json=body)
@@ -125,7 +125,7 @@ class TestSetupApi(unittest.TestCase):
     def test_wage_of_exactly_22_20_is_accepted_as_number_or_text(self):
         for wage in (22.20, "22.20"):
             with self.subTest(wage=wage):
-                client = TestClient(create_app(setup_repository=InMemorySetupRepository()))
+                client = AuthenticatedTestClient(create_app(setup_repository=InMemorySetupRepository()))
                 response = client.post(
                     "/api/v1/setup",
                     json={"employer": EMPLOYER, "employee": EMPLOYEE,

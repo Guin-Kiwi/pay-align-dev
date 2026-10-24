@@ -27,12 +27,13 @@ def _build(part: str, build, details: dict):
 class SetupService:
     """Handles the setup of an employment relationship for household help."""
 
-    def __init__(self, repository: SetupRepository):
+    def __init__(self, repository: SetupRepository, account_id: int):
         self.repository = repository
+        self.account_id = account_id
 
     def get_employer(self) -> Employer | None:
         """Return the saved employer, or None if setup has not run yet."""
-        return self.repository.get_employer()
+        return self.repository.get_employer(self.account_id)
 
     def set_up_employment(
         self,
@@ -45,7 +46,7 @@ class SetupService:
         Send employer details only when no employer is saved yet. An employee whose AHV number
         is saved already is reused with the saved details.
         """
-        saved_employer = self.repository.get_employer()
+        saved_employer = self.repository.get_employer(self.account_id)
         if saved_employer is not None and employer is not None:
             raise EmployerAlreadyExistsError("An employer already exists.")
         if saved_employer is None and employer is None:
@@ -54,8 +55,10 @@ class SetupService:
         new_employer = saved_employer or _build("Employer", self.create_employer, employer)
         new_employee = _build("Employee", self.create_employee, employee)
         new_employment = _build("Employment", self.create_employment, employment)
-        saved_employee = self.repository.get_employee(new_employee.ahv_number)
-        return self.repository.save(new_employer, saved_employee or new_employee, new_employment)
+        saved_employee = self.repository.get_employee(new_employee.ahv_number, self.account_id)
+        return self.repository.save(
+            self.account_id, new_employer, saved_employee or new_employee, new_employment
+        )
 
     def create_employer(
         self, 
