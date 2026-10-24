@@ -19,7 +19,7 @@ We are using **Clean Architecture** to ensure the core payroll logic is complete
 * **Interfaces:** Contains the web routing (e.g., FastAPI controllers), request/response models, authentication boundary and CSRF checks.
 * **Infrastructure:** Contains the ORM mappings (e.g., SQLAlchemy), database connection, Argon2 password-hasher adapter, signed-cookie session middleware and web server wiring.
 
-**Deployment & Data-store:** The application is a containerized full-stack web application. It uses a relational database via an ORM (SQLite in v0.1.0; see `DATABASE_URL` under Data conventions). It runs locally via Docker, and on a free Render web service at https://pay-align-dev.onrender.com, which builds the `Dockerfile` from the release commit on a release, or from the latest commit on `main` on a manual deploy. On Render, `DATABASE_URL` points to `/tmp`, so the data is lost on every deploy and restart, including when the free instance wakes up after a time without visitors.
+**Deployment & Data-store:** The application is a containerized full-stack web application that uses a relational database via an ORM. The code on `main` supports SQLite for local runs, Docker Compose and tests, and PostgreSQL on Neon for the Render deployment ([ADR-005 Amendment 1](adr/ADR-005-sqlalchemy-persistence-adapter.md#amendment-1-2026-10-23)). Render builds the `Dockerfile` from the release commit on a release, or from the latest commit on `main` on a manual deploy. Render's active database is selected by its `DATABASE_URL` environment variable; until it is switched to the Neon URL, it points to `/tmp`, so data is lost on every deploy and restart, including when the free instance wakes up after a time without visitors.
 
 ## Structure
 
@@ -58,8 +58,11 @@ Run all commands from the project directory. Docker must be available for Docker
 | Unit tests | `.venv/bin/python -m pytest tests/unit/` |
 | Integration tests | `.venv/bin/python -m pytest tests/integration/` |
 | End-to-end tests (start the app as a server) | `.venv/bin/python -m pytest tests/e2e/` |
+| Tests against PostgreSQL (skipped without the variable) | `TEST_POSTGRES_URL=postgresql://user:password@host/dbname .venv/bin/python -m pytest` |
 | All project checks | `bash scripts/test.sh` |
 | Build image without cache | `docker compose build --no-cache api` |
+
+Warning: PostgreSQL tests drop every table in the database pointed to by `TEST_POSTGRES_URL`. Use a throwaway database only; never use the Neon database used by Render.
 
 Run tests outside the runtime container in the local `.venv` Python environment. Set up this environment with the dependencies from `requirements.txt`, using `.venv/bin/python -m pip install -r requirements.txt`. `.dockerignore` excludes tests and process scripts from the runtime image.
 
@@ -74,13 +77,13 @@ A published `v*` release calls the CD workflow after publication. When `CD_ENABL
 ## Dependencies
 
 * **Runtime:** Docker, Python 3.11+ (`.python-version` pins 3.12 for CI and the dev container; the container image uses 3.11)
-* **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), Pydantic (Validation), pwdlib with Argon2 (password hashing), itsdangerous (Starlette signed sessions), Pytest (Testing)
+* **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), psycopg 3 (PostgreSQL driver), Pydantic (Validation), pwdlib with Argon2 (password hashing), itsdangerous (Starlette signed sessions), Pytest (Testing)
 * **Environment Variables:** `DATABASE_URL` (required for infrastructure configuration), `SESSION_SECRET_KEY` (required, random secret of at least 32 characters), `SESSION_COOKIE_SECURE` (set to `true` when serving over HTTPS; Docker Compose defaults it to `false` for local HTTP development).
 * Never commit `.env` credentials to version control.
 
 ## Data conventions
 
-* **`DATABASE_URL` format:** a SQLAlchemy URL, e.g. `sqlite:////app/data/payroll.db` (four slashes for an absolute path inside the container). It is required; there is no silent in-memory fallback. Only `sqlite` URLs are accepted in v0.1.0; any other scheme fails at start-up.
+* **`DATABASE_URL` format:** a SQLAlchemy URL, e.g. `sqlite:////app/data/payroll.db` (four slashes for an absolute path inside the container). It is required; there is no silent in-memory fallback. `sqlite` and `postgresql` URLs are accepted (for example `postgresql://user:password@host/dbname?sslmode=require`); any other scheme, including `postgres://`, fails at start-up.
 * **Tables:** `accounts`, `employers`, `employees`, `employments`, `monthly_records`, `payslips`, `work_entries` and `payroll_snapshots`, one per core entity or persisted payroll run. `accounts` stores normalized login email, adaptive password hash and account first/last name; it does not store passwords. Each `employers` row has one unique `account_id`. Each `employees` row belongs to an employer, with AHV unique within that employer; an employment links an employee of the same employer. `employments` stores integer `weekly_minutes` and `holiday_weeks` and a nullable `end_date`. `monthly_records` stores `employee_id` alongside `employment_id` and `employer_id`. The holiday balance is not stored on `employments`; it is derived from persisted runs ([ADR-004](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). `payroll_snapshots` stores the run snapshot ([ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-2-2026-10-20)).
 
 Authentication endpoints are under `/api/v1/auth`: `GET /csrf` issues a CSRF token; `POST /register`, `POST /login` and `POST /logout` change authentication state; `GET /me` returns the current account. Registration and login create a four-hour signed session cookie containing only the account ID. The cookie is HttpOnly and SameSite=Lax; configure `SESSION_COOKIE_SECURE=true` over HTTPS. A separate CSRF token cookie is sent back in the `X-CSRF-Token` header on state-changing auth requests. Session limits and known copied-cookie behavior are recorded in [ADR-007](adr/ADR-007-employer-accounts-and-secure-access.md).

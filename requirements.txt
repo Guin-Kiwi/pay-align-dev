@@ -5,3 +5,4 @@ httpx
 sqlalchemy>=2.0
 pwdlib[argon2]
 itsdangerous
+psycopg[binary]

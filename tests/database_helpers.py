@@ -1,4 +1,7 @@
+import os
 from datetime import date
+
+import pytest
 
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
@@ -6,8 +9,10 @@ from src.app.infrastructure.pwdlib_password_hasher import PwdlibPasswordHasher
 from tests.integration.authenticated_client import TEST_PASSWORD
 
 from src.app.domain.constants import RULES_YEAR_START
+from src.app.infrastructure.database import create_database_engine
 from src.app.infrastructure.orm_models import (
     AccountRow,
+    Base,
     EmployeeRow,
     EmployerRow,
     EmploymentRow,
@@ -111,3 +116,14 @@ def add_monthly_record(engine: Engine, month: int = 1) -> int:
 def count_rows(engine: Engine, table_name: str) -> int:
     with Session(engine) as session:
         return int(session.scalar(select(func.count()).select_from(TABLES[table_name])))
+
+
+def empty_postgres_url() -> str:
+    """TEST_POSTGRES_URL with all tables dropped; skips the test when it is not set."""
+    url = os.environ.get("TEST_POSTGRES_URL")
+    if not url:
+        pytest.skip("TEST_POSTGRES_URL is not set")
+    engine = create_database_engine(url)
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+    return url

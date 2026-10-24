@@ -28,6 +28,12 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
+Address the UC-003 review findings before requesting review again: release
+session configuration and Render documentation, employer AHV conflicts, CSRF
+token rotation and malformed-token handling, payroll ownership requirements and
+the in-memory setup adapter's ownership checks. Resolve the password-policy
+comment explicitly. Keep this work separate from container hardening.
+
 Assign the `uc003-ui` task, test the browser journey across the five UC-003 view boundaries, then connect it to the account-scoped setup, employment, month and payroll interfaces. Completed months remain view-only.
 
 UC-003 TDD slices:
@@ -52,7 +58,6 @@ Feature freeze is Sat 24 October: fixes only from then.
 |---|---|---|---|---|---|
 | `readme-template` | todo | Move the template text of the README to `docs/TEMPLATE.md`. | Capstone brief | | Sat 24 Oct |
 | `payslip-response` | todo | Return the whole payslip directly from `POST /api/v1/monthly-payroll`. Its 201 response still has only `monthly_record_id`, `gross_wage` and `net_payout`; the new account-scoped `GET /api/v1/employments/{employment_id}/months/{year}/{month}` can retrieve the saved deductions, employer costs and holiday balance afterward. Add those fields to the 201 response with `PayslipResponse` as the response model instead of `dict`. Why: UC-002 promises a compliant payslip, and the Basel household NAV requires one with all deductions and the holiday balance. Done when UC-002 has an acceptance line for it and an API test checks every field. Aaron reviews. | UC-002 | | Sat 24 Oct |
-| `db-choice` | todo | Decide which database the Render deployment uses, and record it in ADR-005. (a) SQLite: no code change; set `DATABASE_URL=sqlite:////tmp/payroll.db` on Render, because `data/` is not in the Docker image. The data is empty after every deploy and after every sleep of the free instance (15 minutes without visitors), so the demo starts empty. (b) Neon Postgres (neon.com, free, no credit card): the data stays, but it needs a Postgres driver in `requirements.txt`, `postgresql` in `SUPPORTED_BACKENDS`, the SQLite-only connection settings in `database.py` applied to SQLite only, a duplicate-month check in `sqlalchemy_payroll_repository.py` that also recognises the Postgres error, a test against Postgres and a PROJECT.md update. Someone signs up at Neon, and the connection URL goes into Render as a secret, never into a file. The grading criteria name "Render + PostgreSQL" as the example of a cloud deployment. | ADR-005 | | Sat 24 Oct |
 | `limit-message` | todo | When a monthly run exceeds an annual limit, the 400 message says only "Employee annual gross wage limit (CHF 22680) exceeded." (or the employer one, CHF 60480). Make it say what that means for the employer: the simplified procedure no longer applies, and the employer has to contact AKBS about the ordinary procedure, which this app does not support. Change the two messages in `payroll_calculation.py`, say in UC-002 what the warning tells the employer, and check the text in a test (no test checks it today). Aaron reviews. | UC-002 | | Wed 28 Oct |
 
 ### Nano
@@ -60,14 +65,14 @@ Feature freeze is Sat 24 October: fixes only from then.
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
 | `demo-path` | todo | Prepare the demo of both use cases on the Render deployment using the five-view browser flow in UC-003 Amendment 3. The earlier Swagger-only payroll and no-list proposal is superseded. Use made-up names and AHV numbers only; open the free instance before the demo. Done when the whole flow has run once on the Render URL. | Capstone brief, UC-003 | `uc003-ui`, `deploy-render` | Wed 28 Oct |
-| `deploy-render` | doing | Deploy the app to Render (capstone Task 2, steps 5 and 6). Done: the free Render web service `pay-align-dev` builds the `Dockerfile` from `main` with auto-deploy off and `DATABASE_URL=sqlite:////tmp/payroll.db`, and setup and payroll work at https://pay-align-dev.onrender.com/docs. Left: (1) Ayla has added Render's deploy hook as the GitHub secret `RENDER_DEPLOY_HOOK_URL` (her statement; a secret cannot be checked in the repository) and sets the repository variable `CD_ENABLED=true` once the CD change is merged. (2) Merge the CD change: `scripts/deploy.sh` calls the hook, `scripts/smoke-test.sh` waits until `/health` answers, and `release.yml` calls `cd.yml` after a `v*` tag. Proposed on 23 October 2026: deploy only on a release, not on every merged PR, so a half-finished merge cannot break the live app. Render builds from `main`, not from the tag, so tag only when `main` is what should go live. If `db-choice` picks Neon, change `DATABASE_URL` on Render. Done when a CD run has deployed and its smoke test passed. | Capstone brief | | Wed 28 Oct |
+| `deploy-render` | doing | Deploy the app to Render (capstone Task 2, steps 5 and 6). Done: the free Render web service `pay-align-dev` builds the `Dockerfile` from `main` with auto-deploy off and `DATABASE_URL=sqlite:////tmp/payroll.db`, and setup and payroll work at https://pay-align-dev.onrender.com/docs. Left: (1) Ayla has added Render's deploy hook as the GitHub secret `RENDER_DEPLOY_HOOK_URL` (her statement; a secret cannot be checked in the repository) and sets the repository variable `CD_ENABLED=true` once the CD change is merged. (2) Merge the CD change: `scripts/deploy.sh` calls the hook, `scripts/smoke-test.sh` waits until `/health` answers, and `release.yml` calls `cd.yml` after a `v*` tag. Proposed on 23 October 2026: deploy only on a release, not on every merged PR, so a half-finished merge cannot break the live app. Once the PostgreSQL code has been deployed to Render by a release or a manual CD run (not merely merged), Nano first checks in the Render dashboard that the live commit is the commit that merged the PostgreSQL code; the smoke test only confirms that the app answers. Then Nano switches Render's `DATABASE_URL` to the Neon connection URL Ayla passes to him privately. Switching earlier restarts the old SQLite-only build with a PostgreSQL URL, and the app does not start ([ADR-005 Amendment 1](adr/ADR-005-sqlalchemy-persistence-adapter.md#amendment-1-2026-10-23)). Done when a CD run has deployed and its smoke test passed. | Capstone brief | | Wed 28 Oct |
 
 ### Aaron
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
 | `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | `validate-uc002` | |
-| `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | |
+| `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | Mon 26 Oct |
 | `uc003-payroll-review` | todo | Review the UC-003 PR's payroll boundary before merge: check that setup and monthly writes, employment/month reads and saved payslips stay within the signed-in employer; foreign IDs reveal no records, and completed months remain view-only. Report findings in the PR. | UC-003, ADR-007 | | |
 
 ### Assvinth

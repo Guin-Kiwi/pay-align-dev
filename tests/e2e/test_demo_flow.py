@@ -9,6 +9,9 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import httpx
+import pytest
+
+from tests.database_helpers import empty_postgres_url
 
 ROOT = Path(__file__).resolve().parents[2]
 START_TIMEOUT_SECONDS = 20
@@ -87,12 +90,12 @@ def _wait_until_healthy(base_url, process, log_file):
 
 
 @contextmanager
-def running_app(database_file, log_file):
+def running_app(database_url, log_file):
     port = _free_port()
     base_url = f"http://127.0.0.1:{port}"
     env = {
         **os.environ,
-        "DATABASE_URL": f"sqlite:///{database_file}",
+        "DATABASE_URL": database_url,
         "SESSION_COOKIE_SECURE": "false",
     }
     with log_file.open("a") as log:
@@ -114,11 +117,17 @@ def running_app(database_file, log_file):
             process.wait()
 
 
-def test_demo_flow_keeps_its_data_across_a_restart(tmp_path):
-    database_file = tmp_path / "payroll.db"
+@pytest.fixture(params=["sqlite", "postgresql"])
+def database_url(request, tmp_path):
+    if request.param == "postgresql":
+        return empty_postgres_url()
+    return f"sqlite:///{tmp_path / 'payroll.db'}"
+
+
+def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
     log_file = tmp_path / "server.log"
 
-    with running_app(database_file, log_file) as app:
+    with running_app(database_url, log_file) as app:
         registration = app.post(
             "/api/v1/auth/register",
             headers=_csrf_header(app),
@@ -143,7 +152,7 @@ def test_demo_flow_keeps_its_data_across_a_restart(tmp_path):
         assert january.json()["gross_wage"] == "741.00"
         assert january.json()["net_payout"] == "656.53"
 
-    with running_app(database_file, log_file) as app:
+    with running_app(database_url, log_file) as app:
         login = app.post(
             "/api/v1/auth/login",
             headers=_csrf_header(app),
