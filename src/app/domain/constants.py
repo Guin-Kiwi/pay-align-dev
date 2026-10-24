@@ -39,6 +39,7 @@ EMPLOYER_GROSS_LIMIT = 60_480  # CHF 60,480 per employer per year
 
 # Minimum values (RULES_YEAR)
 MIN_HOURLY_WAGE = 22.20  # Basel-Stadt cantonal minimum wage for RULES_YEAR (base wage; holiday and 1 August supplements are paid on top). Source: https://www.bs.ch/wsu/awa/arbeitsbeziehungen/loehne/mindestlohn/haeufige-fragen-zum-kantonalen-mindestlohn-faq
+MAX_HOURLY_WAGE = 500.00  # Setup ceiling (UC-001): far above any household wage, and keeps the wage in centimes within PostgreSQL's integer column
 MIN_WEEKLY_HOURS = 5     # Recommended minimum weekly hours
 
 DAYS_IN_RULES_YEAR = 365

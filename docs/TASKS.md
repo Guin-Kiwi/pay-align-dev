@@ -1,7 +1,7 @@
 # TASKS.md
 
 PHASE: 3
-STATUS: in-progress
+STATUS: done
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -25,6 +25,7 @@ Specify and deliver employer accounts, login and employer-scoped access for PayA
 ## Current Use Case
 
 docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
+docs/specs/UC-001-Set-Up-an-Employment.md
 
 ## Next smallest step
 

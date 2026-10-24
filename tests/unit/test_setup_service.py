@@ -128,6 +128,25 @@ class TestEmployment(unittest.TestCase):
                     hourly_wage=Decimal("22.19"), weekly_hours=10,
                 )
 
+    def test_accepts_hourly_wage_at_maximum_of_500(self):
+        for wage in (500.00, Decimal("500.00")):
+            with self.subTest(wage=wage):
+                employment = Employment(
+                    employer_id=1, employee_id=1, start_date=date(2026, 1, 1),
+                    hourly_wage=wage, weekly_hours=10,
+                )
+                self.assertEqual(employment.hourly_wage, wage)
+
+    def test_rejects_hourly_wage_above_maximum_and_names_the_limit(self):
+        for wage in (500.01, Decimal("500.01")):
+            with self.subTest(wage=wage), self.assertRaisesRegex(
+                ValueError, r"^Hourly wage \(CHF 500\.01\) is above the maximum of CHF 500\.00\.$"
+            ):
+                Employment(
+                    employer_id=1, employee_id=1, start_date=date(2026, 1, 1),
+                    hourly_wage=wage, weekly_hours=10,
+                )
+
     def test_does_not_print_for_low_weekly_hours(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
@@ -227,6 +246,20 @@ class TestRequiredFields(unittest.TestCase):
             make_employer(ahv_number="")
         with self.assertRaisesRegex(ValueError, "AHV number is required"):
             make_employee(ahv_number="")
+
+    def test_employer_text_fields_reject_a_nul_character(self):
+        for field, label in [("name", "Name"), ("address", "Address"), ("contact_info", "Contact info")]:
+            with self.subTest(field=field), self.assertRaisesRegex(
+                ValueError, f"^{label} must not contain a NUL character.$"
+            ):
+                make_employer(**{field: "Anna\x00Muster"})
+
+    def test_employee_text_fields_reject_a_nul_character(self):
+        for field, label in [("name", "Name"), ("address", "Address"), ("nationality", "Nationality")]:
+            with self.subTest(field=field), self.assertRaisesRegex(
+                ValueError, f"^{label} must not contain a NUL character.$"
+            ):
+                make_employee(**{field: "Maria\x00Rossi"})
 
 
 EMPLOYER_DETAILS = {
