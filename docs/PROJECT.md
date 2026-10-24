@@ -62,6 +62,8 @@ Run all commands from the project directory. Docker must be available for Docker
 | All project checks | `bash scripts/test.sh` |
 | Build image without cache | `docker compose build --no-cache api` |
 
+Warning: PostgreSQL tests drop every table in the database pointed to by `TEST_POSTGRES_URL`. Use a throwaway database only; never use the Neon database used by Render.
+
 Run tests outside the runtime container in the local `.venv` Python environment. Set up this environment with the dependencies from `requirements.txt`, using `.venv/bin/python -m pip install -r requirements.txt`. `.dockerignore` excludes tests and process scripts from the runtime image.
 
 Run the health check while the application is running. It should return HTTP 200 and `{"status":"ok"}`. This does not verify persistent data storage.
