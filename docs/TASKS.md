@@ -32,9 +32,9 @@ Complete human integration review of the UC-003 authentication, ownership and
 release configuration corrections, and confirm the team's decision on including UC-003
 in the release. The corrected authentication and ownership contracts are in
 [UC-003 Amendments 4 and 5](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-4--2026-10-24-registration-policy-and-csrf-token-return).
-The release workflow supplies its own test-only session secret; Render still
-needs the deployment configuration documented in [PROJECT.md](PROJECT.md#architecture).
-Container hardening remains separate. These corrections do not complete the
+Release verification supplies test-only session secrets through the container
+checks; Render still needs the deployment configuration documented in
+[PROJECT.md](PROJECT.md#architecture). These corrections do not complete the
 browser UI or accept UC-003.
 
 Assign the `uc003-ui` task, test the browser journey across the five UC-003 view boundaries, then connect it to the account-scoped setup, employment, month and payroll interfaces. Completed months remain view-only.
@@ -85,8 +85,6 @@ Feature freeze is Sat 24 October: fixes only from then.
 | `readme-final` | todo | Finish the README for the capstone, with a diagram of the four layers and the main components (the grading criteria ask for a clear architecture presentation; PROJECT.md describes the layers only in text). | Capstone brief | `ui-merge` | Tue 27 Oct |
 | `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `validate-uc002`, `readme-final` | Wed 28 Oct |
 | `align-gating` | todo | Align `docs/INDEX.json` and `.github/CODEOWNERS` on which files are review-gated. | INDEX.json | | |
-| `docker-312` | todo | Change the `Dockerfile` from `python:3.11-slim` to `python:3.12-slim`, so the image that runs on Render uses the same Python as CI and the tests. The release check tests only `/health` in the container, so a difference between 3.11 and 3.12 would show up only live. Update the Runtime line in PROJECT.md in the same change. | PROJECT.md | | Wed 28 Oct |
-| `docker-nonroot` | todo | The container runs as root. Add a non-root user to the `Dockerfile`, make `/app/data` writable by it, and remove the TODO comment at the top of the `Dockerfile` in the same change. Check with the release check that `/health` still answers and that setup saves to the database. | `AGENTS.md` (least privilege) | `docker-312` | |
 
 ### Unassigned
 
