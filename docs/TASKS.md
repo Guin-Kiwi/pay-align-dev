@@ -1,7 +1,7 @@
 # TASKS.md
 
-PHASE: 3
-STATUS: in-progress
+PHASE: 5
+STATUS: done
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -14,7 +14,7 @@ STATUS: in-progress
 | 2 — Design | Established; amend as needed | ADR-001 to ADR-006 are Accepted. |
 | 3 — Develop | In progress | Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; the slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
-| 5 — Deploy | Not started | Release readiness has not yet been established. |
+| 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run ([run 40085035943](https://github.com/Guin-Kiwi/pay-align-dev/actions/runs/40085035943), commit `dfaed65`) started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
 ## Active objective
 
@@ -50,8 +50,8 @@ Feature freeze is Sat 24 October: fixes only from then.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `demo-path` | todo | Prepare the demo of both use cases on the Render deployment. Proposed on 23 October 2026 (teammates who disagree say so before Sat 24 Oct): setup through the setup page (`/setup`, from `ui-merge`) and payroll through Swagger (`/docs`); no payroll page and no endpoint listing employments for v0.1.0. If the setup page is not merged, setup also goes through Swagger. Prepare the request bodies to paste (one setup, two or three payroll months) with made-up names and AHV numbers only, since anyone with the link can save data, and open the app two minutes before the demo so the free instance is awake. Done when the whole flow has run once on the Render URL. | Capstone brief | `payslip-response`, `deploy-render` | Wed 28 Oct |
-| `deploy-render` | doing | Deploy the app to Render (capstone Task 2, steps 5 and 6). Done: the free Render web service `pay-align-dev` builds the `Dockerfile` from `main` with auto-deploy off and `DATABASE_URL=sqlite:////tmp/payroll.db`, and setup and payroll work at https://pay-align-dev.onrender.com/docs. Left: (1) Ayla has added Render's deploy hook as the GitHub secret `RENDER_DEPLOY_HOOK_URL` (her statement; a secret cannot be checked in the repository) and sets the repository variable `CD_ENABLED=true` once the CD change is merged. (2) Merge the CD change: `scripts/deploy.sh` calls the hook, `scripts/smoke-test.sh` waits until `/health` answers, and `release.yml` calls `cd.yml` after a `v*` tag. Proposed on 23 October 2026: deploy only on a release, not on every merged PR, so a half-finished merge cannot break the live app. Render builds from `main`, not from the tag, so tag only when `main` is what should go live. If `db-choice` picks Neon, change `DATABASE_URL` on Render. Done when a CD run has deployed and its smoke test passed. | Capstone brief | | Wed 28 Oct |
+| `demo-path` | todo | Prepare the demo of both use cases on the Render deployment. Proposed on 23 October 2026 (teammates who disagree say so before Sat 24 Oct): setup through the setup page (`/setup`, from `ui-merge`) and payroll through Swagger (`/docs`); no payroll page and no endpoint listing employments for v0.1.0. If the setup page is not merged, setup also goes through Swagger. Prepare the request bodies to paste (one setup, two or three payroll months) with made-up names and AHV numbers only, since anyone with the link can save data, and open the app two minutes before the demo so the free instance is awake. Done when the whole flow has run once on the Render URL. | Capstone brief | `payslip-response` | Wed 28 Oct |
+| `render-config` | todo | Set the Render environment for the merged features. After the PostgreSQL change (`db-choice`) is merged and deployed, set `DATABASE_URL` on Render to the Neon connection URL ([ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md) Amendment 1); the URL contains a password, so it goes only into Render. If UC-003 is merged, set `SESSION_SECRET_KEY` on Render before the next deploy, or the app does not start. Done when `/health` answers and a setup saved before a redeploy is still there after it. | ADR-005 | `db-choice` | Wed 28 Oct |
 
 ### Aaron
 
@@ -118,6 +118,7 @@ Each use case's tests are named in its Validation plan ([UC-001](specs/UC-001-Se
 - [PROJECT architecture](PROJECT.md)
 - [Calculations: formulas](reference/calculations.md)
 - [Constants: rates, limits and thresholds](../src/app/domain/constants.py)
+- [First CD run to Render](https://github.com/Guin-Kiwi/pay-align-dev/actions/runs/40085035943) (24 October 2026)
 
 Which file owns each kind of fact is under Collaboration in `AGENTS.md`; this file holds what
 comes next.
