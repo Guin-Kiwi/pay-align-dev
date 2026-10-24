@@ -41,7 +41,6 @@
         <p id="employee-ahv-error" role="alert" hidden></p>
       <label for="employee-nationality">Nationality</label><input id="employee-nationality" required aria-describedby="employee-nationality-error">
         <p id="employee-nationality-error" role="alert" hidden></p>
-      <p>Employee tax status defaults to ordinary taxation.</p>
     </section>
     <section aria-labelledby="employment-heading">
       <h2 id="employment-heading">Employment</h2>
@@ -51,7 +50,7 @@
       <p id="end-date-note">Leave blank for an open-ended contract. The end date may extend beyond 2026.</p>
       <p id="end-date-error" role="alert" hidden></p>
       <label for="hourly-wage">Hourly wage in CHF per hour</label><input id="hourly-wage" type="number" min="22.20" step="0.01" required aria-describedby="wage-note hourly-wage-error">
-      <p id="wage-note">Minimum CHF 22.20 per hour, with at most two decimal places.</p>
+      <p id="wage-note">Minimum CHF 22.20 per hour, with at most two decimal places. From 5 hours a week, the NAV Hauswirtschaft minimum applies instead (CHF 20.35, or 22.30 with 4 years' experience or EBA, or 24.55 with EFZ); this version accepts only CHF 22.20 or more and does not check the NAV category.</p>
       <p id="hourly-wage-error" role="alert" hidden></p>
       <label for="weekly-hours">Weekly hours (H:MM)</label><input id="weekly-hours" type="text" placeholder="6:30" pattern="[0-9]{1,2}:[0-5][0-9]" required aria-describedby="hours-note weekly-hours-error">
       <p id="hours-note">Use H:MM, for example 6:30. Allowed range: 0:01 to 99:59.</p>
