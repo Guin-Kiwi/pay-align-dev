@@ -90,9 +90,12 @@ jobs:
               "*.egg-info", ".DS_Store", "AGENTS.md", "CLAUDE.md",
               "CONTRIBUTING.md", "CITATION.cff", ".zenodo.json", "pytest.ini",
           )
+          runtime_data = root / "data"
+          if not runtime_data.is_dir() or any(runtime_data.iterdir()):
+              raise SystemExit("Runtime data directory must exist and be empty")
           found = [str(p.relative_to(root)) for p in root.rglob("*")
-                   if p.name in excluded or any(fnmatch.fnmatchcase(p.name, pattern)
-                                                for pattern in patterns)]
+                   if p != runtime_data and (p.name in excluded or any(
+                       fnmatch.fnmatchcase(p.name, pattern) for pattern in patterns))]
           if found:
               raise SystemExit("Disallowed files in image: " + ", ".join(sorted(found)))
           for required in ("src/app/infrastructure/web/app.py", "requirements.txt", "LICENSE"):

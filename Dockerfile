@@ -1,5 +1,4 @@
-# TODO(PR #3 review): container runs as root; add a non-root user. Owner: person 4.
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
@@ -10,6 +9,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application
 COPY . /app
+
+RUN groupadd --gid 10001 payalign \
+    && useradd --uid 10001 --gid payalign --no-create-home --shell /usr/sbin/nologin payalign \
+    && install -d -m 0750 -o payalign -g payalign /app/data
+
+USER payalign:payalign
 
 # Expose the FastAPI port
 EXPOSE 8000

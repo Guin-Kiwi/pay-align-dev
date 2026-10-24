@@ -53,6 +53,7 @@ Run all commands from the project directory. Docker must be available for Docker
 | Activity | Command |
 |---|---|
 | Build Docker image | `docker compose build api` |
+| Prepare SQLite bind-mount ownership (first run or upgrade from root) | `docker compose run --rm --no-deps --user root --entrypoint chown api -R 10001:10001 /app/data` |
 | Start application | `docker compose up api` |
 | Health check | `curl --fail --include http://localhost:8000/health` |
 | Unit tests | `.venv/bin/python -m pytest tests/unit/` |
@@ -60,11 +61,21 @@ Run all commands from the project directory. Docker must be available for Docker
 | End-to-end tests (start the app as a server) | `.venv/bin/python -m pytest tests/e2e/` |
 | Tests against PostgreSQL (skipped without the variable) | `TEST_POSTGRES_URL=postgresql://user:password@host/dbname .venv/bin/python -m pytest` |
 | All project checks | `bash scripts/test.sh` |
+| Container runtime checks (after building) | `docker build -t payalign:local .` then `TEST_DOCKER_IMAGE=payalign:local .venv/bin/python -m pytest tests/e2e/test_docker_runtime.py` |
 | Build image without cache | `docker compose build --no-cache api` |
 
 Warning: PostgreSQL tests drop every table in the database pointed to by `TEST_POSTGRES_URL`. Use a throwaway database only; never use the Neon database used by Render.
 
 Run tests outside the runtime container in the local `.venv` Python environment. Set up this environment with the dependencies from `requirements.txt`, using `.venv/bin/python -m pip install -r requirements.txt`. `.dockerignore` excludes tests and process scripts from the runtime image.
+
+The image runs as `payalign` (UID/GID 10001) and includes an empty, writable
+`/app/data` directory. Compose retains the `./data:/app/data` bind mount, so host
+ownership overrides the directory permissions in the image. After building,
+run the ownership preparation command before starting Compose for the first
+time or upgrading an existing root-owned database. Stop an existing API container
+with `docker compose stop api` before preparing its storage. The one-time command
+runs as root to assign the directory and existing database files to UID/GID 10001;
+normal application startup uses the non-root image user.
 
 Run the health check while the application is running. It should return HTTP 200 and `{"status":"ok"}`. This does not verify persistent data storage.
 
@@ -76,7 +87,7 @@ A published `v*` release calls the CD workflow after publication. When `CD_ENABL
 
 ## Dependencies
 
-* **Runtime:** Docker, Python 3.11+ (`.python-version` pins 3.12 for CI and the dev container; the container image uses 3.11)
+* **Runtime:** Docker, Python 3.12 (`.python-version`, CI, the dev container and the container image)
 * **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), psycopg 3 (PostgreSQL driver), Pydantic (Validation), Pytest (Testing)
 * **Environment Variables:** `DATABASE_URL` (Required for infrastructure configuration). 
 * Never commit `.env` credentials to version control.
