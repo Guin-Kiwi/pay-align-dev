@@ -13,6 +13,7 @@ from src.app.infrastructure.sqlalchemy_payroll_repository import (
 from src.app.infrastructure.sqlalchemy_setup_repository import SqlAlchemySetupRepository
 from src.app.interfaces.payroll import payroll_router
 from src.app.interfaces.setup import setup_router
+from src.app.interfaces.ui import ui_router
 
 
 def create_app(
@@ -35,6 +36,7 @@ def create_app(
             engine.dispose()
 
     app = FastAPI(lifespan=lifespan)
+    app.include_router(ui_router)
     app.state.engine = engine
     app.state.setup_service = SetupService(setup_repository)
     app.state.payroll_service = PayrollService()
