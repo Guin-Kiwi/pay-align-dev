@@ -259,13 +259,13 @@ class TestSetUpEmployment(unittest.TestCase):
         )
 
         self.assertEqual(result, SetupResult(employer_id=1, employee_id=1, employment_id=1))
-        self.assertEqual(self.repository.employer.name, "Anna Muster")
+        self.assertEqual(self.repository.get_employer(1).name, "Anna Muster")
         self.assertEqual(self.repository.employees[0].name, "Maria Rossi")
         employment = self.repository.employments[0]
         self.assertEqual((employment.employer_id, employment.employee_id), (1, 1))
 
     def test_links_to_the_existing_employer(self):
-        self.repository.employer = make_employer(id=7)
+        self.repository.employers[1] = make_employer(id=7)
 
         result = self.service.set_up_employment(employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS)
 
@@ -296,7 +296,7 @@ class TestSetUpEmployment(unittest.TestCase):
         self.assertIsNone(self.repository.get_employment(99, 1))
 
     def test_rejects_a_second_employer_and_saves_nothing(self):
-        self.repository.employer = make_employer(id=7)
+        self.repository.employers[1] = make_employer(id=7)
 
         with self.assertRaises(EmployerAlreadyExistsError):
             self.service.set_up_employment(
@@ -309,7 +309,7 @@ class TestSetUpEmployment(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "^Employer: "):
             self.service.set_up_employment(employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS)
 
-        self.assertIsNone(self.repository.employer)
+        self.assertIsNone(self.repository.get_employer(1))
         self.assertEqual(self.repository.employees, [])
 
     def test_names_the_invalid_part_and_saves_nothing(self):
@@ -335,13 +335,58 @@ class TestSetUpEmployment(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, f"^{part}: "):
                     self.service.set_up_employment(**arguments)
 
-                self.assertIsNone(self.repository.employer)
+                self.assertIsNone(self.repository.get_employer(1))
                 self.assertEqual(self.repository.employees, [])
                 self.assertEqual(self.repository.employments, [])
 
     def test_get_employer_returns_the_saved_employer_or_none(self):
         self.assertIsNone(self.service.get_employer())
 
-        self.repository.employer = make_employer(id=7)
+        self.repository.employers[1] = make_employer(id=7)
 
         self.assertEqual(self.service.get_employer().id, 7)
+
+    def test_two_accounts_keep_same_ahv_profiles_and_employments_separate(self):
+        first = self.service.set_up_employment(
+            employer=EMPLOYER_DETAILS, employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS
+        )
+        other = SetupService(self.repository, account_id=2)
+        self.assertIsNone(other.get_employer())
+        self.assertIsNone(self.repository.get_employee(EMPLOYEE_DETAILS["ahv_number"], 2))
+        self.assertIsNone(self.repository.get_employment(first.employment_id, 2))
+        second = other.set_up_employment(
+            employer={**EMPLOYER_DETAILS, "name": "Second Employer"},
+            employee={**EMPLOYEE_DETAILS, "name": "Second Employee"},
+            employment=EMPLOYMENT_DETAILS,
+        )
+        self.assertNotEqual(first.employer_id, second.employer_id)
+        self.assertNotEqual(first.employee_id, second.employee_id)
+        self.assertEqual(self.service.get_employer().name, "Anna Muster")
+        self.assertEqual(other.get_employer().name, "Second Employer")
+        self.assertEqual(self.repository.get_employee(EMPLOYEE_DETAILS["ahv_number"], 1).name, "Maria Rossi")
+        self.assertEqual(self.repository.get_employee(EMPLOYEE_DETAILS["ahv_number"], 2).name, "Second Employee")
+        self.assertIsNone(self.repository.get_employment(second.employment_id, 1))
+
+    def test_repository_rejects_saving_another_accounts_employer(self):
+        self.service.set_up_employment(
+            employer=EMPLOYER_DETAILS, employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS
+        )
+        with self.assertRaisesRegex(ValueError, "Employer not found"):
+            self.repository.save(
+                2, self.repository.get_employer(1), make_employee(),
+                self.service.create_employment(**EMPLOYMENT_DETAILS),
+            )
+        self.assertEqual(len(self.repository.employments), 1)
+        self.assertEqual(len(self.repository.employees), 1)
+
+    def test_repository_rejects_saving_another_accounts_employee(self):
+        self.service.set_up_employment(
+            employer=EMPLOYER_DETAILS, employee=EMPLOYEE_DETAILS, employment=EMPLOYMENT_DETAILS
+        )
+        with self.assertRaisesRegex(ValueError, "Employee not found"):
+            self.repository.save(
+                2, make_employer(), self.repository.get_employee(EMPLOYEE_DETAILS["ahv_number"], 1),
+                self.service.create_employment(**EMPLOYMENT_DETAILS),
+            )
+        self.assertIsNone(self.repository.get_employer(2))
+        self.assertEqual(len(self.repository.employments), 1)

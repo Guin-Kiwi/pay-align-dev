@@ -49,6 +49,7 @@ The employer registers or logs in to manage employment and payroll data.
 - A registered account without an employer profile is directed to complete setup; it cannot process payroll until setup creates its associated employer profile.
 - A second account can use the service concurrently without changing the first account's identity or access.
 - An employee with the same AHV number at another employer is treated as a separate employer-scoped record.
+- [Amendment 5](#amendment-5--2026-10-24-account-isolation-corrections) clarifies employer AHV independence and required ownership context.
 
 ## Errors / failure cases
 - Duplicate account email is rejected.
@@ -153,3 +154,27 @@ setup after registration/login, stale-token rejection, malformed tokens and
 rejected registrations without persistence. `tests/unit/test_account_service.py`
 covers password validation at the application boundary and preservation of
 valid long and Unicode passwords.
+
+## Amendment 5 — 2026-10-24: Account isolation corrections
+
+An employer AHV number does not grant access or identify a shared profile across
+accounts. Two accounts may save separate employer profiles with the same AHV
+number; each profile, employee and employment remains owned by its account. Keep
+the unique account-to-employer association from ADR-007; remove the global
+employer AHV uniqueness constraint. This uses the existing new, empty database
+assumption and does not migrate a pre-account database.
+
+The payroll application operation and its employment-terms repository lookup
+require account context. Omitting it must not select an unscoped lookup; an
+explicit missing or invalid account value is rejected before payroll accesses
+records. An employment owned by another account remains indistinguishable from
+an absent employment. The in-memory setup adapter applies the same ownership
+checks to employer, employee and employment reads and rejects foreign employer
+or employee IDs before saving anything.
+
+Validation: `tests/integration/test_employer_access.py` covers independent same-AHV
+employer setup and record isolation on SQLite and, when configured, PostgreSQL.
+`tests/unit/test_payroll_service.py` and
+`tests/integration/test_sqlalchemy_payroll_repository.py` cover required ownership
+context. `tests/unit/test_setup_service.py` covers in-memory isolation and rejected
+foreign saves without partial changes.

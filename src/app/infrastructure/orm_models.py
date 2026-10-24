@@ -32,7 +32,7 @@ class EmployerRow(Base):
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
     address: Mapped[str] = mapped_column(String, nullable=False)
-    ahv_number: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    ahv_number: Mapped[str] = mapped_column(String, nullable=False)
     contact_info: Mapped[str] = mapped_column(String, nullable=False)
 
 

@@ -55,21 +55,19 @@ class PayrollService:
         month: int,
         year: int,
         work_entries: list[WorkEntry],
+        account_id: int,
         cash_bonus: Decimal = Decimal("0.00"),
         expense_reimbursements: Decimal = Decimal("0.00"),
-        account_id: int | None = None,
     ) -> tuple[MonthlyRecord, Payslip]:
         """Calculate, validate and persist one monthly payroll run."""
+        if not isinstance(account_id, int) or isinstance(account_id, bool) or account_id <= 0:
+            raise InvalidPayrollInputError("An authenticated account is required.")
         if year != RULES_YEAR:
             raise InvalidPayrollInputError(
                 f"Payroll rules exist for {RULES_YEAR} only."
             )
 
-        stored = (
-            repository.employment_terms(employment_id)
-            if account_id is None
-            else repository.employment_terms(employment_id, account_id)
-        )
+        stored = repository.employment_terms(employment_id, account_id)
         if stored is None:
             raise EmploymentNotFoundError(f"Employment {employment_id} not found.")
         terms = stored.terms

@@ -1,7 +1,9 @@
 from fastapi.testclient import TestClient
+import pytest
 from sqlalchemy import text
 
 from src.app.infrastructure.web.app import create_app
+from tests.database_helpers import empty_postgres_url
 
 SETUP = {
     "employer": {
@@ -114,6 +116,36 @@ def test_setup_associates_the_new_employer_with_the_authenticated_account(
         ).scalar_one()
     assert owner_id == account["id"]
     app.state.engine.dispose()
+
+
+@pytest.mark.parametrize("backend", ["sqlite", "postgresql"])
+def test_same_employer_ahv_can_be_set_up_independently_by_two_accounts(
+    monkeypatch, tmp_path, backend
+):
+    database_url = empty_postgres_url() if backend == "postgresql" else f"sqlite:///{tmp_path / 'accounts.db'}"
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    app = create_app()
+    with TestClient(app, base_url="https://testserver", raise_server_exceptions=False) as first, TestClient(
+        app, base_url="https://testserver", raise_server_exceptions=False
+    ) as second:
+        _register(first, "first@example.ch")
+        first_setup = _setup(first)
+        assert first_setup.status_code == 201
+        _register(second, "second@example.ch")
+        second_setup = second.post(
+            "/api/v1/setup",
+            headers={"X-CSRF-Token": _csrf(second)},
+            json={**SETUP, "employer": {**SETUP["employer"], "name": "Second Employer"}},
+        )
+        assert second_setup.status_code == 201, second_setup.text
+        assert first_setup.json()["employer_id"] != second_setup.json()["employer_id"]
+        assert first_setup.json()["employee_id"] != second_setup.json()["employee_id"]
+        assert first.get("/api/v1/employer").json()["name"] == "Anna Muster"
+        assert second.get("/api/v1/employer").json()["name"] == "Second Employer"
+        foreign = second.get(f"/api/v1/employments/{first_setup.json()['employment_id']}")
+        absent = second.get("/api/v1/employments/999")
+        assert foreign.status_code == absent.status_code == 404
+        assert foreign.json() == absent.json()
 
 
 def test_employer_lookup_does_not_expose_another_accounts_profile(

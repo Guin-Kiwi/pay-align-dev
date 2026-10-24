@@ -28,11 +28,10 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Address the remaining UC-003 review findings before requesting review again:
-release session configuration and Render documentation, employer AHV conflicts,
-payroll ownership requirements and the in-memory setup adapter's ownership checks.
-CSRF token return, malformed-token handling and registration policy are implemented
-as specified in [UC-003 Amendment 4](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-4--2026-10-24-registration-policy-and-csrf-token-return).
+Address the remaining UC-003 release review finding before requesting review
+again: supply test session configuration to release verification and document
+Render's session secret. Authentication and ownership corrections are implemented
+as specified in [UC-003 Amendments 4 and 5](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-4--2026-10-24-registration-policy-and-csrf-token-return).
 Keep this work separate from container hardening.
 
 The review correction slice is in progress. Acceptance: release verification can

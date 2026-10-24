@@ -171,14 +171,15 @@ class SqlAlchemyPayrollRepository(PayrollRepositoryPort):
             )
 
     def employment_terms(
-        self, employment_id: int, account_id: int | None = None
+        self, employment_id: int, account_id: int
     ) -> StoredEmployment | None:
+        if not isinstance(account_id, int) or isinstance(account_id, bool) or account_id <= 0:
+            return None
         with Session(self.engine) as session:
-            query = select(EmploymentRow).where(EmploymentRow.id == employment_id)
-            if account_id is not None:
-                query = query.join(EmployerRow).where(
-                    EmployerRow.account_id == account_id
-                )
+            query = select(EmploymentRow).join(EmployerRow).where(
+                EmploymentRow.id == employment_id,
+                EmployerRow.account_id == account_id,
+            )
             row = session.scalar(query)
             if row is None:
                 return None
