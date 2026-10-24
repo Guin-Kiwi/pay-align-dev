@@ -7,6 +7,7 @@ from src.app.application.ports.account_repository import (
 )
 from src.app.application.ports.password_hasher import PasswordHasher
 from src.app.domain.account import Account
+from src.app.domain.constants import MIN_PASSWORD_LENGTH
 
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
@@ -31,6 +32,15 @@ class AccountService:
         normalized_email = _normalize_email(email)
         if not first_name.strip() or not last_name.strip():
             raise ValueError("First and last name are required.")
+        if (
+            len(password) < MIN_PASSWORD_LENGTH
+            or not any(character.isdecimal() for character in password)
+            or not any(not character.isalnum() and not character.isspace() for character in password)
+        ):
+            raise ValueError(
+                f"Password must contain at least {MIN_PASSWORD_LENGTH} characters, "
+                "including a number and a special character."
+            )
         if self.repository.get_by_email(normalized_email) is not None:
             raise DuplicateAccountEmailError
         account = Account(

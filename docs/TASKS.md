@@ -28,11 +28,21 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Address the UC-003 review findings before requesting review again: release
-session configuration and Render documentation, employer AHV conflicts, CSRF
-token rotation and malformed-token handling, payroll ownership requirements and
-the in-memory setup adapter's ownership checks. Resolve the password-policy
-comment explicitly. Keep this work separate from container hardening.
+Address the remaining UC-003 review findings before requesting review again:
+release session configuration and Render documentation, employer AHV conflicts,
+payroll ownership requirements and the in-memory setup adapter's ownership checks.
+CSRF token return, malformed-token handling and registration policy are implemented
+as specified in [UC-003 Amendment 4](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-4--2026-10-24-registration-policy-and-csrf-token-return).
+Keep this work separate from container hardening.
+
+The review correction slice is in progress. Acceptance: release verification can
+start the authenticated app with a test-only session secret; two accounts can
+save the same employer AHV independently; authentication returns its rotated CSRF
+token for the next write; malformed CSRF values return 403; payroll cannot omit
+ownership context; and the in-memory setup adapter enforces the same ownership
+boundary. Password registration follows the policy selected by the human during
+this correction. Add regression coverage before implementation, then run the
+focused tests, `bash scripts/test.sh` and the isolated container startup check.
 
 Assign the `uc003-ui` task, test the browser journey across the five UC-003 view boundaries, then connect it to the account-scoped setup, employment, month and payroll interfaces. Completed months remain view-only.
 

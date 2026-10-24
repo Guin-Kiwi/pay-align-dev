@@ -1,10 +1,12 @@
 import base64
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from src.app.infrastructure.web.app import create_app
+from tests.integration.test_employer_access import SETUP
 
 
 def _csrf(client: TestClient) -> str:
@@ -37,7 +39,8 @@ def test_registration_persists_a_password_hash_and_starts_a_session(
     response = _registration(client)
 
     assert response.status_code == 201
-    assert response.json() == {
+    account = {key: value for key, value in response.json().items() if key != "csrf_token"}
+    assert account == {
         "id": 1,
         "email": "employer@example.ch",
         "first_name": "Anna",
@@ -49,7 +52,7 @@ def test_registration_persists_a_password_hash_and_starts_a_session(
     assert "samesite=lax" in cookie.lower()
     assert "secure" in cookie.lower()
     assert "max-age=14400" in cookie.lower()
-    assert client.get("/api/v1/auth/me").json() == response.json()
+    assert client.get("/api/v1/auth/me").json() == account
     session_data = json.loads(
         base64.b64decode(client.cookies.get("session").split(".", maxsplit=1)[0])
     )
@@ -65,6 +68,81 @@ def test_registration_persists_a_password_hash_and_starts_a_session(
         assert row.password_hash.startswith("$argon2id$")
 
     app.state.engine.dispose()
+
+
+@pytest.mark.parametrize("operation", ["register", "login"])
+def test_authentication_returns_the_rotated_token_for_the_next_write(
+    monkeypatch, tmp_path, operation
+):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'accounts.db'}")
+    app = create_app()
+    with TestClient(app, base_url="https://testserver") as client:
+        if operation == "login":
+            assert _registration(client).status_code == 201
+            client.cookies.clear()
+        old_token = _csrf(client)
+        response = client.post(
+            f"/api/v1/auth/{operation}",
+            headers={"X-CSRF-Token": old_token},
+            json={
+                "email": "employer@example.ch",
+                "password": "A-long-test-password-123!",
+                "first_name": "Anna",
+                "last_name": "Muster",
+            },
+        )
+        assert response.status_code == (201 if operation == "register" else 200)
+        token = response.json()["csrf_token"]
+        assert token != old_token
+        assert token == client.cookies.get("csrf_token")
+        rejected = client.post(
+            "/api/v1/setup", headers={"X-CSRF-Token": old_token}, json=SETUP
+        )
+        assert rejected.status_code == 403
+        setup = client.post(
+            "/api/v1/setup", headers={"X-CSRF-Token": token}, json=SETUP
+        )
+        assert setup.status_code == 201, setup.text
+        logout = client.post("/api/v1/auth/logout", headers={"X-CSRF-Token": token})
+        assert logout.status_code == 204
+        assert client.get("/api/v1/auth/me").status_code == 401
+
+
+@pytest.mark.parametrize(
+    "cookie, header",
+    [(b'csrf_token="\\351"', b"ascii"), (b"csrf_token=ascii", b"\xc3\xa9")],
+)
+def test_non_ascii_csrf_values_are_rejected_without_a_server_error(
+    monkeypatch, tmp_path, cookie, header
+):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'accounts.db'}")
+    app = create_app()
+    with TestClient(app, base_url="https://testserver", raise_server_exceptions=False) as client:
+        response = client.post(
+            "/api/v1/auth/logout",
+            headers=[(b"cookie", cookie), (b"x-csrf-token", header)],
+        )
+        assert response.status_code == 403
+
+
+@pytest.mark.parametrize("password", ["Abc1!xy", "abcdefgh!", "abcdefg1", "abcdef1 "])
+def test_registration_rejects_passwords_outside_the_selected_policy(
+    monkeypatch, tmp_path, password
+):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'accounts.db'}")
+    app = create_app()
+    with TestClient(app, base_url="https://testserver") as client:
+        token = _csrf(client)
+        response = client.post(
+            "/api/v1/auth/register",
+            headers={"X-CSRF-Token": token},
+            json={"email": "employer@example.ch", "password": password,
+                  "first_name": "Anna", "last_name": "Muster"},
+        )
+        assert response.status_code == 422
+        assert client.get("/api/v1/auth/me").status_code == 401
+        with app.state.engine.connect() as connection:
+            assert connection.execute(text("SELECT COUNT(*) FROM accounts")).scalar_one() == 0
 
 
 def test_registration_normalizes_email_and_rejects_duplicates(monkeypatch, tmp_path):

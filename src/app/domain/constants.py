@@ -2,6 +2,9 @@
 
 from datetime import date
 
+# Registration policy (UC-003 Amendment 4)
+MIN_PASSWORD_LENGTH = 8
+
 # Payroll rules exist for this year only (ADR-002)
 RULES_YEAR = 2026
 RULES_YEAR_START = date(RULES_YEAR, 1, 1)

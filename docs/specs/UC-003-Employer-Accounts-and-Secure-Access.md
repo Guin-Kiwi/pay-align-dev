@@ -1,6 +1,6 @@
 # UC-003: Employer Accounts and Secure Access
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 ## Goal
 Let multiple household employers use one PayAlign deployment with separate accounts and isolated payroll data.
@@ -109,6 +109,7 @@ At VALIDATE, record the actual test results in the commit message.
 - The browser obtains a random CSRF token from `GET /api/v1/auth/csrf`. PayAlign sets the token in a separate browser-readable `csrf_token` cookie and returns it to the UI. The UI sends the same token in `X-CSRF-Token` on every state-changing cookie-authenticated request, including registration, login, logout, setup and payroll writes. The CSRF token carries no identity authority and is not a signed session credential.
 - Given a missing or non-matching CSRF cookie/header pair, when a state-changing cookie-authenticated request is made, then PayAlign rejects it before performing the operation, comparing the values in constant time.
 - Given ordinary authenticated requests before session expiry, when they occur, then the session expiry is not extended.
+- [Amendment 4](#amendment-4--2026-10-24-registration-policy-and-csrf-token-return) clarifies the token returned after authentication and malformed-token handling.
 
 ## Amendment 3 — 2026-10-23: Minimum browser views
 
@@ -129,3 +130,26 @@ The CRUD boundary is explicit: account and employer creation, setup creation, an
 All list and detail reads must use the signed-in account's employer scope. An absent or another employer's employment, month or payslip has the same not-found outcome. The browser view itself grants no authority; application and repository checks remain required by [ADR-007](../adr/ADR-007-employer-accounts-and-secure-access.md#decision).
 
 Acceptance: Two concurrent accounts see only their own employment lists, months and payslips. A new account can complete setup, find its employment, create its first eligible month and read its saved payslip without Swagger. A completed month remains readable and has no update or delete action.
+
+## Amendment 4 — 2026-10-24: Registration policy and CSRF token return
+
+Guin-Kiwi selected the registration password policy on 2026-10-24: at least
+[the configured minimum length](../../src/app/domain/constants.py), including at
+least one decimal digit and one special character. A special character is a
+non-alphanumeric, non-whitespace character. Longer passwords and Unicode are
+allowed; there is no uppercase/lowercase requirement. Validate before hashing or
+saving an account. Login verifies the saved hash without applying the registration
+policy again.
+
+Successful registration and login rotate the CSRF cookie and return its new value
+as `csrf_token` alongside the account fields in the JSON response. The browser
+uses that value on its next state-changing request without another token fetch.
+The previous token is rejected. `GET /api/v1/auth/me` continues to return only the
+account fields. Non-ASCII CSRF cookie or header values are malformed and return
+403 without starting or changing a session.
+
+Validation: `tests/integration/test_auth_api.py` covers immediate authenticated
+setup after registration/login, stale-token rejection, malformed tokens and
+rejected registrations without persistence. `tests/unit/test_account_service.py`
+covers password validation at the application boundary and preservation of
+valid long and Unicode passwords.

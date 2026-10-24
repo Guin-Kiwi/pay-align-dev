@@ -32,6 +32,10 @@ class AccountResponse(BaseModel):
     last_name: str
 
 
+class SessionResponse(AccountResponse):
+    csrf_token: str
+
+
 def get_account_service(request: Request) -> AccountService:
     return request.app.state.account_service
 
@@ -41,7 +45,11 @@ def require_csrf_token(
     token: str | None = Header(default=None, alias="X-CSRF-Token"),
 ) -> None:
     expected = request.cookies.get("csrf_token")
-    if not expected or not token or not secrets.compare_digest(expected, token):
+    if (
+        not expected or not token
+        or not expected.isascii() or not token.isascii()
+        or not secrets.compare_digest(expected, token)
+    ):
         raise HTTPException(status_code=403, detail="Invalid CSRF token.")
 
 
@@ -61,14 +69,14 @@ def issue_csrf_token(request: Request, response: Response) -> dict[str, str]:
     return {"csrf_token": token}
 
 
-@auth_router.post("/register", response_model=AccountResponse, status_code=201)
+@auth_router.post("/register", response_model=SessionResponse, status_code=201)
 def register(
     payload: RegistrationRequest,
     request: Request,
     response: Response,
     _: None = Depends(require_csrf_token),
     service: AccountService = Depends(get_account_service),
-) -> AccountResponse:
+) -> SessionResponse:
     try:
         account = service.register(
             payload.email, payload.password, payload.first_name, payload.last_name
@@ -77,24 +85,24 @@ def register(
         raise HTTPException(status_code=409, detail="An account already uses this email.") from error
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
-    _start_session(request, response, account.id)
-    return _to_response(account)
+    token = _start_session(request, response, account.id)
+    return SessionResponse(**_to_response(account).model_dump(), csrf_token=token)
 
 
-@auth_router.post("/login", response_model=AccountResponse)
+@auth_router.post("/login", response_model=SessionResponse)
 def login(
     payload: LoginRequest,
     request: Request,
     response: Response,
     _: None = Depends(require_csrf_token),
     service: AccountService = Depends(get_account_service),
-) -> AccountResponse:
+) -> SessionResponse:
     try:
         account = service.authenticate(payload.email, payload.password)
     except InvalidCredentialsError as error:
         raise HTTPException(status_code=401, detail="Invalid email or password.") from error
-    _start_session(request, response, account.id)
-    return _to_response(account)
+    token = _start_session(request, response, account.id)
+    return SessionResponse(**_to_response(account).model_dump(), csrf_token=token)
 
 
 @auth_router.get("/me", response_model=AccountResponse)
@@ -145,10 +153,12 @@ def logout(
     return response
 
 
-def _start_session(request: Request, response: Response, account_id: int) -> None:
+def _start_session(request: Request, response: Response, account_id: int) -> str:
     request.session.clear()
     request.session["account_id"] = account_id
-    _set_csrf_cookie(response, request, secrets.token_urlsafe(32))
+    token = secrets.token_urlsafe(32)
+    _set_csrf_cookie(response, request, token)
+    return token
 
 
 def _set_csrf_cookie(response: Response, request: Request, token: str) -> None:
