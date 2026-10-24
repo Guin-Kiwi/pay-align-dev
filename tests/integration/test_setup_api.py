@@ -140,6 +140,26 @@ class TestSetupApi(unittest.TestCase):
 
         self.assertEqual(response.status_code, 422)
 
+    def test_wage_up_to_500_is_accepted_and_above_is_rejected(self):
+        for wage, status in (("500.00", 201), ("500.01", 400), ("30000000.00", 400)):
+            with self.subTest(wage=wage):
+                response, _ = set_up_fresh(hourly_wage=wage)
+                self.assertEqual(response.status_code, status)
+                if status == 400:
+                    self.assertEqual(
+                        response.json()["detail"],
+                        f"Employment: Hourly wage (CHF {wage}) is above the maximum of CHF 500.00.",
+                    )
+
+    def test_nul_character_in_a_text_field_is_rejected_and_nothing_is_saved(self):
+        response = self.set_up(
+            employer=EMPLOYER, employee={**EMPLOYEE, "name": "Ma\x00ria"}, employment=EMPLOYMENT
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["detail"], "Employee: Name must not contain a NUL character.")
+        self.assertEqual(self.client.get("/api/v1/employer").status_code, 404)
+
     def test_weekly_hours_typed_as_h_mm_are_accepted(self):
         for text, hours in (("6:30", 6.5), ("30:15", 30.25)):
             with self.subTest(text=text):
