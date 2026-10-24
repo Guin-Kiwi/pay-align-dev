@@ -14,7 +14,7 @@ STATUS: in-progress
 | 2 — Design | Established; amend as needed | ADR-001 to ADR-006 are Accepted. |
 | 3 — Develop | In progress | Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; the slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
-| 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run ([run 40085035943](https://github.com/Guin-Kiwi/pay-align-dev/actions/runs/40085035943), commit `dfaed65`) started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
+| 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
 ## Active objective
 
@@ -116,7 +116,6 @@ Each use case's tests are named in its Validation plan ([UC-001](specs/UC-001-Se
 - [PROJECT architecture](PROJECT.md)
 - [Calculations: formulas](reference/calculations.md)
 - [Constants: rates, limits and thresholds](../src/app/domain/constants.py)
-- [First CD run to Render](https://github.com/Guin-Kiwi/pay-align-dev/actions/runs/40085035943) (24 October 2026)
 
 Which file owns each kind of fact is under Collaboration in `AGENTS.md`; this file holds what
 comes next.
