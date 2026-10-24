@@ -6,9 +6,19 @@ on:
     inputs:
       environment:
         description: Deployment environment
+        type: choice
+        options:
+          - production
         required: true
         default: production
   workflow_call:
+    inputs:
+      environment:
+        type: string
+        default: production
+    secrets:
+      RENDER_DEPLOY_HOOK_URL:
+        required: false
 
 permissions:
   contents: read
@@ -28,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$CD_ENABLED" != "true" ]; then
-            echo "CD template is present but inactive. Set CD_ENABLED=true after adding the project deployment and smoke-test commands."
+            echo "CD is off, so nothing was deployed. Set the repository variable CD_ENABLED=true to deploy."
             exit 0
           fi
           test -x scripts/deploy.sh
@@ -43,8 +53,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Deploy validated artifact
+      - name: Start Render deploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: ./scripts/deploy.sh
 
       - name: Run post-deployment smoke test
+        env:
+          APP_URL: https://pay-align-dev.onrender.com
         run: ./scripts/smoke-test.sh
