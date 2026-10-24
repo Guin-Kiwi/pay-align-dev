@@ -57,7 +57,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
 | `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | `validate-uc002` | |
-| `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | |
+| `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | Mon 26 Oct |
 
 ### Assvinth
 
