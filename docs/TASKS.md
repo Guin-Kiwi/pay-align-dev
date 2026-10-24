@@ -12,7 +12,7 @@ STATUS: in-progress
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Established; review as needed | UC-001 and UC-002 are documented. |
 | 2 — Design | Established; amend as needed | ADR-001 to ADR-006 are Accepted. |
-| 3 — Develop | Done for current slice | The container persistence-verification slice is verified. Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; that slice still needs VALIDATE. |
+| 3 — Develop | In progress | Payroll calculation, persistent payroll saving and the wiring of the payroll router to the app's database are implemented; the slice goes through VALIDATE next. |
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
@@ -28,19 +28,6 @@ docs/specs/UC-001-Set-Up-an-Employment.md
 ## Next smallest step
 
 `validate-uc002` (see Tasks).
-
-### Current development slice: container persistence verification
-
-- Source: Docker investigation issue 4 and `docker-persistence-check`.
-- Scope: run the built image's container tests during release verification and
-  extend setup saving to check the same SQLite storage after container recreation.
-- Acceptance: both containers run non-root, health succeeds, setup returns 201,
-  and the saved employer, employee and employment survive recreation. Test
-  containers and isolated storage are cleaned up on success and failure.
-- Verification: [container runtime tests](../tests/e2e/test_docker_runtime.py),
-  a negative check using an image that clears its database at startup, execution
-  of the release verification command, and `bash scripts/test.sh` with Docker
-  tests enabled.
 
 ## Tasks
 

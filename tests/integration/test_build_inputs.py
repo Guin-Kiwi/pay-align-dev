@@ -1,4 +1,4 @@
-"""Guard the Docker investigation's requirement for fixed build inputs."""
+"""Check the pinned Python base image and dependency locks."""
 
 import re
 from pathlib import Path
