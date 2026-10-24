@@ -7,6 +7,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 HOOK = "https://api.render.com/deploy/srv-example?key=hook-secret"
 APP = "https://payalign.example"
+SHA = "0123456789abcdef0123456789abcdef01234567"
 
 FAKE_CURL = """#!/bin/sh
 printf '%s\\n' "$*" >> "$CURL_LOG"
@@ -26,7 +27,7 @@ class ScriptRun:
 
     def run(self, script, **env):
         base = {k: v for k, v in os.environ.items()
-                if k not in ("RENDER_DEPLOY_HOOK_URL", "APP_URL")}
+                if k not in ("RENDER_DEPLOY_HOOK_URL", "APP_URL", "GITHUB_REF_TYPE", "GITHUB_SHA")}
         base.update(PATH=f"{self.bin}{os.pathsep}{os.environ['PATH']}",
                     CURL_LOG=str(self.log), SMOKE_DELAY_SECONDS="0", **env)
         return subprocess.run(["bash", str(ROOT / "scripts" / script)],
@@ -54,6 +55,33 @@ class DeployScriptTests(unittest.TestCase):
             self.assertIn("POST", call)
             self.assertIn(HOOK, call)
             self.assertNotIn("hook-secret", result.stdout + result.stderr)
+
+    def test_tag_run_deploys_the_release_commit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = ScriptRun(tmp)
+            result = run.run("deploy.sh", RENDER_DEPLOY_HOOK_URL=HOOK,
+                             GITHUB_REF_TYPE="tag", GITHUB_SHA=SHA)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            [call] = run.curl_calls()
+            self.assertIn(f"{HOOK}&ref={SHA}", call)
+
+    def test_branch_run_deploys_the_linked_branch_without_ref(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = ScriptRun(tmp)
+            result = run.run("deploy.sh", RENDER_DEPLOY_HOOK_URL=HOOK,
+                             GITHUB_REF_TYPE="branch", GITHUB_SHA=SHA)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            [call] = run.curl_calls()
+            self.assertIn(HOOK, call)
+            self.assertNotIn("ref=", call)
+
+    def test_tag_run_without_commit_fails_without_calling_render(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = ScriptRun(tmp)
+            result = run.run("deploy.sh", RENDER_DEPLOY_HOOK_URL=HOOK, GITHUB_REF_TYPE="tag")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("GITHUB_SHA", result.stderr)
+            self.assertEqual(run.curl_calls(), [])
 
     def test_rejected_hook_fails_the_deploy(self):
         with tempfile.TemporaryDirectory() as tmp:
