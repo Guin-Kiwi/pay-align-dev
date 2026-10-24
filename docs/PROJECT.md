@@ -19,7 +19,7 @@ We are using **Clean Architecture** to ensure the core payroll logic is complete
 * **Interfaces:** Contains the web routing (e.g., FastAPI controllers) and request/response models.
 * **Infrastructure:** Contains the ORM mappings (e.g., SQLAlchemy), database connection, and the web server wiring.
 
-**Deployment & Data-store:** The application is a containerized full-stack web application. It uses a relational database via an ORM (SQLite in v0.1.0; see `DATABASE_URL` under Data conventions). It runs locally via Docker, and on a free Render web service at https://pay-align-dev.onrender.com, which builds the `Dockerfile` from `main`. On Render, `DATABASE_URL` points to `/tmp`, so the data is lost on every deploy and restart, including when the free instance wakes up after a time without visitors.
+**Deployment & Data-store:** The application is a containerized full-stack web application. It uses a relational database via an ORM (SQLite in v0.1.0; see `DATABASE_URL` under Data conventions). It runs locally via Docker, and on a free Render web service at https://pay-align-dev.onrender.com, which builds the `Dockerfile` from the release commit on a release, or from the latest commit on `main` on a manual deploy. On Render, `DATABASE_URL` points to `/tmp`, so the data is lost on every deploy and restart, including when the free instance wakes up after a time without visitors.
 
 ## Structure
 
@@ -68,6 +68,8 @@ Run the health check while the application is running. It should return HTTP 200
 The release workflow runs the existing tests, builds and starts a Docker image for `linux/amd64` using an isolated in-memory database, and provides the verified image as `payalign-<Commit-ID>-linux-amd64.tar.gz`. The archive contains the image, not running containers or payroll data. After downloading it, load it with `docker load --input payalign-<Commit-ID>-linux-amd64.tar.gz`, replacing `<Commit-ID>` with the actual ID in the filename. The resulting image name is `payalign:<Commit-ID>`. This image is not native to ARM Macs; Docker requires support for running `linux/amd64` images.
 
 Pushes of version tags matching `v*` publish the archive to a GitHub Release after successful checks. Manual runs only validate and store the archive as an Actions artifact by default. Manual publication requires explicitly selecting `publish_release` and running from a `v*` tag.
+
+A published `v*` release calls the CD workflow after publication. When `CD_ENABLED=true`, `scripts/deploy.sh` calls the Render hook stored in `RENDER_DEPLOY_HOOK_URL` with `ref` set to the release commit, so Render builds that commit. A manual CD run from a branch (Actions → CD → Run workflow) calls the hook without `ref` and deploys the latest commit on Render's linked branch. Render builds its own image from source; it does not use the image archive published by the release workflow. `scripts/smoke-test.sh` checks that `/health` answers, but Render can serve the previous version during a new build, so this check shows availability rather than confirming the new version is live.
 
 ## Dependencies
 
