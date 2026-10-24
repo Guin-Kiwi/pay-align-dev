@@ -1,12 +1,12 @@
 # ADR-005-sqlalchemy-persistence-adapter
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 UC-002 must save daily entries, a frozen run snapshot, the `MonthlyRecord` and the `Payslip` in one transaction ([ADR-004](ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). `docs/PROJECT.md` names a relational database reached through an ORM and configured by `DATABASE_URL`.
 
-The first database setup on `uc-002-payroll-saving` and its review exposed gaps that this decision must close:
+The first database setup and its review exposed gaps that this decision must close:
 
 - The schema for `monthly_records` and `payslips` is defined twice: in the ORM models and in the raw DDL of `SQLitePayrollRepository`. The two differ (foreign keys) and the repository's legacy migration recreates tables without them.
 - The repository is SQLite-only but `DATABASE_URL` accepts any URL. It is also handed the raw driver connection of a pooled SQLAlchemy connection, so pool resets and threads can interfere with its transactions.
@@ -19,13 +19,13 @@ The first database setup on `uc-002-payroll-saving` and its review exposed gaps 
 - Keep the sqlite3 repository next to the ORM skeleton: rejected because the schema would keep two sources of truth and the adapter would stay SQLite-only.
 - Drop SQLAlchemy and keep only sqlite3: rejected because `PROJECT.md` specifies an ORM and a configurable database URL; it would need its own amendment and loses portability.
 - Keep the silent in-memory fallback: rejected because payroll data would be lost without any signal when the variable is missing or misspelled.
-- Enforce foreign keys immediately: rejected for now because no use case persists employers or employments, so every payroll run would be rejected.
+- Enforce foreign keys immediately: considered first and rejected at the time, because no use case persisted employers or employments, so every payroll run would have been rejected. Item 6 switches enforcement on now that UC-001 saves them.
 
 ## Decision
 Infrastructure has one persistence adapter, built on SQLAlchemy 2.x, and the ORM models are the only schema definition.
 
 The database foundation (`database.py`, `orm_models.py`, and the five skeleton
-tables) is delivered separately in PR #18. `work_entries`,
+tables) is delivered separately. `work_entries`,
 `payroll_snapshots`, and `monthly_records.employee_id` are not included in that
 foundation.
 
@@ -35,23 +35,22 @@ foundation.
    - the immediately prior run of an employment, whatever its year (ADR-004 Amendment 1, item 9);
    - save one run atomically: entries, snapshot, `MonthlyRecord`, `Payslip`.
 3. **Errors.** The domain defines `DuplicateMonthError` and `InvalidHolidayBalanceError` in `src/app/domain/errors.py`, beside `AnnualLimitExceededError` and `InvalidPayrollInputError`. The adapter translates the unique-constraint failure on `(employment_id, month, year)` into `DuplicateMonthError`; any other `IntegrityError` becomes `InvalidPayrollInputError` with a fixed message; no raw database error text reaches the interfaces.
-4. **Records.** `monthly_records` also stores `employee_id` (like `employer_id`), so the employee limit does not depend on employment persistence. New tables: `work_entries` (one row per submitted daily entry, belonging to a monthly record) and `payroll_snapshots` (one per monthly record). `payroll_snapshots` (one per monthly record) stores the run snapshot defined in ADR-004 Amendment 2: the employment terms (hourly wage, weekly minutes, holiday weeks, employment start and end dates), the ruleset version, the minute totals per hour category and the holiday balance after the run. The submitted entries are the record's `work_entries` and are not copied. Hour totals are not stored on `monthly_records`; they derive from `work_entries`; time is integer minutes ([ADR-004](ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). Both tables are written in the run's transaction and have no update path. Money stays integer centimes ([ADR-003](ADR-003-monetary-precision-and-rounding.md)); the adapter converts from `Decimal`.
+4. **Records.** `monthly_records` also stores `employee_id` (like `employer_id`), so the employee limit does not depend on employment persistence. New tables: `work_entries` (one row per submitted daily entry, belonging to a monthly record) and `payroll_snapshots` (one per monthly record). `payroll_snapshots` stores the run snapshot defined in ADR-004 Amendment 2: the employment terms (hourly wage, weekly minutes, holiday weeks, employment start and end dates), the ruleset version, the minute totals per hour category and the holiday balance after the run. The submitted entries are the record's `work_entries` and are not copied. Hour totals are not stored on `monthly_records`; they derive from `work_entries`; time is integer minutes ([ADR-004](ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). Both tables are written in the run's transaction and have no update path. Money stays integer centimes ([ADR-003](ADR-003-monetary-precision-and-rounding.md)); the adapter converts from `Decimal`.
 5. **Configuration.** `DATABASE_URL` is required and startup fails with a clear message if it is unset or has an unsupported scheme. The engine is created in `create_app()` (`src/app/infrastructure/web/app.py`), using the wiring pattern of [ADR-006](ADR-006-uc-001-setup-api-and-wiring.md), and disposed on application shutdown. Tests can replace it. In-memory SQLite is recognised from the parsed URL and uses a single shared connection; in-memory SQLite is for tests only; with `StaticPool` all requests share one connection.
 6. **Foreign keys.** Declared in the schema. Enforcement is now switched on (`PRAGMA foreign_keys=ON` per connection), because UC-001 saves employers and employments; a payroll row must reference an existing employment.
 7. **Delivery.** The payroll router maps `AnnualLimitExceededError`, `InvalidPayrollInputError`, `DuplicateMonthError` and `InvalidHolidayBalanceError` to 4xx responses, never 500.
 
 Holiday entitlement and the derived balance are defined by [ADR-004 Amendment 1](ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-1-2026-10-16).
 
-Approval: AYLA PROPOSES
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
 
 ## Consequences
-- `SQLitePayrollRepository` is replaced during DEVELOP on `uc-002-payroll-saving`; its tests move to the new adapter first (TDD).
+- `SQLitePayrollRepository` was replaced by the SQLAlchemy adapter; its tests moved to the new adapter first (TDD).
 - SQLAlchemy imports stay in infrastructure; the architecture test keeps enforcing this.
 - `requirements.txt` pins `sqlalchemy>=2.0`.
 - `create_all` does not alter existing tables; an existing `data/payroll.db` on the Docker volume must be deleted until migrations are decided.
-- On acceptance, `docs/PROJECT.md` is updated: `DATABASE_URL` required with no fallback, the two new tables, `employee_id` on `monthly_records`.
 - Tests must dispose their engines so database files can be removed on Windows.
-- Until UC-001 persists parents, referential integrity is declared but not enforced.
+- Referential integrity is enforced (item 6): a payroll row cannot reference a missing employment.
 
 ## Supersedes
 none

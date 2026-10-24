@@ -60,7 +60,7 @@ The employer selects **"Set Up Employment"** in the application.
 - Invalid AHV number format.
 - Missing required fields (e.g., employee address).
 - Duplicate `Employer` record.
-- Hourly wage below the CHF 22.20 floor (the Basel-Stadt minimum wage in 2026) or with more than two decimal places.
+- Hourly wage below the wage floor ([`MIN_HOURLY_WAGE`](../../src/app/domain/constants.py)) or with more than two decimal places.
 - Weekly hours not in H:MM format, or `0:00`.
 - Holiday weeks other than 4 or 5.
 - End date before the start date.
@@ -75,7 +75,7 @@ The employer selects **"Set Up Employment"** in the application.
 - The system must reject `6.5`, `6,5`, `6h30`, `6:75`, `6:5` and `0:00` as weekly hours with a 400 error that names the field and shows the example `6:30`.
 - The system must accept only 4 or 5 holiday weeks.
 - The system must accept a missing end date and an end date equal to the start date, and reject an end date before the start date.
-- The system must reject an hourly wage below CHF 22.20 or with more than two decimal places.
+- The system must reject an hourly wage below the wage floor (CHF 22.20, [`MIN_HOURLY_WAGE`](../../src/app/domain/constants.py)) or with more than two decimal places.
 - The system must reject a start date outside 2026.
 - The system must reuse the saved employee when the employee's AHV number already exists, and link the new employment to that employee instead of saving a second employee.
 
@@ -94,9 +94,8 @@ The employer selects **"Set Up Employment"** in the application.
 ## Open questions / assumptions
 - Assumption: The employer has all required details (e.g., AHV number) at hand.
 - Open question: Should the system support bulk import of employees in the future?
-- Decided on 16 October 2026: weekly hours are kept as minutes, holiday weeks replace holiday days, and the end date is optional. Not yet confirmed for the UI and for the UC-002 NBU check, which becomes `weekly_minutes >= 480`.
-- The `employments` table keeps integer `weekly_minutes` and `holiday_weeks` and a nullable `end_date` (PR #18); setup saves them there.
-- Decided on 16 October 2026 (for UC-002, ADR-004): holiday for an employment that starts or ends during the year is pro-rated by days under contract (OR 329a para. 3): holiday weeks × weekly minutes × contract days in 2026 ÷ 365, counting the start and end dates, rounded half-up once to whole minutes (rounding mode decided on 17 October 2026 in ADR-004).
+- Decided on 16 October 2026: weekly hours are kept as minutes, holiday weeks replace holiday days, and the end date is optional. The NBU threshold that UC-002 checks against weekly minutes is in [calculations.md Step B](../reference/calculations.md#step-b-calculate-employee-deductions).
+- Decided on 16 October 2026 (for UC-002, recorded in [ADR-004 Amendment 1](../adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-1-2026-10-16)): holiday for an employment that starts or ends during the year is pro-rated by days under contract (OR 329a para. 3). The formula and its rounding are in [calculations.md §4](../reference/calculations.md#4-holiday-entitlement).
 - Decided on 16 October 2026: the app accepts only 2026. ADR-002 gives each year its own reviewed ruleset, and 2026 is the only one, so "2026 or later" would apply 2026 rates to 2027 without warning. A later year is added as a new ruleset with its own golden tests; employers do not enter legal rates.
 - Assumption: the end date may fall after 2026, because setup calculates nothing for later years.
 - Decided on 20 October 2026: a second employment for an AHV number that is already saved reuses that employee. The app has one employer, and the UC-002 employee annual limit adds up all employments of one employee with this employer, so one person keeps one record. Not chosen: rejecting the duplicate (no second contract possible) and dropping the unique AHV column (one person saved twice, which splits the annual limit check).
@@ -105,21 +104,7 @@ The employer selects **"Set Up Employment"** in the application.
 
 ## Notes for implementation
 - The API takes weekly hours as the string `"6:30"`; the setup router converts it to minutes, so the domain only sees whole minutes. The wage stays a decimal and the database keeps it in centimes.
-- Yearly holiday time is holiday weeks × weekly minutes (4 × 6:30 = 26:00), the same unit as the UC-002 holiday balance.
+- Yearly holiday time is calculated as in [calculations.md §4](../reference/calculations.md#4-holiday-entitlement), in minutes, the same unit as the UC-002 holiday balance.
 - The UI offers holiday weeks as a choice of 4 or 5 and may hint that 5 weeks apply to employees under 20 or over 50 (`docs/reference/Employing_Household_Help_Basel.md`).
 - Use the `SetupService` to handle the onboarding logic.
 - Ensure all validations are performed before saving to the database.
-
-## Fast Track: PR #13 merge leftovers
-
-- **Scope:** delete the `TODO(PR #13 merge)` comment blocks in `employment.py` and `payroll.py`, and the second minimum wage check in `SetupService.create_employment` that the merge kept from PR #9. No feature, API, data or dependency change. Builds on PR #15.
-- **Reason:** merging `main` into `uc-001-employment-setup` (cb4e085) brought old code back. PR #15 disabled it and left the decision to the UC-001 owner.
-- **Acceptance:** the minimum wage rule lives only in `Employment`; a low wage error shows both amounts with two decimals; no `TODO(PR #13 merge)` is left.
-- **Checks (phase 3):** regression test `test_low_wage_error_shows_both_amounts_with_two_decimals` failed before the fix and passes after it; `bash scripts/test.sh` passed (51 passed, 29 subtests); `git diff --check` clean. Required CI and review remain.
-
-## Fast Track: AKBS alignment notes
-
-- **Scope:** documentation only, on `docs-uc-001-akbs-alignment`. UC-001 records that setup keeps the CHF 22.20 floor in v0.1.0, although it is the legal minimum only below 5 hours a week; lists the simplified-procedure exclusions and age-dependent AHV rules that setup does not check; and replaces "cross-border employers" with the actual exclusion (workers living in France). `docs/TASKS.md` marks PR #28 merged and records the findings that concern other files. No feature, API, data or code change; DESIGN skipped because nothing is built.
-- **Reason:** checking UC-001 against the 2026 AKBS, federal and Basel-Stadt sources on 20 October 2026 found rules the specification did not mention.
-- **Acceptance:** UC-001 no longer presents CHF 22.20 as the legal minimum for every employment; each rule found and not checked is listed as out of scope; nothing in UC-001 contradicts Merkblatt 2.07 or the Basel-Stadt minimum-wage FAQ.
-- **Checks:** `bash scripts/test.sh` passed (112 passed, 1 xfailed, 70 subtests); `git diff --check` clean. Required CI and review remain.
