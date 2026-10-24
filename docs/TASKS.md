@@ -1,7 +1,7 @@
 # TASKS.md
 
 PHASE: 5
-STATUS: done
+STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
 
@@ -23,7 +23,7 @@ following the accepted architecture decisions and use-case specifications.
 
 ## Current Use Case
 
-docs/specs/UC-002-Process-the-Monthly-Employment.md
+docs/specs/UC-001-Set-Up-an-Employment.md
 
 ## Next smallest step
 
@@ -56,7 +56,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
 | `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | `validate-uc002` | |
-| `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | |
+| `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | Mon 26 Oct |
 
 ### Assvinth
 
