@@ -6,6 +6,8 @@ const loginFields = {email: "login-email", password: "login-password"};
 const signupFields = {first_name: "signup-first-name", last_name: "signup-last-name", email: "signup-email", password: "signup-password"};
 const MIN_PASSWORD_LENGTH = 8;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SETUP_PAGE = "/setup";
+const EMPLOYMENTS_PAGE = "/employments";
 const rejectedRequest = "Your request was rejected. Reload the page and try again.";
 let accountState = "loading";
 let submitting = false;
@@ -117,10 +119,26 @@ function postCredentials(path, payload, token) {
   }, 15000);
 }
 
-function goToSetup(statusId, message) {
+async function nextPage() {
+  const {status, body} = await call("/api/v1/employer", {headers: {Accept: "application/json"}, cache: "no-store"}, 10000);
+  if (status === 200 && Number.isSafeInteger(body?.id) && body.id > 0) return EMPLOYMENTS_PAGE;
+  if (status === 404 && body?.detail === "No employer is set up yet.") return SETUP_PAGE;
+  throw new Error("response");
+}
+
+async function continueToPage(statusId, message) {
   navigating = true;
   element(statusId).textContent = message;
-  window.location.assign("/setup");
+  updateControls();
+  try {
+    window.location.replace(await nextPage());
+  } catch (failure) {
+    navigating = false;
+    accountState = "failed";
+    element(statusId).textContent = "";
+    showMessage("account-error", "You are signed in, but PayAlign could not check your employer. Please reload the page to continue.");
+    updateControls();
+  }
 }
 
 async function loadAccount() {
@@ -133,8 +151,6 @@ async function loadAccount() {
       accountState = "signed-out";
     } else if (status === 200 && isAccount(body)) {
       accountState = "signed-in";
-      element("signed-in-name").textContent = `Signed in as ${body.first_name} ${body.last_name} (${body.email}).`;
-      element("signed-in").hidden = false;
       element("login-panel").hidden = true;
     } else {
       throw new Error("response");
@@ -147,7 +163,8 @@ async function loadAccount() {
   } finally {
     updateControls();
   }
-  if (accountState === "signed-out" && window.location.hash === "#signup") element("signup-dialog").showModal();
+  if (accountState === "signed-in") await continueToPage("account-status", "Signed in. Opening your page …");
+  else if (accountState === "signed-out" && window.location.hash === "#signup") element("signup-dialog").showModal();
 }
 
 async function authenticate(request) {
@@ -163,7 +180,7 @@ async function authenticate(request) {
       return;
     }
     const {status, body} = await postCredentials(request.path, request.payload, token);
-    if (status === request.okStatus && isSession(body)) goToSetup(request.statusId, request.done);
+    if (status === request.okStatus && isSession(body)) await continueToPage(request.statusId, request.done);
     else if (!request.rejected(status, body)) {
       showMessage(request.errorId, `PayAlign returned an unexpected response (status ${status}). Please try again later. ${request.unsure}`.trim());
     }
@@ -199,7 +216,7 @@ function submitLogin(event) {
   return authenticate({
     path: "/api/v1/auth/login", okStatus: 200,
     payload: {email: value("login-email"), password: value("login-password")},
-    statusId: "login-status", errorId: "login-error", busy: "Logging in …", done: "Signed in. Opening setup …",
+    statusId: "login-status", errorId: "login-error", busy: "Logging in …", done: "Signed in. Opening your page …",
     unsure: "", rejected: loginRejected
   });
 }
@@ -212,7 +229,7 @@ function submitSignup(event) {
   return authenticate({
     path: "/api/v1/auth/register", okStatus: 201,
     payload: Object.fromEntries(Object.entries(signupFields).map(([key, id]) => [key, value(id)])),
-    statusId: "signup-status", errorId: "signup-error", busy: "Creating your account …", done: "Account created. Opening setup …",
+    statusId: "signup-status", errorId: "signup-error", busy: "Creating your account …", done: "Account created. Opening your page …",
     unsure: "The account may already have been created: log in with the same email before registering again.",
     rejected: signupRejected
   });
