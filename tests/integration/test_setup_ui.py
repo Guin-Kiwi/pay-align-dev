@@ -1,10 +1,14 @@
 from html.parser import HTMLParser
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.app.infrastructure.web.app import create_app
 from tests.integration.authenticated_client import AuthenticatedTestClient
+
+
+SETUP_SUBMISSION_FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures' / 'setup_submission.js'
 
 
 class Page(HTMLParser):
@@ -122,7 +126,7 @@ def test_existing_employer_remains_available_after_loading_page():
 
 
 @pytest.mark.parametrize('employer_name', ['Anna Muster', '<img src=x onerror=alert(1)>'])
-def test_existing_employer_javascript_displays_details_without_enabling_save(employer_name):
+def test_existing_employer_javascript_displays_details_safely(employer_name):
     import json
     import subprocess
 
@@ -191,7 +195,7 @@ process.stdin.on('end', async () => {
     assert.equal(elements['employer-fields'].hidden, true);
     assert.equal(elements['employer-fields'].disabled, true);
     assert.equal(elements['employer-error'].hidden, true);
-    assert.equal(elements['save-setup'].disabled, true);
+    assert.equal(elements['save-setup'].disabled, false);
     for (const id of ['weekly-hours', 'holiday-weeks', 'end-date']) {
       assert.equal(elements[id].disabled, false, id);
     }
@@ -219,7 +223,7 @@ process.stdin.on('end', async () => {
     for (const value of ['4', '5']) check('holiday-weeks', value, true, 'change');
     check('holiday-weeks', '20', false, 'change');
     assert.equal(calls.length, 2, 'Editing must not submit or fetch');
-    assert.equal(elements['save-setup'].disabled, true);
+    assert.equal(elements['save-setup'].disabled, false);
     console.log('Existing employer UI state verified');
   } catch (error) {
     console.error(error);
@@ -239,11 +243,12 @@ process.stdin.on('end', async () => {
 
 @pytest.mark.parametrize('scenario', [
     'new', 'existing', 'end-date', 'duplicate', 'loading', 'invalid',
+    'required-empty',
     'lookup-network', 'lookup-401', 'lookup-500', 'lookup-malformed', 'lookup-id', 'lookup-404',
     '400', '401', '403', '409', '422', '500', 'network', 'malformed-success', 'invalid-json',
     'refresh-failure', 'timeout', '200', 'holiday-five',
 ])
-def test_setup_submission_javascript(scenario):
+def test_setup_submission_javascript(scenario, monkeypatch, tmp_path):
     import json
     import subprocess
 
@@ -251,8 +256,10 @@ def test_setup_submission_javascript(scenario):
     client = AuthenticatedTestClient(create_app())
     html = client.get('/setup').text
     elements = {attrs['id']: attrs for _, attrs in Page(html).tags if 'id' in attrs}
+    if scenario == 'new':
+        monkeypatch.chdir(tmp_path)
     result = subprocess.run(
-        [node, 'tests/fixtures/setup_submission.js'],
+        [node, str(SETUP_SUBMISSION_FIXTURE)],
         input=json.dumps({'scenario': scenario, 'elements': elements,
                           'javascript': client.get('/setup-assets/setup.js').text}),
         text=True, capture_output=True, timeout=10,
@@ -290,7 +297,7 @@ def test_ui_setup_payload_persists_across_app_restarts(monkeypatch, tmp_path):
         html = client.get('/setup').text
         elements = {attrs['id']: attrs for _, attrs in Page(html).tags if 'id' in attrs}
         result = subprocess.run(
-            [node, 'tests/fixtures/setup_submission.js'],
+            [node, str(SETUP_SUBMISSION_FIXTURE)],
             input=json.dumps({'scenario': 'holiday-five', 'elements': elements,
                               'javascript': client.get('/setup-assets/setup.js').text}),
             text=True, capture_output=True, timeout=10,
