@@ -136,7 +136,7 @@ async function continueToPage(statusId, message) {
     navigating = false;
     accountState = "failed";
     element(statusId).textContent = "";
-    showMessage("account-error", "You are signed in, but PayAlign could not check your employer. Please reload the page to continue.");
+    showMessage("account-error", "You are signed in, but PayAlign could not load your details. Please reload the page to continue.");
     updateControls();
   }
 }
