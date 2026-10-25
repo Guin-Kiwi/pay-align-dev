@@ -149,11 +149,14 @@ to build from source using these inputs.
 
 Authentication endpoints are under `/api/v1/auth`: `GET /csrf` issues a CSRF token; `POST /register`, `POST /login` and `POST /logout` change authentication state; `GET /me` returns the current account. Registration and login create a four-hour signed session cookie containing only the account ID. The cookie is HttpOnly and SameSite=Lax; configure `SESSION_COOKIE_SECURE=true` over HTTPS. Registration and login return the rotated CSRF cookie value as `csrf_token` alongside the account fields in JSON; the client sends it in `X-CSRF-Token` on subsequent state-changing requests. Registration password validation is defined in [UC-003 Amendment 4](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-4--2026-10-24-registration-policy-and-csrf-token-return). Session limits and known copied-cookie behavior are recorded in [ADR-007](adr/ADR-007-employer-accounts-and-secure-access.md).
 
+The `/login` page is view 0 of [UC-003 Amendment 3](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views). It is static HTML, CSS and JavaScript under `src/app/interfaces/static/` (`login.html`, `login.js`, `login.css`) and calls the endpoints above; `login.css` adds to `setup.css`, which loads first. The script checks `GET /api/v1/auth/me` first: a signed-in browser is shown a link to `/setup` instead of the forms. Logging in, or creating an account in the sign-up dialog, fetches a fresh token from `GET /api/v1/auth/csrf`, sends it in `X-CSRF-Token` to `/api/v1/auth/login` or `/api/v1/auth/register`, and then opens `/setup`. The dialog shows the registration password policy before the fields; the server enforces it and the page shows the server's message. The page has no logout control and `/` does not redirect to it.
+
 The current HTTP endpoints are:
 
 | Method and path | Purpose |
 |---|---|
 | `GET /health` | Health check. |
+| `GET /login` | Browser page to log in or create an account. |
 | `GET /api/v1/auth/csrf` | Issue a CSRF token. |
 | `POST /api/v1/auth/register` | Register an account and start its session. |
 | `POST /api/v1/auth/login` | Start an account session. |
