@@ -128,7 +128,7 @@ def test_login_assets_are_available(asset, content_type):
     assert content_type in response.headers['content-type']
 
 
-def test_sign_up_dialog_shows_the_password_policy_before_the_fields():
+def test_sign_up_dialog_always_lists_the_password_requirements_under_the_password_field():
     html = TestClient(create_app()).get('/login').text
     page = Page(html)
     fields = page.by_id()
@@ -136,14 +136,19 @@ def test_sign_up_dialog_shows_the_password_policy_before_the_fields():
     assert dialog['id'] == 'signup-dialog'
     assert dialog['aria-labelledby'] == 'signup-heading'
     assert 'signup-heading' in fields
-    policy = re.search(r'<p id="password-policy">(.*?)</p>', html, re.S).group(1)
-    assert f'at least {MIN_PASSWORD_LENGTH} characters' in policy
-    assert 'a number' in policy
-    assert 'a special character' in policy
-    assert 'hidden' not in fields['password-policy']
-    assert html.index('id="password-policy"') < html.index('id="signup-first-name"')
-    assert 'password-policy' in fields['signup-password']['aria-describedby'].split()
-    assert 'signup-password-error' in fields['signup-password']['aria-describedby'].split()
+    assert 'id="password-policy"' not in html
+    listed = re.search(r'<div id="password-requirements"[^>]*>(.*?)</div>', html, re.S).group(1)
+    assert re.findall(r'<li id="requirement-\w+" data-met="false">(.*?)</li>', listed, re.S) == [
+        f'at least {MIN_PASSWORD_LENGTH} characters',
+        'a number',
+        'a special character (not a letter, number or space)',
+    ]
+    for name in ('length', 'number', 'special'):
+        assert fields[f'requirement-{name}']['data-met'] == 'false'
+    assert 'hidden' not in fields['password-requirements']
+    assert 'requirements' in fields['password-requirements']['class'].split()
+    assert html.index('id="signup-password"') < html.index('id="password-requirements"') < html.index('id="signup-password-error"')
+    assert fields['signup-password']['aria-describedby'].split() == ['password-requirements', 'signup-password-error']
 
 
 def test_the_page_script_uses_the_configured_minimum_password_length():
@@ -223,10 +228,27 @@ def test_field_notes_reserve_their_space_and_the_flagged_field_turns_red_without
     assert float(note['min-height'].removesuffix('em')) >= 1.4
     assert not {'display', 'visibility', 'height'} & set(note)
     assert float(css_rule(css, '#signup-email-error')['min-height'].removesuffix('em')) >= 2.8
-    assert float(css_rule(css, '#signup-password-error')['min-height'].removesuffix('em')) >= 4.2
     flagged = css_rule(css, 'input[aria-invalid="true"]')
     assert flagged['border-color'] == '#912323'
     assert not {'border', 'border-width', 'padding', 'margin', 'width', 'height'} & set(flagged)
+
+
+def test_met_requirements_turn_green_and_unmet_ones_red_once_flagged_without_resizing():
+    css = (STATIC / 'login.css').read_text()
+    met = css_rule(css, '.requirements li[data-met="true"]')
+    assert met['color'] == '#116257'
+    assert set(met) == {'color'}
+    flagged = css_rule(css, '#signup-password[aria-invalid="true"] + .requirements li[data-met="false"]')
+    assert flagged['color'] == '#912323'
+    assert set(flagged) == {'color'}
+    marker = css_rule(css, '.requirements li::before')
+    assert marker['display'] == 'inline-block'
+    assert 'width' in marker
+    assert 'content' in css_rule(css, '.requirements li[data-met="false"]::before')
+    done = css_rule(css, '.requirements li[data-met="true"]::before')
+    assert set(done) == {'content'}
+    assert '\u2713' in done['content']
+    assert css_rule(css, '.requirements li')['list-style'] == 'none'
 
 
 def test_login_css_only_uses_colours_that_setup_css_already_defines():

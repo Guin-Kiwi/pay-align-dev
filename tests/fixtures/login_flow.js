@@ -88,6 +88,7 @@ process.stdin.on('end', async () => {
       first_name: 'signup-first-name', last_name: 'signup-last-name',
       email: 'signup-email', password: 'signup-password'
     };
+    const met = () => ['requirement-length', 'requirement-number', 'requirement-special'].map(id => elements[id]['data-met']);
     const blur = id => { assert.ok(elements[id].listeners.blur, `${id} has no blur handler`); elements[id].listeners.blur({}); };
     const openSignup = () => elements['open-signup'].listeners.click();
     const submitSignup = () => elements['signup-form'].listeners.submit({preventDefault() {}});
@@ -151,7 +152,7 @@ process.stdin.on('end', async () => {
       assert.deepEqual(assigned, ['/setup']);
     } else if (scenario === 'rules') {
       rules = {
-        passwords: samples.passwords.map(password => context.passwordProblems(password).length === 0),
+        passwords: samples.passwords.map(password => context.passwordRules(password).every(Boolean)),
         emails: samples.emails.map(email => context.isEmailAddress(email))
       };
     } else if (scenario === 'login-invalid-email') {
@@ -172,8 +173,8 @@ process.stdin.on('end', async () => {
       assert.equal(elements['signup-first-name-error'].textContent, '');
       assert.equal(elements['signup-last-name-error'].textContent, 'This field is required.');
       assert.equal(elements['signup-email-error'].textContent, 'Enter an email address in the form name@example.ch.');
-      assert.equal(elements['signup-password-error'].textContent,
-        'Your password still needs: at least 8 characters (you have 3), a number, a special character.');
+      assert.equal(elements['signup-password-error'].textContent, '');
+      assert.deepEqual(met(), ['false', 'false', 'false']);
       for (const id of ['signup-last-name', 'signup-email', 'signup-password']) {
         assert.equal(elements[id]['aria-invalid'], 'true', id);
       }
@@ -181,23 +182,30 @@ process.stdin.on('end', async () => {
       assert.equal(elements['signup-submit'].disabled, false);
       set('signup-email', signup.email);
       assert.equal(elements['signup-email-error'].textContent, '');
-      assert.notEqual(elements['signup-password-error'].textContent, '');
+      assert.equal(elements['signup-password']['aria-invalid'], 'true');
     } else if (scenario === 'signup-password-rules') {
       openSignup();
       set('signup-first-name', signup.first_name); set('signup-last-name', signup.last_name); set('signup-email', signup.email);
       const needs = {
-        abcdefgh: 'a number, a special character',
-        abcdefg1: 'a special character',
-        'abcdefg!': 'a number',
-        'Abcde1!': 'at least 8 characters (you have 7)',
-        'abcdefg 1': 'a special character',
-        'a1😀😀😀😀😀': 'at least 8 characters (you have 7)'
+        abc: ['false', 'false', 'false'],
+        abcdefgh: ['true', 'false', 'false'],
+        abcdefg1: ['true', 'true', 'false'],
+        'abcdefg!': ['true', 'false', 'true'],
+        'Abcde1!': ['false', 'true', 'true'],
+        'abcdefg 1': ['true', 'true', 'false'],
+        'a1😀😀😀😀😀': ['false', 'true', 'true']
       };
       for (const [password, expected] of Object.entries(needs)) {
         set('signup-password', password);
+        assert.deepEqual(met(), expected, password);
         await submitSignup();
-        assert.equal(elements['signup-password-error'].textContent, `Your password still needs: ${expected}.`, password);
+        assert.equal(elements['signup-password']['aria-invalid'], 'true', password);
+        assert.equal(elements['signup-password-error'].textContent, '', password);
+        assert.deepEqual(met(), expected, password);
       }
+      set('signup-password', 'Abcdef1!');
+      assert.deepEqual(met(), ['true', 'true', 'true']);
+      assert.equal(elements['signup-password']['aria-invalid'], 'false');
       assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
     } else if (scenario === 'blur-validation') {
       const note = id => elements[`${id}-error`].textContent;
@@ -230,13 +238,17 @@ process.stdin.on('end', async () => {
       assert.equal(note('signup-first-name'), '');
       assert.equal(flag('signup-first-name'), 'false');
       act(() => set('signup-password', 'abc'));
-      assert.equal(note('signup-password'), '');
+      assert.deepEqual(met(), ['false', 'false', 'false']);
+      assert.notEqual(flag('signup-password'), 'true');
       act(() => blur('signup-password'));
-      assert.equal(note('signup-password'), 'Your password still needs: at least 8 characters (you have 3), a number, a special character.');
-      act(() => set('signup-password', 'abc12'));
-      assert.equal(note('signup-password'), 'Your password still needs: at least 8 characters (you have 5), a special character.');
-      act(() => set('signup-password', 'abc123!!'));
+      assert.equal(flag('signup-password'), 'true');
       assert.equal(note('signup-password'), '');
+      assert.deepEqual(met(), ['false', 'false', 'false']);
+      act(() => set('signup-password', 'abc12'));
+      assert.deepEqual(met(), ['false', 'true', 'false']);
+      assert.equal(flag('signup-password'), 'true');
+      act(() => set('signup-password', 'abc123!!'));
+      assert.deepEqual(met(), ['true', 'true', 'true']);
       assert.equal(flag('signup-password'), 'false');
       act(() => set('login-email', 'asdasd'));
       act(() => blur('login-email'));
@@ -261,8 +273,10 @@ process.stdin.on('end', async () => {
       await submitSignup();
       assert.equal(elements['signup-last-name-error'].textContent, 'This field is required.');
       fillSignup();
+      assert.deepEqual(met(), ['true', 'true', 'true']);
       elements['signup-cancel'].listeners.click();
       assert.equal(elements['signup-dialog'].open, false);
+      assert.deepEqual(met(), ['false', 'false', 'false']);
       for (const id of Object.values(signupIds)) {
         assert.equal(elements[id].value, '', id);
         assert.equal(elements[`${id}-error`].textContent, '', id);
