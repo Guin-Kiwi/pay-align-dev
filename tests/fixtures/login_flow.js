@@ -88,6 +88,7 @@ process.stdin.on('end', async () => {
       first_name: 'signup-first-name', last_name: 'signup-last-name',
       email: 'signup-email', password: 'signup-password'
     };
+    const blur = id => { assert.ok(elements[id].listeners.blur, `${id} has no blur handler`); elements[id].listeners.blur({}); };
     const openSignup = () => elements['open-signup'].listeners.click();
     const submitSignup = () => elements['signup-form'].listeners.submit({preventDefault() {}});
     const fillSignup = () => { for (const [key, id] of Object.entries(signupIds)) set(id, signup[key]); };
@@ -132,14 +133,13 @@ process.stdin.on('end', async () => {
       await submitLogin();
       assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
       for (const id of ['login-email', 'login-password']) {
-        assert.equal(elements[`${id}-error`].hidden, false, id);
         assert.equal(elements[`${id}-error`].textContent, 'This field is required.');
         assert.equal(elements[id]['aria-invalid'], 'true');
       }
       set('login-email', credentials.email);
-      assert.equal(elements['login-email-error'].hidden, true);
+      assert.equal(elements['login-email-error'].textContent, '');
       assert.equal(elements['login-email']['aria-invalid'], 'false');
-      assert.equal(elements['login-password-error'].hidden, false);
+      assert.equal(elements['login-password-error'].textContent, 'This field is required.');
     } else if (scenario === 'login-duplicate') {
       fill();
       const pending = submitLogin();
@@ -158,32 +158,30 @@ process.stdin.on('end', async () => {
       set('login-email', 'asdasd'); set('login-password', credentials.password);
       await submitLogin();
       assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
-      assert.equal(elements['login-email-error'].hidden, false);
       assert.equal(elements['login-email-error'].textContent, 'Enter an email address in the form name@example.ch.');
       assert.equal(elements['login-email']['aria-invalid'], 'true');
-      assert.equal(elements['login-password-error'].hidden, true);
+      assert.equal(elements['login-password-error'].textContent, '');
       set('login-email', credentials.email);
-      assert.equal(elements['login-email-error'].hidden, true);
+      assert.equal(elements['login-email-error'].textContent, '');
     } else if (scenario === 'signup-invalid') {
       openSignup();
       set('signup-first-name', 'a'); set('signup-email', 'asdasd'); set('signup-password', 'abc');
       await submitSignup();
       assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
       assert.equal(elements['signup-dialog'].open, true);
-      assert.equal(elements['signup-first-name-error'].hidden, true);
+      assert.equal(elements['signup-first-name-error'].textContent, '');
       assert.equal(elements['signup-last-name-error'].textContent, 'This field is required.');
       assert.equal(elements['signup-email-error'].textContent, 'Enter an email address in the form name@example.ch.');
       assert.equal(elements['signup-password-error'].textContent,
         'Your password still needs: at least 8 characters (you have 3), a number, a special character.');
       for (const id of ['signup-last-name', 'signup-email', 'signup-password']) {
-        assert.equal(elements[`${id}-error`].hidden, false, id);
         assert.equal(elements[id]['aria-invalid'], 'true', id);
       }
       assert.equal(elements['signup-error'].hidden, true);
       assert.equal(elements['signup-submit'].disabled, false);
       set('signup-email', signup.email);
-      assert.equal(elements['signup-email-error'].hidden, true);
-      assert.equal(elements['signup-password-error'].hidden, false);
+      assert.equal(elements['signup-email-error'].textContent, '');
+      assert.notEqual(elements['signup-password-error'].textContent, '');
     } else if (scenario === 'signup-password-rules') {
       openSignup();
       set('signup-first-name', signup.first_name); set('signup-last-name', signup.last_name); set('signup-email', signup.email);
@@ -201,6 +199,53 @@ process.stdin.on('end', async () => {
         assert.equal(elements['signup-password-error'].textContent, `Your password still needs: ${expected}.`, password);
       }
       assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
+    } else if (scenario === 'blur-validation') {
+      const note = id => elements[`${id}-error`].textContent;
+      const flag = id => elements[id]['aria-invalid'];
+      const fieldIds = [...Object.values(signupIds), 'login-email', 'login-password'];
+      for (const id of fieldIds) {
+        assert.equal(elements[`${id}-error`].hidden, false, `${id}: the space for the note is never display:none`);
+        assert.equal(note(id), '', id);
+      }
+      openSignup();
+      set('signup-email', 'asdasd');
+      assert.equal(note('signup-email'), '');
+      assert.notEqual(flag('signup-email'), 'true');
+      blur('signup-email');
+      assert.equal(note('signup-email'), 'Enter an email address in the form name@example.ch.');
+      assert.equal(flag('signup-email'), 'true');
+      set('signup-email', 'asdasd@example.ch');
+      assert.equal(note('signup-email'), '');
+      assert.equal(flag('signup-email'), 'false');
+      blur('signup-first-name');
+      assert.equal(note('signup-first-name'), 'This field is required.');
+      assert.equal(flag('signup-first-name'), 'true');
+      set('signup-first-name', 'Anna');
+      assert.equal(note('signup-first-name'), '');
+      blur('signup-first-name');
+      assert.equal(note('signup-first-name'), '');
+      assert.equal(flag('signup-first-name'), 'false');
+      set('signup-password', 'abc');
+      assert.equal(note('signup-password'), '');
+      blur('signup-password');
+      assert.equal(note('signup-password'), 'Your password still needs: at least 8 characters (you have 3), a number, a special character.');
+      set('signup-password', 'abc12');
+      assert.equal(note('signup-password'), 'Your password still needs: at least 8 characters (you have 5), a special character.');
+      set('signup-password', 'abc123!!');
+      assert.equal(note('signup-password'), '');
+      assert.equal(flag('signup-password'), 'false');
+      set('login-email', 'asdasd');
+      blur('login-email');
+      assert.equal(note('login-email'), 'Enter an email address in the form name@example.ch.');
+      blur('login-password');
+      assert.equal(note('login-password'), 'This field is required.');
+      assert.equal(note('signup-email'), '');
+      elements['signup-cancel'].listeners.click();
+      for (const id of Object.values(signupIds)) {
+        assert.equal(note(id), '', id);
+        assert.equal(flag(id), 'false', id);
+      }
+      assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
     } else if (scenario === 'signup-open') {
       openSignup();
       assert.equal(elements['signup-dialog'].open, true);
@@ -210,13 +255,13 @@ process.stdin.on('end', async () => {
       openSignup();
       set('signup-first-name', signup.first_name);
       await submitSignup();
-      assert.equal(elements['signup-last-name-error'].hidden, false);
+      assert.equal(elements['signup-last-name-error'].textContent, 'This field is required.');
       fillSignup();
       elements['signup-cancel'].listeners.click();
       assert.equal(elements['signup-dialog'].open, false);
       for (const id of Object.values(signupIds)) {
         assert.equal(elements[id].value, '', id);
-        assert.equal(elements[`${id}-error`].hidden, true, id);
+        assert.equal(elements[`${id}-error`].textContent, '', id);
         assert.equal(elements[id]['aria-invalid'], 'false', id);
       }
       assert.equal(elements['signup-error'].hidden, true);
@@ -230,13 +275,12 @@ process.stdin.on('end', async () => {
       assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
       assert.equal(elements['signup-dialog'].open, true);
       for (const id of Object.values(signupIds)) {
-        assert.equal(elements[`${id}-error`].hidden, false, id);
         assert.equal(elements[`${id}-error`].textContent, 'This field is required.');
         assert.equal(elements[id]['aria-invalid'], 'true');
       }
       set('signup-password', signup.password);
-      assert.equal(elements['signup-password-error'].hidden, true);
-      assert.equal(elements['signup-email-error'].hidden, false);
+      assert.equal(elements['signup-password-error'].textContent, '');
+      assert.equal(elements['signup-email-error'].textContent, 'This field is required.');
     } else if (scenario === 'register-duplicate') {
       openSignup(); fillSignup();
       const pending = submitSignup();
@@ -273,7 +317,6 @@ process.stdin.on('end', async () => {
         for (const [key, id] of Object.entries(signupIds)) assert.equal(elements[id].value, signup[key], id);
         const unsure = /account may already have been created/;
         if (scenario === 'register-409') {
-          assert.equal(elements['signup-email-error'].hidden, false);
           assert.match(elements['signup-email-error'].textContent, /An account already uses this email\./);
           assert.match(elements['signup-email-error'].textContent, /Log in/);
           assert.equal(elements['signup-email']['aria-invalid'], 'true');

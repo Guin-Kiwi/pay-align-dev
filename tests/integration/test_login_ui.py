@@ -103,7 +103,8 @@ def test_login_form_is_accessible_and_cannot_be_submitted_before_the_account_che
         assert 'required' in fields[field]
         assert fields[field]['aria-describedby'] == f'{field}-error'
         assert fields[f'{field}-error']['role'] == 'alert'
-        assert 'hidden' in fields[f'{field}-error']
+        assert 'hidden' not in fields[f'{field}-error']
+        assert 'field-error' in fields[f'{field}-error']['class'].split()
     labels = {attrs.get('for') for tag, attrs in page.tags if tag == 'label'}
     assert all(attrs['id'] in labels for tag, attrs in page.tags if tag == 'input')
     submit = fields['login-submit']
@@ -169,7 +170,8 @@ def test_sign_up_form_is_accessible_and_cannot_be_submitted_before_the_account_c
         assert field in labels
         assert fields[field]['aria-describedby'].split()[-1] == f'{field}-error'
         assert fields[f'{field}-error']['role'] == 'alert'
-        assert 'hidden' in fields[f'{field}-error']
+        assert 'hidden' not in fields[f'{field}-error']
+        assert 'field-error' in fields[f'{field}-error']['class'].split()
     assert fields['signup-status']['role'] == 'status'
     assert fields['signup-error']['role'] == 'alert'
     assert 'hidden' in fields['signup-error']
@@ -195,6 +197,38 @@ def test_main_and_secondary_buttons_are_told_apart():
     assert backgrounds['.primary:enabled'] != backgrounds['.secondary:enabled']
 
 
+def css_rule(css, selector):
+    match = re.search(re.escape(selector) + r'\s*\{([^}]*)\}', css)
+    assert match, selector
+    return dict(
+        (name.strip(), value.strip())
+        for name, value in (declaration.split(':', 1) for declaration in match.group(1).split(';') if declaration.strip())
+    )
+
+
+def test_field_notes_reserve_their_space_and_the_flagged_field_turns_red_without_moving():
+    page = Page(TestClient(create_app()).get('/login').text)
+    notes = [
+        attrs for _, attrs in page.tags
+        if re.fullmatch(r'(login|signup)-(email|password|first-name|last-name)-error', attrs.get('id', ''))
+    ]
+    assert len(notes) == 6
+    for attrs in notes:
+        assert attrs['role'] == 'alert'
+        assert 'hidden' not in attrs
+        assert 'field-error' in attrs['class'].split()
+    css = (STATIC / 'login.css').read_text()
+    note = css_rule(css, '.field-error')
+    assert note['line-height'] == '1.4'
+    assert float(note['min-height'].removesuffix('em')) >= 1.4
+    assert not {'display', 'visibility', 'height'} & set(note)
+    assert float(css_rule(css, '#signup-email-error')['min-height'].removesuffix('em')) >= 2.8
+    assert float(css_rule(css, '#signup-password-error')['min-height'].removesuffix('em')) >= 4.2
+    flagged = css_rule(css, 'input[aria-invalid="true"]')
+    assert flagged['border-color'] == '#912323'
+    assert not {'border', 'border-width', 'padding', 'margin', 'width', 'height'} & set(flagged)
+
+
 def test_login_css_only_uses_colours_that_setup_css_already_defines():
     colour = re.compile(r'#[0-9a-fA-F]{3,8}\b')
     setup_colours = set(colour.findall((STATIC / 'setup.css').read_text()))
@@ -207,7 +241,7 @@ def test_login_css_only_uses_colours_that_setup_css_already_defines():
     'signed-out', 'signed-in', 'loading', 'me-network', 'me-500', 'me-malformed', 'me-timeout',
     'login', 'login-empty', 'login-401', 'login-403', 'login-422', 'login-500',
     'login-network', 'login-timeout', 'login-csrf-failure', 'login-malformed', 'login-duplicate',
-    'login-invalid-email', 'signup-open', 'signup-cancel', 'signup-empty', 'signup-invalid', 'signup-password-rules',
+    'login-invalid-email', 'blur-validation', 'signup-open', 'signup-cancel', 'signup-empty', 'signup-invalid', 'signup-password-rules',
     'register', 'register-409', 'register-422', 'register-403', 'register-500', 'register-network',
     'register-timeout', 'register-csrf-failure', 'register-malformed', 'register-duplicate',
 ])
