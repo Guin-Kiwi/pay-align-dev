@@ -108,6 +108,7 @@ A published `v*` release calls the CD workflow after publication. When `CD_ENABL
 ## Dependencies
 
 * **Runtime:** Docker, Python 3.12 (`.python-version`, CI, the dev container and the container image)
+* **UI test prerequisite:** Node.js 22 runs the setup-page JavaScript regression harness; it is installed by the dev container, CI and release workflows.
 * **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), psycopg 3 (PostgreSQL driver), Pydantic (Validation), pwdlib with Argon2 (password hashing), itsdangerous (Starlette signed sessions)
 * **Test Libraries:** pytest, httpx and packaging (build-input assertions)
 * **Environment Variables:** `DATABASE_URL` (required for infrastructure configuration), `SESSION_SECRET_KEY` (required, random secret of at least 32 characters), `SESSION_COOKIE_SECURE` (set to `true` when serving over HTTPS; Docker Compose defaults it to `false` for local HTTP development).
@@ -157,6 +158,8 @@ The current HTTP endpoints are:
 |---|---|
 | `GET /health` | Health check. |
 | `GET /login` | Browser page to log in or create an account. |
+| `GET /setup` | Serve the authenticated employment setup page; unauthenticated browsers are redirected to `/login`. |
+| `GET /setup-assets/*` | Serve the setup page's static CSS and JavaScript assets. |
 | `GET /api/v1/auth/csrf` | Issue a CSRF token. |
 | `POST /api/v1/auth/register` | Register an account and start its session. |
 | `POST /api/v1/auth/login` | Start an account session. |

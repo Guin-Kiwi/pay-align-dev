@@ -21,6 +21,7 @@ process.stdin.on('end', async () => {
     const response = (status, body) => ({status, ok: status >= 200 && status < 300, json: async () => body});
     const posts = [];
     let gets = 0;
+    let csrfGets = 0;
     let releasePost, releaseLookup, abortPost;
     const success = {message: 'Employment set up successfully', employer_id: 1, employee_id: 1, employment_id: 1};
     const attack = '<img src=x onerror=alert(1)>';
@@ -36,10 +37,15 @@ process.stdin.on('end', async () => {
       },
       clearTimeout: timer => { if (timer !== -1) clearTimeout(timer); },
       fetch: async (url, options = {}) => {
+        if (url === '/api/v1/auth/csrf') {
+          csrfGets++;
+          return response(200, {csrf_token: 'test-csrf-token'});
+        }
         if (url === '/api/v1/employer') {
           gets++;
           if (scenario === 'loading') await new Promise(resolve => releaseLookup = resolve);
           if (scenario === 'lookup-network' || (scenario === 'refresh-failure' && gets > 1)) throw new Error('offline');
+          if (scenario === 'lookup-401') return response(401, {detail: 'Authentication required.'});
           if (scenario === 'lookup-500') return response(500, {});
           if (scenario === 'lookup-malformed') return response(200, {name: 'Anna'});
           if (scenario === 'lookup-id') return response(200, {...employer, id: '1'});
@@ -49,6 +55,7 @@ process.stdin.on('end', async () => {
         assert.equal(url, '/api/v1/setup');
         assert.equal(options.method, 'POST');
         assert.equal(options.headers['Content-Type'], 'application/json');
+        assert.equal(options.headers['X-CSRF-Token'], 'test-csrf-token');
         posts.push(JSON.parse(options.body));
         if (scenario === 'duplicate') await new Promise(resolve => releasePost = resolve);
         if (scenario === 'timeout') await new Promise((resolve, reject) => options.signal.addEventListener('abort', () => reject(new Error('timeout'))));
@@ -57,6 +64,8 @@ process.stdin.on('end', async () => {
         if (scenario === 'invalid-json') return {status: 201, json: async () => {throw new Error('json');}};
         if (scenario === 'malformed-success') return response(201, {...success, employment_id: '1'});
         if (['400', '409', '500'].includes(scenario)) return response(Number(scenario), {detail: attack});
+        if (scenario === '401') return response(401, {detail: 'Authentication required.'});
+        if (scenario === '403') return response(403, {detail: 'Invalid CSRF token.'});
         if (scenario === '422') return response(422, {detail: [{loc: ['body', 'employee', 'name'], msg: attack}]});
         return response(201, success);
       }
@@ -64,6 +73,7 @@ process.stdin.on('end', async () => {
     vm.runInNewContext(javascript, context);
     const settle = async () => { for (let i = 0; i < 15; i++) await Promise.resolve(); };
     await settle();
+    assert.equal(csrfGets, 1);
     const set = (id, value) => {
       elements[id].value = value;
       const handler = elements[id].listeners[id === 'holiday-weeks' ? 'change' : 'input'];
@@ -80,6 +90,12 @@ process.stdin.on('end', async () => {
       assert.equal(elements['save-setup'].disabled, true);
       await submit(); assert.equal(posts.length, 0);
       if (releaseLookup) {releaseLookup(); await settle();}
+      if (scenario === 'lookup-401') {
+        assert.match(elements['employer-error'].textContent, /session has expired/i);
+        assert.doesNotMatch(elements['employer-error'].textContent, /connection/i);
+        assert.equal(elements['employer-error'].children.length, 1);
+        assert.equal(elements['employer-error'].children[0].href, '/login');
+      }
     } else if (scenario === 'invalid') {
       for (const [id, bad] of [['weekly-hours', '0:00'], ['hourly-wage', '22.19'], ['start-date', '2027-01-01'], ['employee-ahv', '7561234567897'], ['employee-name', '   '], ['holiday-weeks', '20'], ['employer-name', ''], ['employer-ahv', 'bad']]) {
         set(id, bad); assert.equal(elements['save-setup'].disabled, true); await submit();
@@ -108,6 +124,14 @@ process.stdin.on('end', async () => {
         assert.equal(elements['setup-error'].hidden, false);
         assert.ok(elements['setup-error'].textContent.includes(attack));
         assert.equal(elements['save-setup'].disabled, false);
+      } else if (['401', '403'].includes(scenario)) {
+        assert.match(elements['setup-error'].textContent, /request was rejected/i);
+        assert.match(elements['setup-error'].textContent, /log in again/i);
+        assert.doesNotMatch(elements['setup-error'].textContent, /may have been saved/i);
+        assert.equal(elements['setup-error'].children.length, 1);
+        assert.equal(elements['setup-error'].children[0].href, '/login');
+        assert.equal(elements['save-setup'].disabled, false);
+        await settle(); assert.equal(posts.length, 1, 'Authentication rejection must not retry');
       } else if (['network', 'timeout', '200', '500', 'malformed-success', 'invalid-json'].includes(scenario)) {
         assert.match(elements['setup-error'].textContent, /may have been saved/);
         assert.equal(elements['save-setup'].disabled, true);

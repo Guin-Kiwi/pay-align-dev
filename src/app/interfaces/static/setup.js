@@ -5,6 +5,7 @@ const value = id => element(id).value;
 const form = element("setup-form");
 const save = element("save-setup");
 let employerState = "loading";
+let csrfToken = null;
 let submitting = false;
 let submissionLocked = false;
 const touched = new Set();
@@ -25,6 +26,15 @@ function isDate(text) {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === text;
 }
 
+function showLoginMessage(container, message) {
+  container.textContent = `${message} `;
+  const link = document.createElement("a");
+  link.href = "/login";
+  link.textContent = "Open the login page.";
+  container.append(link);
+  container.hidden = false;
+}
+
 function validateFields(reveal = false) {
   const errors = Object.fromEntries(allFields.map(id => [id, ""]));
   const required = [...Object.values(employeeFields), ...(employerState === "new" ? Object.values(employerFields) : [])];
@@ -41,8 +51,8 @@ function validateFields(reveal = false) {
   else if (value("end-date") && isDate(value("start-date")) && value("end-date") < value("start-date")) {
     errors["end-date"] = "End date cannot be before the start date.";
   }
-  if (!fullMatch(/^[0-9]+(?:\.[0-9]{1,2})?$/, value("hourly-wage")) || !Number.isFinite(Number(value("hourly-wage"))) || Number(value("hourly-wage")) < 22.20) {
-    errors["hourly-wage"] = "Enter at least CHF 22.20 per hour with at most two decimal places.";
+  if (!fullMatch(/^[0-9]+(?:\.[0-9]{1,2})?$/, value("hourly-wage")) || !Number.isFinite(Number(value("hourly-wage"))) || Number(value("hourly-wage")) < 22.20 || Number(value("hourly-wage")) > 500) {
+    errors["hourly-wage"] = "Enter CHF 22.20 to 500.00 per hour with at most two decimal places.";
   }
   const hours = /^([0-9]{1,2}):([0-5][0-9])$/.exec(value("weekly-hours"));
   if (!hours || hours[0] !== value("weekly-hours") || Number(hours[1]) * 60 + Number(hours[2]) === 0) {
@@ -58,8 +68,23 @@ function validateFields(reveal = false) {
     }
   }
   const valid = Object.values(errors).every(message => !message);
-  save.disabled = !valid || !["new", "existing"].includes(employerState) || submitting || submissionLocked;
+  save.disabled = !valid || !csrfToken || !["new", "existing"].includes(employerState) || submitting || submissionLocked;
   return valid;
+}
+
+async function loadCsrfToken() {
+  try {
+    const response = await fetch("/api/v1/auth/csrf", {headers: {Accept: "application/json"}, cache: "no-store"});
+    const body = await response.json();
+    if (response.status !== 200 || typeof body?.csrf_token !== "string" || !body.csrf_token) throw new Error("response");
+    csrfToken = body.csrf_token;
+  } catch (failure) {
+    csrfToken = null;
+    element("setup-error").textContent = "Could not prepare the secure setup form. Please reload the page before saving.";
+    element("setup-error").hidden = false;
+  } finally {
+    validateFields();
+  }
 }
 
 async function loadEmployer() {
@@ -76,7 +101,11 @@ async function loadEmployer() {
       headers: {Accept: "application/json"}, cache: "no-store", signal: controller.signal
     });
     const body = await response.json();
-    if (response.status === 404 && body?.detail === "No employer is set up yet.") {
+    if (response.status === 401) {
+      employerState = "failed";
+      element("employer-status").textContent = "Session expired.";
+      showLoginMessage(element("employer-error"), "Your session has expired. Please log in again to continue.");
+    } else if (response.status === 404 && body?.detail === "No employer is set up yet.") {
       employerState = "new";
       element("employer-fields").hidden = false;
       element("employer-fields").disabled = false;
@@ -139,7 +168,7 @@ function responseError(body) {
 
 async function submitSetup(event) {
   event.preventDefault();
-  if (submitting || submissionLocked || !["new", "existing"].includes(employerState)) return;
+  if (submitting || submissionLocked || !csrfToken || !["new", "existing"].includes(employerState)) return;
   if (!validateFields(true)) return;
   const payload = buildPayload();
   submitting = true;
@@ -152,7 +181,7 @@ async function submitSetup(event) {
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
     const response = await fetch("/api/v1/setup", {
-      method: "POST", headers: {"Content-Type": "application/json", Accept: "application/json"},
+      method: "POST", headers: {"Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken},
       body: JSON.stringify(payload), signal: controller.signal
     });
     const body = await response.json();
@@ -165,6 +194,11 @@ async function submitSetup(event) {
       element("setup-success").textContent = "Employment set up successfully. Setup records are saved in the configured database. Whether they remain available after a server restart depends on the database configuration. Reload the page to set up another employment.";
       element("setup-success").hidden = false;
       await loadEmployer();
+    } else if ([401, 403].includes(response.status)) {
+      showLoginMessage(
+        element("setup-error"),
+        "Authentication/session or CSRF validation failed. The request was rejected. Please log in again."
+      );
     } else if ([400, 409, 422].includes(response.status)) {
       element("setup-error").textContent = responseError(body) + (response.status === 409 ? " Reload the page to refresh the employer status." : "");
       element("setup-error").hidden = false;
@@ -192,4 +226,8 @@ for (const id of allFields) {
   });
 }
 form.addEventListener("submit", submitSetup);
-loadEmployer();
+async function initialize() {
+  await loadCsrfToken();
+  await loadEmployer();
+}
+initialize();
