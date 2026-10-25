@@ -203,44 +203,48 @@ process.stdin.on('end', async () => {
       const note = id => elements[`${id}-error`].textContent;
       const flag = id => elements[id]['aria-invalid'];
       const fieldIds = [...Object.values(signupIds), 'login-email', 'login-password'];
-      for (const id of fieldIds) {
-        assert.equal(elements[`${id}-error`].hidden, false, `${id}: the space for the note is never display:none`);
-        assert.equal(note(id), '', id);
-      }
-      openSignup();
-      set('signup-email', 'asdasd');
+      const reserved = () => {
+        for (const id of fieldIds) {
+          assert.equal(elements[`${id}-error`].hidden, false, `${id}: the space for the note is never display:none`);
+        }
+      };
+      const act = step => { step(); reserved(); };
+      reserved();
+      for (const id of fieldIds) assert.equal(note(id), '', id);
+      act(() => openSignup());
+      act(() => set('signup-email', 'asdasd'));
       assert.equal(note('signup-email'), '');
       assert.notEqual(flag('signup-email'), 'true');
-      blur('signup-email');
+      act(() => blur('signup-email'));
       assert.equal(note('signup-email'), 'Enter an email address in the form name@example.ch.');
       assert.equal(flag('signup-email'), 'true');
-      set('signup-email', 'asdasd@example.ch');
+      act(() => set('signup-email', 'asdasd@example.ch'));
       assert.equal(note('signup-email'), '');
       assert.equal(flag('signup-email'), 'false');
-      blur('signup-first-name');
+      act(() => blur('signup-first-name'));
       assert.equal(note('signup-first-name'), 'This field is required.');
       assert.equal(flag('signup-first-name'), 'true');
-      set('signup-first-name', 'Anna');
+      act(() => set('signup-first-name', 'Anna'));
       assert.equal(note('signup-first-name'), '');
-      blur('signup-first-name');
+      act(() => blur('signup-first-name'));
       assert.equal(note('signup-first-name'), '');
       assert.equal(flag('signup-first-name'), 'false');
-      set('signup-password', 'abc');
+      act(() => set('signup-password', 'abc'));
       assert.equal(note('signup-password'), '');
-      blur('signup-password');
+      act(() => blur('signup-password'));
       assert.equal(note('signup-password'), 'Your password still needs: at least 8 characters (you have 3), a number, a special character.');
-      set('signup-password', 'abc12');
+      act(() => set('signup-password', 'abc12'));
       assert.equal(note('signup-password'), 'Your password still needs: at least 8 characters (you have 5), a special character.');
-      set('signup-password', 'abc123!!');
+      act(() => set('signup-password', 'abc123!!'));
       assert.equal(note('signup-password'), '');
       assert.equal(flag('signup-password'), 'false');
-      set('login-email', 'asdasd');
-      blur('login-email');
+      act(() => set('login-email', 'asdasd'));
+      act(() => blur('login-email'));
       assert.equal(note('login-email'), 'Enter an email address in the form name@example.ch.');
-      blur('login-password');
+      act(() => blur('login-password'));
       assert.equal(note('login-password'), 'This field is required.');
       assert.equal(note('signup-email'), '');
-      elements['signup-cancel'].listeners.click();
+      act(() => elements['signup-cancel'].listeners.click());
       for (const id of Object.values(signupIds)) {
         assert.equal(note(id), '', id);
         assert.equal(flag(id), 'false', id);

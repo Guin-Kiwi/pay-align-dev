@@ -4,3 +4,7 @@
 .secondary:enabled { background: white; border-color: #116257; color: #116257; cursor: pointer; }
 dialog { box-sizing: border-box; width: min(28rem, calc(100% - 2rem)); padding: 1.5rem; color: inherit; border: 1px solid #c7d1d8; border-radius: .75rem; }
 dialog::backdrop { background: #172b3a; opacity: .6; }
+.field-error { min-height: 1.4em; margin: .3rem 0 0; line-height: 1.4; }
+#signup-email-error { min-height: 2.8em; }
+#signup-password-error { min-height: 4.2em; }
+input[aria-invalid="true"] { border-color: #912323; box-shadow: 0 0 0 1px #912323; }

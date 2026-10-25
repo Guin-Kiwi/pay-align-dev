@@ -16,9 +16,12 @@ function showMessage(id, message) {
   element(id).hidden = !message;
 }
 
+const flagged = new Set();
+
 function setFieldError(id, message) {
+  flagged[message ? "add" : "delete"](id);
   element(id).setAttribute("aria-invalid", String(Boolean(message)));
-  showMessage(`${id}-error`, message);
+  element(`${id}-error`).textContent = message;
 }
 
 function isEmailAddress(text) {
@@ -41,14 +44,18 @@ function passwordProblem(text) {
   return problems.length ? `Your password still needs: ${problems.join(", ")}.` : "";
 }
 
-const loginChecks = {"login-email": emailProblem};
-const signupChecks = {"signup-email": emailProblem, "signup-password": passwordProblem};
+const fieldChecks = {"login-email": emailProblem, "signup-email": emailProblem, "signup-password": passwordProblem};
 
-function validateFields(fields, checks) {
+function fieldProblem(id) {
+  const text = value(id);
+  if (!text.trim()) return "This field is required.";
+  return fieldChecks[id]?.(text) ?? "";
+}
+
+function validateFields(fields) {
   let valid = true;
   for (const id of Object.values(fields)) {
-    const blank = !value(id).trim();
-    const message = blank ? "This field is required." : (checks[id]?.(value(id)) ?? "");
+    const message = fieldProblem(id);
     setFieldError(id, message);
     valid = valid && !message;
   }
@@ -175,7 +182,7 @@ function loginRejected(status, body) {
 }
 
 function signupRejected(status, body) {
-  if (status === 409) setFieldError("signup-email", `${responseError(body)} Log in instead, or use another email.`);
+  if (status === 409) setFieldError("signup-email", `${responseError(body)} Log in instead.`);
   else if (status === 422) showMessage("signup-error", responseError(body));
   else if (status === 403) showMessage("signup-error", rejectedRequest);
   else return false;
@@ -186,7 +193,7 @@ function submitLogin(event) {
   event.preventDefault();
   if (submitting || navigating || accountState !== "signed-out") return;
   showMessage("login-error", "");
-  if (!validateFields(loginFields, loginChecks)) return;
+  if (!validateFields(loginFields)) return;
   return authenticate({
     path: "/api/v1/auth/login", okStatus: 200,
     payload: {email: value("login-email"), password: value("login-password")},
@@ -199,7 +206,7 @@ function submitSignup(event) {
   event.preventDefault();
   if (submitting || navigating || accountState !== "signed-out") return;
   showMessage("signup-error", "");
-  if (!validateFields(signupFields, signupChecks)) return;
+  if (!validateFields(signupFields)) return;
   return authenticate({
     path: "/api/v1/auth/register", okStatus: 201,
     payload: Object.fromEntries(Object.entries(signupFields).map(([key, id]) => [key, value(id)])),
@@ -219,7 +226,8 @@ function resetSignup() {
 }
 
 for (const id of [...Object.values(loginFields), ...Object.values(signupFields)]) {
-  element(id).addEventListener("input", () => setFieldError(id, ""));
+  element(id).addEventListener("input", () => { if (flagged.has(id)) setFieldError(id, fieldProblem(id)); });
+  element(id).addEventListener("blur", () => setFieldError(id, fieldProblem(id)));
 }
 element("login-form").addEventListener("submit", submitLogin);
 element("signup-form").addEventListener("submit", submitSignup);

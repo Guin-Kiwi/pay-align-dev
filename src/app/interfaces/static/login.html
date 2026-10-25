@@ -23,9 +23,9 @@
     <p>Log in with your email and password to manage your employment.</p>
     <form id="login-form" method="post" novalidate>
       <label for="login-email">Email</label><input id="login-email" name="email" type="email" autocomplete="username" required aria-describedby="login-email-error">
-      <p id="login-email-error" role="alert" hidden></p>
+      <p id="login-email-error" class="field-error" role="alert"></p>
       <label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required aria-describedby="login-password-error">
-      <p id="login-password-error" role="alert" hidden></p>
+      <p id="login-password-error" class="field-error" role="alert"></p>
       <div class="actions">
         <button id="login-submit" class="primary" type="submit" disabled>Log in</button>
       </div>
@@ -38,13 +38,13 @@
         <h2 id="signup-heading">Create an account</h2>
         <p id="password-policy">Your password needs at least 8 characters, including a number and a special character (a character that is not a letter, number or space).</p>
         <label for="signup-first-name">First name</label><input id="signup-first-name" name="first_name" type="text" autocomplete="given-name" required aria-describedby="signup-first-name-error">
-        <p id="signup-first-name-error" role="alert" hidden></p>
+        <p id="signup-first-name-error" class="field-error" role="alert"></p>
         <label for="signup-last-name">Last name</label><input id="signup-last-name" name="last_name" type="text" autocomplete="family-name" required aria-describedby="signup-last-name-error">
-        <p id="signup-last-name-error" role="alert" hidden></p>
+        <p id="signup-last-name-error" class="field-error" role="alert"></p>
         <label for="signup-email">Email</label><input id="signup-email" name="email" type="email" autocomplete="username" required aria-describedby="signup-email-error">
-        <p id="signup-email-error" role="alert" hidden></p>
+        <p id="signup-email-error" class="field-error" role="alert"></p>
         <label for="signup-password">Password</label><input id="signup-password" name="password" type="password" autocomplete="new-password" required aria-describedby="password-policy signup-password-error">
-        <p id="signup-password-error" role="alert" hidden></p>
+        <p id="signup-password-error" class="field-error" role="alert"></p>
         <div class="actions">
           <button id="signup-submit" class="primary" type="submit" disabled>Create account</button>
           <button id="signup-cancel" class="secondary" type="button">Cancel</button>
