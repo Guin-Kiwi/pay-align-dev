@@ -36,10 +36,16 @@
     <dialog id="signup-dialog" aria-labelledby="signup-heading">
       <form id="signup-form" method="post" novalidate>
         <h2 id="signup-heading">Create an account</h2>
-        <label for="signup-first-name">First name</label><input id="signup-first-name" name="first_name" type="text" autocomplete="given-name" required aria-describedby="signup-first-name-error">
-        <p id="signup-first-name-error" class="field-error" role="alert"></p>
-        <label for="signup-last-name">Last name</label><input id="signup-last-name" name="last_name" type="text" autocomplete="family-name" required aria-describedby="signup-last-name-error">
-        <p id="signup-last-name-error" class="field-error" role="alert"></p>
+        <div class="name-row">
+          <div class="field">
+            <label for="signup-first-name">First name</label><input id="signup-first-name" name="first_name" type="text" autocomplete="given-name" required aria-describedby="signup-first-name-error">
+            <p id="signup-first-name-error" class="field-error" role="alert"></p>
+          </div>
+          <div class="field">
+            <label for="signup-last-name">Last name</label><input id="signup-last-name" name="last_name" type="text" autocomplete="family-name" required aria-describedby="signup-last-name-error">
+            <p id="signup-last-name-error" class="field-error" role="alert"></p>
+          </div>
+        </div>
         <label for="signup-email">Email</label><input id="signup-email" name="email" type="email" autocomplete="username" required aria-describedby="signup-email-error">
         <p id="signup-email-error" class="field-error" role="alert"></p>
         <label for="signup-password">Password</label><input id="signup-password" name="password" type="password" autocomplete="new-password" required aria-describedby="password-requirements signup-password-error">
@@ -55,8 +61,8 @@
         <div class="actions">
           <button id="signup-submit" class="primary" type="submit" disabled>Create account</button>
           <button id="signup-cancel" class="secondary" type="button">Cancel</button>
+          <p id="signup-status" role="status" aria-live="polite"></p>
         </div>
-        <p id="signup-status" role="status" aria-live="polite"></p>
         <p id="signup-error" role="alert" hidden></p>
       </form>
     </dialog>

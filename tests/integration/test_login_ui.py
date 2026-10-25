@@ -267,7 +267,7 @@ def test_sign_up_dialog_is_wide_and_compact_so_that_it_fits_a_laptop_screen():
     assert css_rule(css, '.name-row')['display'] == 'grid'
     assert css_rule(css, '.requirements ul')['display'] == 'flex'
     assert css_rule(css, '.requirements ul')['flex-wrap'] == 'wrap'
-    assert float(css_rule(css, '#signup-status')['min-height'].removesuffix('em')) >= 1.4
+    assert re.search(r'<div class="actions">(?:(?!</div>).)*id="signup-status"', html, re.S)
 
 
 def test_login_css_only_uses_colours_that_setup_css_already_defines():
