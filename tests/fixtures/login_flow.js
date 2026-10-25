@@ -5,7 +5,7 @@ process.stdin.setEncoding('utf8');
 process.stdin.on('data', chunk => input += chunk);
 process.stdin.on('end', async () => {
   try {
-    const {scenario, elements: attributes, javascript, credentials, signup} = JSON.parse(input);
+    const {scenario, elements: attributes, javascript, credentials, signup, samples} = JSON.parse(input);
     const found = Object.fromEntries(Object.entries(attributes).map(([id, attrs]) => [id, {
       id, value: attrs.value ?? '',
       hidden: Object.hasOwn(attrs, 'hidden'), disabled: Object.hasOwn(attrs, 'disabled'),
@@ -28,7 +28,7 @@ process.stdin.on('end', async () => {
     const response = (status, body) => ({status, ok: status >= 200 && status < 300, json: async () => body});
     const calls = [];
     const assigned = [];
-    let releaseMe, releasePost, abortTimer;
+    let releaseMe, releasePost, abortTimer, rules;
     const context = {
       document: {getElementById: id => { assert.ok(elements[id], id); return elements[id]; }},
       window: {location: {assign: url => assigned.push(url)}},
@@ -149,6 +149,58 @@ process.stdin.on('end', async () => {
       releasePost(); await pending; await settle();
       assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/login']);
       assert.deepEqual(assigned, ['/setup']);
+    } else if (scenario === 'rules') {
+      rules = {
+        passwords: samples.passwords.map(password => context.passwordProblems(password).length === 0),
+        emails: samples.emails.map(email => context.isEmailAddress(email))
+      };
+    } else if (scenario === 'login-invalid-email') {
+      set('login-email', 'asdasd'); set('login-password', credentials.password);
+      await submitLogin();
+      assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
+      assert.equal(elements['login-email-error'].hidden, false);
+      assert.equal(elements['login-email-error'].textContent, 'Enter an email address in the form name@example.ch.');
+      assert.equal(elements['login-email']['aria-invalid'], 'true');
+      assert.equal(elements['login-password-error'].hidden, true);
+      set('login-email', credentials.email);
+      assert.equal(elements['login-email-error'].hidden, true);
+    } else if (scenario === 'signup-invalid') {
+      openSignup();
+      set('signup-first-name', 'a'); set('signup-email', 'asdasd'); set('signup-password', 'abc');
+      await submitSignup();
+      assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
+      assert.equal(elements['signup-dialog'].open, true);
+      assert.equal(elements['signup-first-name-error'].hidden, true);
+      assert.equal(elements['signup-last-name-error'].textContent, 'This field is required.');
+      assert.equal(elements['signup-email-error'].textContent, 'Enter an email address in the form name@example.ch.');
+      assert.equal(elements['signup-password-error'].textContent,
+        'Your password still needs: at least 8 characters (you have 3), a number, a special character.');
+      for (const id of ['signup-last-name', 'signup-email', 'signup-password']) {
+        assert.equal(elements[`${id}-error`].hidden, false, id);
+        assert.equal(elements[id]['aria-invalid'], 'true', id);
+      }
+      assert.equal(elements['signup-error'].hidden, true);
+      assert.equal(elements['signup-submit'].disabled, false);
+      set('signup-email', signup.email);
+      assert.equal(elements['signup-email-error'].hidden, true);
+      assert.equal(elements['signup-password-error'].hidden, false);
+    } else if (scenario === 'signup-password-rules') {
+      openSignup();
+      set('signup-first-name', signup.first_name); set('signup-last-name', signup.last_name); set('signup-email', signup.email);
+      const needs = {
+        abcdefgh: 'a number, a special character',
+        abcdefg1: 'a special character',
+        'abcdefg!': 'a number',
+        'Abcde1!': 'at least 8 characters (you have 7)',
+        'abcdefg 1': 'a special character',
+        'a1😀😀😀😀😀': 'at least 8 characters (you have 7)'
+      };
+      for (const [password, expected] of Object.entries(needs)) {
+        set('signup-password', password);
+        await submitSignup();
+        assert.equal(elements['signup-password-error'].textContent, `Your password still needs: ${expected}.`, password);
+      }
+      assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
     } else if (scenario === 'signup-open') {
       openSignup();
       assert.equal(elements['signup-dialog'].open, true);
@@ -281,6 +333,6 @@ process.stdin.on('end', async () => {
         }
       }
     }
-    process.stdout.write(JSON.stringify({calls, assigned}));
+    process.stdout.write(JSON.stringify({calls, assigned, rules}));
   } catch (error) { console.error(error); process.exitCode = 1; }
 });

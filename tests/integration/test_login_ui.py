@@ -38,7 +38,7 @@ def node_binary():
     return node
 
 
-def run_flow(scenario, email='anna@example.ch', password=TEST_PASSWORD, signup=None):
+def run_flow(scenario, email='anna@example.ch', password=TEST_PASSWORD, signup=None, samples=None):
     signup = signup or {
         'first_name': 'Anna', 'last_name': 'Muster', 'email': 'anna@example.ch', 'password': TEST_PASSWORD,
     }
@@ -50,7 +50,7 @@ def run_flow(scenario, email='anna@example.ch', password=TEST_PASSWORD, signup=N
             'scenario': scenario, 'elements': page.by_id(),
             'javascript': client.get('/setup-assets/login.js').text,
             'credentials': {'email': email, 'password': password},
-            'signup': signup,
+            'signup': signup, 'samples': samples,
         }),
         text=True, capture_output=True, timeout=10,
     )
@@ -127,7 +127,7 @@ def test_login_assets_are_available(asset, content_type):
     assert content_type in response.headers['content-type']
 
 
-def test_sign_up_dialog_shows_the_password_policy_before_the_fields():
+def test_sign_up_dialog_lists_the_password_requirements_at_the_password_field():
     html = TestClient(create_app()).get('/login').text
     page = Page(html)
     fields = page.by_id()
@@ -135,14 +135,22 @@ def test_sign_up_dialog_shows_the_password_policy_before_the_fields():
     assert dialog['id'] == 'signup-dialog'
     assert dialog['aria-labelledby'] == 'signup-heading'
     assert 'signup-heading' in fields
-    policy = re.search(r'<p id="password-policy">(.*?)</p>', html, re.S).group(1)
-    assert f'at least {MIN_PASSWORD_LENGTH} characters' in policy
-    assert 'a number' in policy
-    assert 'a special character' in policy
+    policy = re.search(r'<div id="password-policy"[^>]*>(.*?)</div>', html, re.S).group(1)
+    assert re.findall(r'<li>(.*?)</li>', policy, re.S) == [
+        f'at least {MIN_PASSWORD_LENGTH} characters',
+        'a number',
+        'a special character (not a letter, number or space)',
+    ]
     assert 'hidden' not in fields['password-policy']
-    assert html.index('id="password-policy"') < html.index('id="signup-first-name"')
+    assert html.index('for="signup-password"') < html.index('id="password-policy"') < html.index('id="signup-password"')
     assert 'password-policy' in fields['signup-password']['aria-describedby'].split()
     assert 'signup-password-error' in fields['signup-password']['aria-describedby'].split()
+    assert 'disabled' not in fields['signup-cancel']
+
+
+def test_the_page_script_uses_the_configured_minimum_password_length():
+    script = (STATIC / 'login.js').read_text()
+    assert re.search(r'const MIN_PASSWORD_LENGTH = (\d+);', script).group(1) == str(MIN_PASSWORD_LENGTH)
 
 
 def test_sign_up_form_is_accessible_and_cannot_be_submitted_before_the_account_check():
@@ -202,7 +210,7 @@ def test_login_css_only_uses_colours_that_setup_css_already_defines():
     'signed-out', 'signed-in', 'loading', 'me-network', 'me-500', 'me-malformed', 'me-timeout',
     'login', 'login-empty', 'login-401', 'login-403', 'login-422', 'login-500',
     'login-network', 'login-timeout', 'login-csrf-failure', 'login-malformed', 'login-duplicate',
-    'signup-open', 'signup-cancel', 'signup-empty',
+    'login-invalid-email', 'signup-open', 'signup-cancel', 'signup-empty', 'signup-invalid', 'signup-password-rules',
     'register', 'register-409', 'register-422', 'register-403', 'register-500', 'register-network',
     'register-timeout', 'register-csrf-failure', 'register-malformed', 'register-duplicate',
 ])
@@ -259,3 +267,37 @@ def test_the_pages_registration_error_handling_matches_the_real_authentication_a
     assert weak[2].status_code == 422
     assert isinstance(weak[2].json()['detail'], str)
     assert str(MIN_PASSWORD_LENGTH) in weak[2].json()['detail']
+
+
+def test_login_does_not_apply_the_registration_password_policy():
+    run_flow('login', password='x')
+
+
+PASSWORD_SAMPLES = [
+    'Abcdef1!', 'Abcde1!', 'abcdefgh', 'abcdefg1', 'abcdefg!', 'abcdefg 1', 'A-long-test-password-123!',
+    'P\u00e4ssw\u00f6rd\u0661!', '\u043f\u0430\u0440\u043e\u043b\u044c12!',
+    'abcdefg1\U0001f600', 'a1' + '\U0001f600' * 6, 'a1' + '\U0001f600' * 5, 'abcdefg1\u00b2', 'abcdefg1\u0301',
+]
+EMAIL_SAMPLES = [
+    'anna@example.ch', 'asdasd', 'a@b', 'a@b.c', 'a b@c.de', '@x.y', 'a@@b.c', 'a@b.', '  ben@example.ch  ',
+    'c.d+e@sub.example.ch',
+]
+
+
+def test_the_pages_rules_agree_with_the_real_registration_rules():
+    rules = run_flow('rules', samples={'passwords': PASSWORD_SAMPLES, 'emails': EMAIL_SAMPLES})['rules']
+    browser = TestClient(create_app(), base_url='https://testserver')
+
+    def accepted(email, password):
+        token = browser.get('/api/v1/auth/csrf').json()['csrf_token']
+        response = browser.post(
+            '/api/v1/auth/register', headers={'X-CSRF-Token': token},
+            json={'email': email, 'password': password, 'first_name': 'Sample', 'last_name': 'Person'},
+        )
+        assert response.status_code in (201, 422), (email, password, response.text)
+        return response.status_code == 201
+
+    for index, (password, page_accepts) in enumerate(zip(PASSWORD_SAMPLES, rules['passwords'])):
+        assert accepted(f'password{index}@example.ch', password) == page_accepts, repr(password)
+    for email, page_accepts in zip(EMAIL_SAMPLES, rules['emails']):
+        assert accepted(email, TEST_PASSWORD) == page_accepts, repr(email)
