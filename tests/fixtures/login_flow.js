@@ -36,7 +36,7 @@ process.stdin.on('end', async () => {
       },
       clearTimeout: timer => { if (timer !== -1) clearTimeout(timer); },
       fetch: async (url, options = {}) => {
-        calls.push({method: options.method ?? 'GET', url, headers: options.headers ?? {}, body: options.body ?? null});
+        calls.push({method: options.method ?? 'GET', url, headers: {...options.headers}, body: options.body ?? null});
         const hang = () => new Promise((resolve, reject) => options.signal.addEventListener('abort', () => reject(new Error('timeout'))));
         if (url === '/api/v1/auth/me') {
           if (scenario === 'loading') await new Promise(resolve => releaseMe = resolve);

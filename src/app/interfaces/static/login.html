@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in | PayAlign</title>
+  <link rel="stylesheet" href="/setup-assets/setup.css">
+  <link rel="stylesheet" href="/setup-assets/login.css">
+  <script src="/setup-assets/login.js" defer></script>
+</head>
+<body>
+<main>
+  <p class="brand">PayAlign</p>
+  <h1>Log in</h1>
+  <noscript><p>Please enable JavaScript to log in.</p></noscript>
+  <p id="account-status" role="status" aria-live="polite"></p>
+  <p id="account-error" role="alert" hidden></p>
+  <div id="signed-in" hidden>
+    <p id="signed-in-name"></p>
+    <p><a id="continue-link" href="/setup">Continue to setup</a></p>
+  </div>
+  <div id="login-panel">
+    <p>Log in with your email and password to manage your employment.</p>
+    <form id="login-form" method="post" novalidate>
+      <label for="login-email">Email</label><input id="login-email" name="email" type="email" autocomplete="username" required aria-describedby="login-email-error">
+      <p id="login-email-error" role="alert" hidden></p>
+      <label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required aria-describedby="login-password-error">
+      <p id="login-password-error" role="alert" hidden></p>
+      <div class="actions">
+        <button id="login-submit" class="primary" type="submit" disabled>Log in</button>
+      </div>
+      <p id="login-status" role="status" aria-live="polite"></p>
+      <p id="login-error" role="alert" hidden></p>
+    </form>
+  </div>
+</main>
+</body>
+</html>

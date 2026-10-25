@@ -9,6 +9,11 @@ ui_router = APIRouter()
 ui_router.mount('/setup-assets', StaticFiles(directory=ASSETS), name='setup-assets')
 
 
+@ui_router.get('/login', include_in_schema=False)
+def login_page():
+    return FileResponse(ASSETS / 'login.html', media_type='text/html')
+
+
 @ui_router.get('/setup', include_in_schema=False)
 def setup_page():
     return FileResponse(ASSETS / 'setup.html', media_type='text/html')

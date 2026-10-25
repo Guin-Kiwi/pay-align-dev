@@ -1,0 +1,3 @@
+.actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+.primary { border: 1px solid #637783; border-radius: .25rem; }
+.primary:enabled { background: #116257; border-color: #116257; color: white; cursor: pointer; }
