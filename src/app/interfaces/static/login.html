@@ -36,14 +36,21 @@
     <dialog id="signup-dialog" aria-labelledby="signup-heading">
       <form id="signup-form" method="post" novalidate>
         <h2 id="signup-heading">Create an account</h2>
-        <p id="password-policy">Your password needs at least 8 characters, including a number and a special character (a character that is not a letter, number or space).</p>
         <label for="signup-first-name">First name</label><input id="signup-first-name" name="first_name" type="text" autocomplete="given-name" required aria-describedby="signup-first-name-error">
         <p id="signup-first-name-error" class="field-error" role="alert"></p>
         <label for="signup-last-name">Last name</label><input id="signup-last-name" name="last_name" type="text" autocomplete="family-name" required aria-describedby="signup-last-name-error">
         <p id="signup-last-name-error" class="field-error" role="alert"></p>
         <label for="signup-email">Email</label><input id="signup-email" name="email" type="email" autocomplete="username" required aria-describedby="signup-email-error">
         <p id="signup-email-error" class="field-error" role="alert"></p>
-        <label for="signup-password">Password</label><input id="signup-password" name="password" type="password" autocomplete="new-password" required aria-describedby="password-policy signup-password-error">
+        <label for="signup-password">Password</label><input id="signup-password" name="password" type="password" autocomplete="new-password" required aria-describedby="password-requirements signup-password-error">
+        <div id="password-requirements" class="requirements">
+          <p>Your password needs:</p>
+          <ul>
+            <li id="requirement-length" data-met="false">at least 8 characters</li>
+            <li id="requirement-number" data-met="false">a number</li>
+            <li id="requirement-special" data-met="false">a special character (not a letter, number or space)</li>
+          </ul>
+        </div>
         <p id="signup-password-error" class="field-error" role="alert"></p>
         <div class="actions">
           <button id="signup-submit" class="primary" type="submit" disabled>Create account</button>

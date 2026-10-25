@@ -18,48 +18,49 @@ function showMessage(id, message) {
 
 const flagged = new Set();
 
-function setFieldError(id, message) {
-  flagged[message ? "add" : "delete"](id);
-  element(id).setAttribute("aria-invalid", String(Boolean(message)));
-  element(`${id}-error`).textContent = message;
+function setFieldError(id, note, invalid = Boolean(note)) {
+  flagged[invalid ? "add" : "delete"](id);
+  element(id).setAttribute("aria-invalid", String(invalid));
+  element(`${id}-error`).textContent = note;
 }
 
 function isEmailAddress(text) {
   return emailPattern.test(text.trim());
 }
 
-function passwordProblems(password) {
-  const length = [...password].length;
-  const problems = [];
-  if (length < MIN_PASSWORD_LENGTH) problems.push(`at least ${MIN_PASSWORD_LENGTH} characters (you have ${length})`);
-  if (!/\p{Nd}/u.test(password)) problems.push("a number");
-  if (!/[^\p{L}\p{N}\s]/u.test(password)) problems.push("a special character");
-  return problems;
+const requirementIds = ["requirement-length", "requirement-number", "requirement-special"];
+
+function passwordRules(password) {
+  return [
+    [...password].length >= MIN_PASSWORD_LENGTH,
+    /\p{Nd}/u.test(password),
+    /[^\p{L}\p{N}\s]/u.test(password)
+  ];
+}
+
+function showRequirements(password) {
+  passwordRules(password).forEach((met, index) => element(requirementIds[index]).setAttribute("data-met", String(met)));
 }
 
 const emailProblem = text => isEmailAddress(text) ? "" : "Enter an email address in the form name@example.ch.";
-
-function passwordProblem(text) {
-  const problems = passwordProblems(text);
-  return problems.length ? `Your password still needs: ${problems.join(", ")}.` : "";
-}
-
-const fieldChecks = {"login-email": emailProblem, "signup-email": emailProblem, "signup-password": passwordProblem};
+const fieldChecks = {"login-email": emailProblem, "signup-email": emailProblem};
 
 function fieldProblem(id) {
   const text = value(id);
-  if (!text.trim()) return "This field is required.";
-  return fieldChecks[id]?.(text) ?? "";
+  if (!text.trim()) return {note: "This field is required.", invalid: true};
+  if (id === "signup-password") return {note: "", invalid: !passwordRules(text).every(Boolean)};
+  const note = fieldChecks[id]?.(text) ?? "";
+  return {note, invalid: Boolean(note)};
+}
+
+function checkField(id) {
+  const {note, invalid} = fieldProblem(id);
+  setFieldError(id, note, invalid);
+  return !invalid;
 }
 
 function validateFields(fields) {
-  let valid = true;
-  for (const id of Object.values(fields)) {
-    const message = fieldProblem(id);
-    setFieldError(id, message);
-    valid = valid && !message;
-  }
-  return valid;
+  return Object.values(fields).map(checkField).every(Boolean);
 }
 
 function updateControls() {
@@ -221,13 +222,17 @@ function resetSignup() {
     element(id).value = "";
     setFieldError(id, "");
   }
+  showRequirements("");
   showMessage("signup-error", "");
   element("signup-status").textContent = "";
 }
 
 for (const id of [...Object.values(loginFields), ...Object.values(signupFields)]) {
-  element(id).addEventListener("input", () => { if (flagged.has(id)) setFieldError(id, fieldProblem(id)); });
-  element(id).addEventListener("blur", () => setFieldError(id, fieldProblem(id)));
+  element(id).addEventListener("input", () => {
+    if (id === signupFields.password) showRequirements(value(id));
+    if (flagged.has(id)) checkField(id);
+  });
+  element(id).addEventListener("blur", () => checkField(id));
 }
 element("login-form").addEventListener("submit", submitLogin);
 element("signup-form").addEventListener("submit", submitSignup);

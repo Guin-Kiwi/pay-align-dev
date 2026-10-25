@@ -247,7 +247,7 @@ def test_met_requirements_turn_green_and_unmet_ones_red_once_flagged_without_res
     assert 'content' in css_rule(css, '.requirements li[data-met="false"]::before')
     done = css_rule(css, '.requirements li[data-met="true"]::before')
     assert set(done) == {'content'}
-    assert '\u2713' in done['content']
+    assert any(tick in done['content'] for tick in ('\u2713', '\\2713'))
     assert css_rule(css, '.requirements li')['list-style'] == 'none'
 
 

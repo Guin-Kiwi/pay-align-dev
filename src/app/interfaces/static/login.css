@@ -6,5 +6,13 @@ dialog { box-sizing: border-box; width: min(28rem, calc(100% - 2rem)); padding: 
 dialog::backdrop { background: #172b3a; opacity: .6; }
 .field-error { min-height: 1.4em; margin: .3rem 0 0; line-height: 1.4; }
 #signup-email-error { min-height: 2.8em; }
-#signup-password-error { min-height: 4.2em; }
 input[aria-invalid="true"] { border-color: #912323; box-shadow: 0 0 0 1px #912323; }
+.requirements { color: #4b5963; }
+.requirements p { margin: .5rem 0 .25rem; }
+.requirements ul { margin: 0; padding: 0; }
+.requirements li { list-style: none; }
+.requirements li::before { display: inline-block; width: 1.5em; }
+.requirements li[data-met="false"]::before { content: "\25CB"; content: "\25CB" / "Not met: "; }
+.requirements li[data-met="true"]::before { content: "\2713"; content: "\2713" / "Met: "; }
+.requirements li[data-met="true"] { color: #116257; }
+#signup-password[aria-invalid="true"] + .requirements li[data-met="false"] { color: #912323; }
