@@ -1,6 +1,6 @@
 # TASKS.md
 
-PHASE: 3 and 4
+PHASE: 3
 STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
