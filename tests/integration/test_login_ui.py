@@ -117,8 +117,7 @@ def test_login_form_is_accessible_and_cannot_be_submitted_before_the_account_che
     for region in ('account-error', 'login-error'):
         assert fields[region]['role'] == 'alert'
         assert 'hidden' in fields[region]
-    assert 'hidden' in fields['signed-in']
-    assert fields['continue-link']['href'] == '/setup'
+    assert 'signed-in' not in fields and 'continue-link' not in fields
 
 
 @pytest.mark.parametrize('asset,content_type', [('login.css', 'text/css'), ('login.js', 'javascript')])
@@ -282,7 +281,10 @@ def test_login_css_only_uses_colours_that_setup_css_already_defines():
     'signed-out', 'signed-in', 'loading', 'me-network', 'me-500', 'me-malformed', 'me-timeout',
     'login', 'login-empty', 'login-401', 'login-403', 'login-422', 'login-500',
     'login-network', 'login-timeout', 'login-csrf-failure', 'login-malformed', 'login-duplicate',
-    'link-signup', 'link-signed-in', 'link-me-500', 'login-invalid-email', 'blur-validation', 'signup-open', 'signup-cancel', 'signup-empty', 'signup-invalid', 'signup-password-rules',
+    'link-signup', 'link-signed-in', 'link-signed-in-with-employer', 'link-me-500',
+    'signed-in-with-employer', 'signed-in-lookup-error', 'signed-in-lookup-network',
+    'signed-in-lookup-malformed', 'signed-in-lookup-other-404', 'login-with-employer', 'login-lookup-error',
+    'login-invalid-email', 'blur-validation', 'signup-open', 'signup-cancel', 'signup-empty', 'signup-invalid', 'signup-password-rules',
     'register', 'register-409', 'register-422', 'register-403', 'register-500', 'register-network',
     'register-timeout', 'register-csrf-failure', 'register-malformed', 'register-duplicate',
 ])
@@ -296,7 +298,8 @@ def test_login_requests_are_accepted_by_the_real_authentication_api():
     calls = run_flow('login')['calls']
     browser = TestClient(app, base_url='https://testserver')
     responses = replay(browser, calls)
-    assert [response.status_code for response in responses] == [401, 200, 200]
+    assert [response.status_code for response in responses] == [401, 200, 200, 404]
+    assert responses[3].json() == {'detail': 'No employer is set up yet.'}
     assert responses[2].json()['email'] == 'anna@example.ch'
     assert responses[2].json()['csrf_token']
     me = browser.get('/api/v1/auth/me')
@@ -311,7 +314,8 @@ def test_register_requests_are_accepted_by_the_real_authentication_api():
     calls = run_flow('register', signup=signup)['calls']
     browser = TestClient(app, base_url='https://testserver')
     responses = replay(browser, calls)
-    assert [response.status_code for response in responses] == [401, 200, 201]
+    assert [response.status_code for response in responses] == [401, 200, 201, 404]
+    assert responses[3].json() == {'detail': 'No employer is set up yet.'}
     assert responses[2].json()['email'] == 'berta@example.ch'
     assert responses[2].json()['csrf_token']
     me = browser.get('/api/v1/auth/me')
@@ -373,3 +377,22 @@ def test_the_pages_rules_agree_with_the_real_registration_rules():
         assert accepted(f'password{index}@example.ch', password) == page_accepts, repr(password)
     for email, page_accepts in zip(EMAIL_SAMPLES, rules['emails']):
         assert accepted(email, TEST_PASSWORD) == page_accepts, repr(email)
+
+
+SETUP = {
+    'employer': {'name': 'Anna Muster', 'address': 'Basel', 'ahv_number': '756.1234.5678.97', 'contact_info': 'anna@example.ch'},
+    'employee': {'name': 'Maria Muster', 'address': 'Basel', 'ahv_number': '756.9876.5432.10', 'nationality': 'CH'},
+    'employment': {'start_date': '2026-01-01', 'hourly_wage': '28.50', 'weekly_hours': '6:00'},
+}
+
+
+def test_the_pages_employer_check_matches_the_real_api_for_an_account_with_an_employer():
+    app = create_app()
+    owner = AuthenticatedTestClient(app, email='anna@example.ch')
+    assert owner.post('/api/v1/setup', json=SETUP).status_code == 201
+    calls = run_flow('login-with-employer')['calls']
+    responses = replay(TestClient(app, base_url='https://testserver'), calls)
+    assert [response.status_code for response in responses] == [401, 200, 200, 200]
+    employer = responses[3].json()
+    assert isinstance(employer['id'], int) and employer['id'] > 0
+    assert employer['name'] == 'Anna Muster'

@@ -28,10 +28,12 @@ process.stdin.on('end', async () => {
     const response = (status, body) => ({status, ok: status >= 200 && status < 300, json: async () => body});
     const calls = [];
     const assigned = [];
+    const viaHistory = [];
+    const employer = {id: 1, name: 'Anna', address: 'Basel', ahv_number: '756.1234.5678.97', contact_info: 'anna@example.ch'};
     let releaseMe, releasePost, abortTimer, rules;
     const context = {
       document: {getElementById: id => { assert.ok(elements[id], id); return elements[id]; }},
-      window: {location: {assign: url => assigned.push(url), hash: scenario.startsWith('link-') ? '#signup' : ''}},
+      window: {location: {replace: url => assigned.push(url), assign: url => viaHistory.push(url), hash: scenario.startsWith('link-') ? '#signup' : ''}},
       AbortController,
       setTimeout: (callback, delay) => {
         if (scenario === 'me-timeout' && delay === 10000) { abortTimer = callback; return -1; }
@@ -48,12 +50,20 @@ process.stdin.on('end', async () => {
           if (scenario === 'me-network') throw new Error('offline');
           if (scenario === 'me-500' || scenario === 'link-me-500') return response(500, {detail: 'boom'});
           if (scenario === 'me-malformed') return response(200, {email: 'anna@example.ch'});
-          if (scenario === 'signed-in' || scenario === 'link-signed-in') return response(200, {...account, first_name: attack});
+          if (scenario.startsWith('signed-in') || scenario.startsWith('link-signed-in')) return response(200, {...account, first_name: attack});
           return response(401, {detail: 'Authentication required.'});
         }
         if (url === '/api/v1/auth/csrf') {
           if (scenario.endsWith('-csrf-failure')) return response(500, {detail: 'boom'});
           return response(200, {csrf_token: 'csrf-token-1'});
+        }
+        if (url === '/api/v1/employer') {
+          if (scenario.includes('lookup-network')) throw new Error('offline');
+          if (scenario.includes('lookup-error')) return response(500, {detail: 'boom'});
+          if (scenario.includes('lookup-malformed')) return response(200, {name: 'Anna'});
+          if (scenario.includes('lookup-other-404')) return response(404, {detail: 'Not Found'});
+          if (scenario.includes('with-employer')) return response(200, employer);
+          return response(404, {detail: 'No employer is set up yet.'});
         }
         const registering = url === '/api/v1/auth/register';
         assert.ok(registering || url === '/api/v1/auth/login', url);
@@ -105,13 +115,17 @@ process.stdin.on('end', async () => {
       releaseMe(); await settle();
       assert.equal(elements['login-submit'].disabled, false);
       assert.equal(elements['open-signup'].disabled, false);
-    } else if (scenario === 'signed-in') {
-      assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
-      assert.equal(elements['signed-in'].hidden, false);
-      assert.equal(elements['login-panel'].hidden, true);
-      assert.ok(elements['signed-in-name'].textContent.includes(`${attack} Muster`));
-      assert.ok(elements['signed-in-name'].textContent.includes('anna@example.ch'));
-      assert.deepEqual(assigned, []);
+    } else if (scenario.startsWith('signed-in') || scenario.startsWith('link-signed-in')) {
+      assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/employer']);
+      lockedControls();
+      assert.equal(elements['signup-dialog'].open, false);
+      if (scenario.includes('lookup-')) {
+        assert.deepEqual(assigned, []);
+        assert.equal(elements['account-error'].hidden, false);
+        assert.match(elements['account-error'].textContent, /reload/i);
+      } else {
+        assert.deepEqual(assigned, [scenario.includes('with-employer') ? '/employments' : '/setup']);
+      }
     } else if (scenario.startsWith('me-')) {
       if (scenario === 'me-timeout') { abortTimer(); await settle(); }
       assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
@@ -122,7 +136,6 @@ process.stdin.on('end', async () => {
       assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
     } else if (scenario === 'signed-out') {
       assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
-      assert.equal(elements['signed-in'].hidden, true);
       assert.equal(elements['login-panel'].hidden, false);
       assert.equal(elements['account-error'].hidden, true);
       assert.equal(elements['account-status'].textContent, '');
@@ -148,7 +161,7 @@ process.stdin.on('end', async () => {
       lockedControls();
       await submitLogin();
       releasePost(); await pending; await settle();
-      assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/login']);
+      assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/login', 'GET /api/v1/employer']);
       assert.deepEqual(assigned, ['/setup']);
     } else if (scenario === 'rules') {
       rules = {
@@ -271,7 +284,7 @@ process.stdin.on('end', async () => {
       elements['signup-cancel'].listeners.click();
       assert.equal(elements['signup-dialog'].open, false);
       assert.equal(elements['login-submit'].disabled, false);
-    } else if (scenario === 'link-signed-in' || scenario === 'link-me-500') {
+    } else if (scenario === 'link-me-500') {
       assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
       assert.equal(elements['signup-dialog'].open, false);
       assert.equal(elements['signup-submit'].disabled, true);
@@ -323,7 +336,7 @@ process.stdin.on('end', async () => {
       assert.equal(prevented, true);
       await submitSignup();
       releasePost(); await pending; await settle();
-      assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/register']);
+      assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/register', 'GET /api/v1/employer']);
       assert.deepEqual(assigned, ['/setup']);
     } else if (scenario.startsWith('register')) {
       openSignup(); fillSignup();
@@ -331,7 +344,7 @@ process.stdin.on('end', async () => {
       if (scenario === 'register-timeout') { await settle(); abortTimer(); }
       await pending; await settle();
       if (scenario === 'register') {
-        assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/register']);
+        assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/register', 'GET /api/v1/employer']);
         assert.deepEqual(calls[2].headers, {
           'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': 'csrf-token-1'
         });
@@ -375,13 +388,21 @@ process.stdin.on('end', async () => {
       const pending = submitLogin();
       if (scenario === 'login-timeout') { await settle(); abortTimer(); }
       await pending; await settle();
-      if (scenario === 'login') {
-        assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/login']);
+      if (scenario === 'login' || scenario === 'login-with-employer') {
+        assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/login', 'GET /api/v1/employer']);
         assert.deepEqual(calls[2].headers, {
           'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': 'csrf-token-1'
         });
         assert.deepEqual(JSON.parse(calls[2].body), {email: credentials.email, password: credentials.password});
-        assert.deepEqual(assigned, ['/setup']);
+        assert.deepEqual(assigned, [scenario === 'login' ? '/setup' : '/employments']);
+        assert.equal(elements['login-submit'].disabled, true);
+        assert.equal(elements['login-error'].hidden, true);
+      } else if (scenario === 'login-lookup-error') {
+        assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/login', 'GET /api/v1/employer']);
+        assert.deepEqual(assigned, []);
+        assert.equal(elements['account-error'].hidden, false);
+        assert.match(elements['account-error'].textContent, /signed in/i);
+        assert.match(elements['account-error'].textContent, /reload/i);
         assert.equal(elements['login-submit'].disabled, true);
         assert.equal(elements['login-error'].hidden, true);
       } else {
@@ -407,6 +428,7 @@ process.stdin.on('end', async () => {
         }
       }
     }
+    assert.deepEqual(viaHistory, [], 'Redirects must use location.replace so that Back does not return to /login');
     process.stdout.write(JSON.stringify({calls, assigned, rules}));
   } catch (error) { console.error(error); process.exitCode = 1; }
 });
