@@ -251,6 +251,25 @@ def test_met_requirements_turn_green_and_unmet_ones_red_once_flagged_without_res
     assert css_rule(css, '.requirements li')['list-style'] == 'none'
 
 
+def test_sign_up_dialog_is_wide_and_compact_so_that_it_fits_a_laptop_screen():
+    html = TestClient(create_app()).get('/login').text
+    assert (
+        html.index('class="name-row"') < html.index('id="signup-first-name"')
+        < html.index('id="signup-first-name-error"') < html.index('for="signup-last-name"')
+        < html.index('id="signup-last-name-error"') < html.index('for="signup-email"')
+    )
+    assert html.count('<div class="field">') == 2
+    css = (STATIC / 'login.css').read_text()
+    assert float(re.match(r'min\(([\d.]+)rem', css_rule(css, 'dialog')['width']).group(1)) >= 40
+    wide = re.search(r'@media \(min-width: 36rem\)\s*\{(.*?)\n\}', css, re.S).group(1)
+    assert css_rule(wide, '.name-row')['grid-template-columns'] == '1fr 1fr'
+    assert float(css_rule(wide, '#signup-email-error')['min-height'].removesuffix('em')) == 1.4
+    assert css_rule(css, '.name-row')['display'] == 'grid'
+    assert css_rule(css, '.requirements ul')['display'] == 'flex'
+    assert css_rule(css, '.requirements ul')['flex-wrap'] == 'wrap'
+    assert float(css_rule(css, '#signup-status')['min-height'].removesuffix('em')) >= 1.4
+
+
 def test_login_css_only_uses_colours_that_setup_css_already_defines():
     colour = re.compile(r'#[0-9a-fA-F]{3,8}\b')
     setup_colours = set(colour.findall((STATIC / 'setup.css').read_text()))
