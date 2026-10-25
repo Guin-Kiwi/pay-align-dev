@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
+from tests.integration.authenticated_client import AuthenticatedTestClient
 from sqlalchemy import text
 
 from src.app.infrastructure.sqlalchemy_payroll_repository import (
@@ -14,12 +14,12 @@ def test_both_repositories_share_the_apps_one_engine_and_database(monkeypatch, t
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'payroll.db'}")
     app = create_app()
 
-    with TestClient(app) as client:
+    with AuthenticatedTestClient(app) as client:
         response = client.post(
             "/api/v1/setup",
             json={"employer": EMPLOYER, "employee": EMPLOYEE, "employment": EMPLOYMENT},
         )
-        setup_repository = app.state.setup_service.repository
+        setup_repository = app.state.setup_repository
         payroll_repository = app.state.payroll_repository
 
         assert response.status_code == 201
@@ -38,5 +38,5 @@ def test_an_injected_repository_is_used_and_the_other_is_still_built(monkeypatch
     app: FastAPI = create_app(payroll_repository=injected)
 
     assert app.state.payroll_repository is injected
-    assert app.state.setup_service.repository.engine is app.state.engine
+    assert app.state.setup_repository.engine is app.state.engine
     app.state.engine.dispose()

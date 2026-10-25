@@ -5,10 +5,13 @@ import pytest
 
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
+from src.app.infrastructure.pwdlib_password_hasher import PwdlibPasswordHasher
+from tests.integration.authenticated_client import TEST_PASSWORD
 
 from src.app.domain.constants import RULES_YEAR_START
 from src.app.infrastructure.database import create_database_engine
 from src.app.infrastructure.orm_models import (
+    AccountRow,
     Base,
     EmployeeRow,
     EmployerRow,
@@ -26,6 +29,8 @@ TABLES = {
     "payslips": PayslipRow,
 }
 
+TEST_PASSWORD_HASH = PwdlibPasswordHasher().hash(TEST_PASSWORD)
+
 
 def add_employment(
     engine: Engine,
@@ -40,10 +45,21 @@ def add_employment(
 ) -> int:
     """Create the employer, employee and employment rows a payroll run points at."""
     with Session(engine) as session, session.begin():
+        if session.get(AccountRow, employer_id) is None:
+            session.add(
+                AccountRow(
+                    id=employer_id,
+                    email=f"employer-{employer_id}@example.ch",
+                    password_hash=TEST_PASSWORD_HASH,
+                    first_name="Test",
+                    last_name="Employer",
+                )
+            )
         if session.get(EmployerRow, employer_id) is None:
             session.add(
                 EmployerRow(
                     id=employer_id,
+                    account_id=employer_id,
                     name=f"Employer {employer_id}",
                     address="Freie Strasse 1, 4001 Basel",
                     ahv_number=f"employer-{employer_id}",
@@ -54,6 +70,7 @@ def add_employment(
             session.add(
                 EmployeeRow(
                     id=employee_id,
+                    employer_id=employer_id,
                     name=f"Employee {employee_id}",
                     address="Clarastrasse 10, 4058 Basel",
                     ahv_number=f"employee-{employee_id}",

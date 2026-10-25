@@ -1,6 +1,7 @@
 """Run explicitly with TEST_DOCKER_IMAGE pointing to a locally built image."""
 
 import os
+import secrets
 import shutil
 import subprocess
 import time
@@ -11,9 +12,17 @@ import httpx
 import pytest
 
 from tests.e2e.test_demo_flow import SETUP
+from tests.integration.authenticated_client import TEST_PASSWORD
 
 IMAGE = os.environ.get("TEST_DOCKER_IMAGE")
 pytestmark = pytest.mark.skipif(not IMAGE, reason="Set TEST_DOCKER_IMAGE to test a built image")
+
+ACCOUNT = {
+    "email": "container-test@example.ch",
+    "password": TEST_PASSWORD,
+    "first_name": "Test",
+    "last_name": "Employer",
+}
 
 
 def docker(*args):
@@ -62,6 +71,8 @@ def running_container(storage):
             "run", "--detach", "--name", name,
             "--mount", f"type=bind,source={storage},target=/app/data",
             "--env", "DATABASE_URL=sqlite:////app/data/payroll.db",
+            "--env", f"SESSION_SECRET_KEY={secrets.token_urlsafe(32)}",
+            "--env", "SESSION_COOKIE_SECURE=false",
             "--publish", "127.0.0.1::8000", IMAGE,
         )
         address = docker("port", name, "8000/tcp")
@@ -91,10 +102,25 @@ def setup_snapshot(name):
         "import json, sqlite3; "
         "db = sqlite3.connect('/app/data/payroll.db'); "
         "rows = {table: db.execute(f'SELECT * FROM {table} ORDER BY id').fetchall() "
-        "for table in ('employers', 'employees', 'employments')}; "
+        "for table in ('accounts', 'employers', 'employees', 'employments')}; "
         "assert all(len(records) == 1 for records in rows.values()); "
         "print(json.dumps(rows, sort_keys=True))",
     )
+
+
+def authenticate(client, *, register):
+    csrf = client.get("/api/v1/auth/csrf")
+    assert csrf.status_code == 200, csrf.text
+    credentials = ACCOUNT if register else {
+        "email": ACCOUNT["email"], "password": ACCOUNT["password"],
+    }
+    response = client.post(
+        f"/api/v1/auth/{'register' if register else 'login'}",
+        headers={"X-CSRF-Token": csrf.json()["csrf_token"]},
+        json=credentials,
+    )
+    assert response.status_code == (201 if register else 200), response.text
+    return response.json()["csrf_token"]
 
 
 def test_nonroot_setup_survives_container_recreation(tmp_path):
@@ -110,7 +136,13 @@ def test_nonroot_setup_survives_container_recreation(tmp_path):
         with running_container(storage) as (client, name):
             assert docker("exec", name, "id", "-u") != "0"
             original_container = docker("inspect", "--format", "{{.Id}}", name)
-            response = client.post("/api/v1/setup", json=SETUP)
+            assert client.get("/api/v1/employer").status_code == 401
+            token = authenticate(client, register=True)
+            expected_account = client.get("/api/v1/auth/me").json()
+            assert client.post("/api/v1/setup", json=SETUP).status_code == 403
+            response = client.post(
+                "/api/v1/setup", headers={"X-CSRF-Token": token}, json=SETUP,
+            )
             assert response.status_code == 201, response.text
             expected_employer = {
                 "id": response.json()["employer_id"], **SETUP["employer"],
@@ -124,10 +156,18 @@ def test_nonroot_setup_survives_container_recreation(tmp_path):
         with running_container(storage) as (client, name):
             assert docker("inspect", "--format", "{{.Id}}", name) != original_container
             assert docker("exec", name, "id", "-u") != "0"
+            assert client.get("/api/v1/employer").status_code == 401
+            token = authenticate(client, register=False)
+            assert client.get("/api/v1/auth/me").json() == expected_account
             employer = client.get("/api/v1/employer")
             assert employer.status_code == 200, employer.text
             assert employer.json() == expected_employer
             assert setup_snapshot(name) == saved_rows
+            logout = client.post(
+                "/api/v1/auth/logout", headers={"X-CSRF-Token": token},
+            )
+            assert logout.status_code == 204, logout.text
+            assert client.get("/api/v1/employer").status_code == 401
     finally:
         docker(
             "run", "--rm", "--user", "root", "--entrypoint", "chown",

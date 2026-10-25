@@ -5,7 +5,7 @@
 - **Project name:** PayAlign
 - **User or organisational problem:** Private individuals employing household help need a way to legally and accurately manage monthly payroll under the AKBS simplified settlement procedure without facing heavy corporate HR administration.
 - **Intended users:** Private household employers in Basel-Stadt.
-- **In scope:** Single-employer onboarding, employee registration and contract parameter generation, monthly payroll processing (gross-to-net calculations using 2026 rates), and payslip generation.
+- **In scope:** Employer accounts and login, employer onboarding, employee registration and contract parameter generation, monthly payroll processing (gross-to-net calculations using 2026 rates), and payslip generation.
 - **Out of scope:** The annual aggregation for the AKBS wage declaration (for v0.1.0), exception management (including sick pay, occupational accidents, property damage, and disputes), termination workflows, employer account closure, and the standard settlement procedure (Standard-Abrechnung). The normal-case monthly payroll use case does not record or calculate sick-pay hours.
 
 ## Architecture
@@ -14,12 +14,14 @@ We are using **Clean Architecture** to ensure the core payroll logic is complete
 
 `domain ← application ← interfaces ← infrastructure`
 
-* **Domain:** Contains the five core entities (Employer, Employee, Employment, MonthlyRecord, Payslip) and the immutable 2026 AKBS payroll calculation rules. 
-* **Application:** Contains the core services (`SetupService`, `PayrollService`) and defines the repository interfaces (Ports).
-* **Interfaces:** Contains the web routing (e.g., FastAPI controllers) and request/response models.
-* **Infrastructure:** Contains the ORM mappings (e.g., SQLAlchemy), database connection, and the web server wiring.
+* **Domain:** Contains Account, Employer, Employee, Employment, MonthlyRecord and Payslip, plus the immutable 2026 AKBS payroll calculation rules.
+* **Application:** Contains the core services (`SetupService`, `PayrollService`, `AccountService`) and defines repository and password-hashing interfaces (Ports).
+* **Interfaces:** Contains the web routing (e.g., FastAPI controllers), request/response models, authentication boundary and CSRF checks.
+* **Infrastructure:** Contains the ORM mappings (e.g., SQLAlchemy), database connection, Argon2 password-hasher adapter, signed-cookie session middleware and web server wiring.
 
-**Deployment & Data-store:** The application is a containerized full-stack web application that uses a relational database via an ORM. The code on `main` supports SQLite for local runs, Docker Compose and tests, and PostgreSQL on Neon for the Render deployment ([ADR-005 Amendment 1](adr/ADR-005-sqlalchemy-persistence-adapter.md#amendment-1-2026-10-23)). Render builds the `Dockerfile` from the release commit on a release, or from the latest commit on `main` on a manual deploy. Render's active database is selected by its `DATABASE_URL` environment variable, which points to the Neon database (a `postgresql://` URL, checked in the Render dashboard on 24 October 2026), so saved data no longer lives in the container's `/tmp`.
+**Deployment & Data-store:** The application is a containerized full-stack web application that uses a relational database via an ORM. The code on `main` supports SQLite for local runs, Docker Compose and tests, and PostgreSQL on Neon for the Render deployment ([ADR-005 Amendment 1](adr/ADR-005-sqlalchemy-persistence-adapter.md#amendment-1-2026-10-23)). Render builds the `Dockerfile` from the release commit on a release, or from the latest commit on `main` on a manual deploy. Render's active database is selected by its `DATABASE_URL` environment variable, which points to the Neon database (a `postgresql://` URL, checked in the Render dashboard on 24 October 2026), so saved data no longer lives in the container's `/tmp`. Set the required `SESSION_SECRET_KEY` in Render's environment before deploying the account-enabled build, and keep `SESSION_COOKIE_SECURE=true` for Render's HTTPS URL (see Dependencies).
+
+The first account-enabled deployment requires a new, empty database schema ([UC-003 scope](specs/UC-003-Employer-Accounts-and-Secure-Access.md#scope)). `create_all` creates missing tables but does not alter existing ones ([ADR-005](adr/ADR-005-sqlalchemy-persistence-adapter.md#consequences)); it cannot add `employers.account_id` or `employees.employer_id` to pre-account tables. Before deploying that build against the existing Neon database, the deployment owner must obtain authorization to drop the pre-account application tables and recreate them with the new schema; this deletes their saved employer and payroll data. No existing-data migration is provided.
 
 ## Structure
 
@@ -54,7 +56,7 @@ Run all commands from the project directory. Docker must be available for Docker
 |---|---|
 | Build Docker image | `docker compose build api` |
 | Prepare SQLite bind-mount ownership (first run or upgrade from root) | `docker compose run --rm --no-deps --user root --entrypoint chown api -R 10001:10001 /app/data` |
-| Start application | `docker compose up api` |
+| Start application | Set `SESSION_SECRET_KEY` in `.env` to a random value from `python -c "import secrets; print(secrets.token_urlsafe(32))"`, then run `docker compose up api` |
 | Health check | `curl --fail --include http://localhost:8000/health` |
 | Unit tests | `.venv/bin/python -m pytest tests/unit/` |
 | Integration tests | `.venv/bin/python -m pytest tests/integration/` |
@@ -84,11 +86,16 @@ Run the health check while the application is running. It should return HTTP 200
 The release workflow runs the existing tests, builds a Docker image for `linux/amd64`, and runs the container runtime and persistence checks against that image before providing it as `payalign-<Commit-ID>-linux-amd64.tar.gz`. The archive contains the image, not running containers or payroll data. After downloading it, load it with `docker load --input payalign-<Commit-ID>-linux-amd64.tar.gz`, replacing `<Commit-ID>` with the actual ID in the filename. The resulting image name is `payalign:<Commit-ID>`. This image is not native to ARM Macs; Docker requires support for running `linux/amd64` images.
 
 The container checks verify the runtime file allowlist and absence of test
-libraries, then save made-up setup data through the API with a prepared, isolated
-SQLite bind mount. They remove the first container and create a second one using
-the same storage. Both run as the image's non-root user and must become healthy;
-the second must return the saved employer through the API and retain identical
-employer, employee and employment database rows. Failures print container logs.
+libraries, then register a made-up account and save setup data through the API
+with a prepared, isolated SQLite bind mount. They remove the first container and
+create a second one using the same storage. Both run as the image's non-root user
+and must become healthy; the second must accept login to the saved account,
+return its employer through the API and retain identical account, employer,
+employee and employment database rows. Each container gets a freshly generated
+test-only session secret and HTTP test cookies (`SESSION_COOKIE_SECURE=false`);
+state-changing requests send CSRF tokens. The checks also verify that anonymous
+employer reads and setup without a CSRF token are rejected, and that logout ends
+the current session. Failures print container logs.
 The checks remove their containers and test storage on success and failure;
 they use neither the Compose database nor any deployment database. The release
 step runs these checks from the host's development environment, with a five-minute
@@ -101,9 +108,9 @@ A published `v*` release calls the CD workflow after publication. When `CD_ENABL
 ## Dependencies
 
 * **Runtime:** Docker, Python 3.12 (`.python-version`, CI, the dev container and the container image)
-* **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), psycopg 3 (PostgreSQL driver), Pydantic (Validation)
+* **Core Libraries:** FastAPI (Web Framework), SQLAlchemy (ORM), psycopg 3 (PostgreSQL driver), Pydantic (Validation), pwdlib with Argon2 (password hashing), itsdangerous (Starlette signed sessions)
 * **Test Libraries:** pytest, httpx and packaging (build-input assertions)
-* **Environment Variables:** `DATABASE_URL` (Required for infrastructure configuration). 
+* **Environment Variables:** `DATABASE_URL` (required for infrastructure configuration), `SESSION_SECRET_KEY` (required, random secret of at least 32 characters), `SESSION_COOKIE_SECURE` (set to `true` when serving over HTTPS; Docker Compose defaults it to `false` for local HTTP development).
 * Never commit `.env` credentials to version control.
 
 `requirements.in` declares direct runtime dependencies; `requirements.txt` is the
@@ -138,16 +145,29 @@ to build from source using these inputs.
 ## Data conventions
 
 * **`DATABASE_URL` format:** a SQLAlchemy URL, e.g. `sqlite:////app/data/payroll.db` (four slashes for an absolute path inside the container). It is required; there is no silent in-memory fallback. `sqlite` and `postgresql` URLs are accepted (for example `postgresql://user:password@host/dbname?sslmode=require`); any other scheme, including `postgres://`, fails at start-up.
-* **Tables:** `employers`, `employees`, `employments`, `monthly_records`, `payslips`, `work_entries` and `payroll_snapshots`, one per core entity or persisted payroll run. `employments` stores integer `weekly_minutes` and `holiday_weeks` and a nullable `end_date`. `monthly_records` stores `employee_id` alongside `employment_id` and `employer_id`. The holiday balance is not stored on `employments`; it is derived from persisted runs ([ADR-004](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). `payroll_snapshots` stores the run snapshot ([ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-2-2026-10-20)).
+* **Tables:** `accounts`, `employers`, `employees`, `employments`, `monthly_records`, `payslips`, `work_entries` and `payroll_snapshots`, one per core entity or persisted payroll run. `accounts` stores normalized login email, adaptive password hash and account first/last name; it does not store passwords. Each `employers` row has one unique `account_id`; employer AHV numbers are not globally unique, and matching AHV numbers never share a profile across accounts ([UC-003 Amendment 5](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-5--2026-10-24-account-isolation-corrections)). Each `employees` row belongs to an employer, with AHV unique within that employer; an employment links an employee of the same employer. `employments` stores integer `weekly_minutes` and `holiday_weeks` and a nullable `end_date`. `monthly_records` stores `employee_id` alongside `employment_id` and `employer_id`. The holiday balance is not stored on `employments`; it is derived from persisted runs ([ADR-004](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md)). `payroll_snapshots` stores the run snapshot ([ADR-004 Amendment 2](adr/ADR-004-payroll-entry-snapshots-and-holiday-balance.md#amendment-2-2026-10-20)).
+
+Authentication endpoints are under `/api/v1/auth`: `GET /csrf` issues a CSRF token; `POST /register`, `POST /login` and `POST /logout` change authentication state; `GET /me` returns the current account. Registration and login create a four-hour signed session cookie containing only the account ID. The cookie is HttpOnly and SameSite=Lax; configure `SESSION_COOKIE_SECURE=true` over HTTPS. Registration and login return the rotated CSRF cookie value as `csrf_token` alongside the account fields in JSON; the client sends it in `X-CSRF-Token` on subsequent state-changing requests. Registration password validation is defined in [UC-003 Amendment 4](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-4--2026-10-24-registration-policy-and-csrf-token-return). Session limits and known copied-cookie behavior are recorded in [ADR-007](adr/ADR-007-employer-accounts-and-secure-access.md).
 
 The current HTTP endpoints are:
 
 | Method and path | Purpose |
 |---|---|
 | `GET /health` | Health check. |
-| `GET /api/v1/employer` | Read the saved employer profile, or return 404 before setup. |
-| `POST /api/v1/setup` | Create the employer profile and first employment, or add an employment under the saved employer. |
-| `POST /api/v1/monthly-payroll` | Calculate and save the next monthly run. |
+| `GET /api/v1/auth/csrf` | Issue a CSRF token. |
+| `POST /api/v1/auth/register` | Register an account and start its session. |
+| `POST /api/v1/auth/login` | Start an account session. |
+| `GET /api/v1/auth/me` | Read the signed-in account. |
+| `POST /api/v1/auth/logout` | End the account session. |
+| `GET /api/v1/employer` | Read the signed-in account's employer profile. |
+| `POST /api/v1/setup` | Create an employer profile and first employment, or add an employment under the signed-in employer. |
+| `GET /api/v1/employments` | List the signed-in employer's employments. |
+| `GET /api/v1/employments/{employment_id}` | Read one owned employment's summary. |
+| `GET /api/v1/employments/{employment_id}/months` | List saved months and the next eligible 2026 month. |
+| `GET /api/v1/employments/{employment_id}/months/{year}/{month}` | Read an owned month's saved payslip and holiday balance. |
+| `POST /api/v1/monthly-payroll` | Save the next monthly run. |
+
+Employment and month reads require a session and return 404 for absent or other-account records. `PayrollService.process_monthly_payroll` and the payroll port's `employment_terms` require an account ID; neither provides an unscoped fallback. Completed months have no update or delete endpoint; the scope decision is in [UC-003 Amendment 3](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views).
 
 FastAPI also provides Swagger UI at `/docs`, ReDoc at `/redoc` and the OpenAPI
 schema at `/openapi.json`. Setup behavior is defined in [ADR-006](adr/ADR-006-uc-001-setup-api-and-wiring.md#decision);

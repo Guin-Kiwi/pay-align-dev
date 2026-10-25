@@ -1,6 +1,9 @@
 from datetime import date, time
 
-from sqlalchemy import CheckConstraint, event, Date, ForeignKey, Integer, String, Time, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint, Date, ForeignKey, ForeignKeyConstraint, Integer, String,
+    Time, UniqueConstraint, event,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from src.app.domain.errors import ImmutableRecordError
@@ -10,33 +13,57 @@ class Base(DeclarativeBase):
     pass
 
 
+class AccountRow(Base):
+    __tablename__ = "accounts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    first_name: Mapped[str] = mapped_column(String, nullable=False)
+    last_name: Mapped[str] = mapped_column(String, nullable=False)
+
+
 class EmployerRow(Base):
     __tablename__ = "employers"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey("accounts.id"), nullable=False, unique=True
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     address: Mapped[str] = mapped_column(String, nullable=False)
-    ahv_number: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    ahv_number: Mapped[str] = mapped_column(String, nullable=False)
     contact_info: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class EmployeeRow(Base):
     __tablename__ = "employees"
+    __table_args__ = (
+        UniqueConstraint("employer_id", "ahv_number"),
+        UniqueConstraint("id", "employer_id"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    employer_id: Mapped[int] = mapped_column(ForeignKey("employers.id"), nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     address: Mapped[str] = mapped_column(String, nullable=False)
-    ahv_number: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    ahv_number: Mapped[str] = mapped_column(String, nullable=False)
     nationality: Mapped[str] = mapped_column(String, nullable=False)
     tax_status: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class EmploymentRow(Base):
     __tablename__ = "employments"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["employee_id", "employer_id"],
+            ["employees.id", "employees.employer_id"],
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     employer_id: Mapped[int] = mapped_column(ForeignKey("employers.id"), nullable=False)
-    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"), nullable=False)
+    employee_id: Mapped[int] = mapped_column(Integer, nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     hourly_wage_cents: Mapped[int] = mapped_column(Integer, nullable=False)
