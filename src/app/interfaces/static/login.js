@@ -3,6 +3,8 @@
 const element = id => document.getElementById(id);
 const value = id => element(id).value;
 const loginFields = {email: "login-email", password: "login-password"};
+const signupFields = {first_name: "signup-first-name", last_name: "signup-last-name", email: "signup-email", password: "signup-password"};
+const rejectedRequest = "Your request was rejected. Reload the page and try again.";
 let accountState = "loading";
 let submitting = false;
 let navigating = false;
@@ -28,7 +30,11 @@ function validateRequired(fields) {
 }
 
 function updateControls() {
-  element("login-submit").disabled = accountState !== "signed-out" || submitting || navigating;
+  const idle = accountState === "signed-out" && !submitting && !navigating;
+  element("login-submit").disabled = !idle;
+  element("open-signup").disabled = !idle;
+  element("signup-submit").disabled = !idle;
+  element("signup-cancel").disabled = submitting || navigating;
 }
 
 function isAccount(body) {
@@ -77,9 +83,9 @@ function postCredentials(path, payload, token) {
   }, 15000);
 }
 
-function goToSetup(statusId) {
+function goToSetup(statusId, message) {
   navigating = true;
-  element(statusId).textContent = "Signed in. Opening setup …";
+  element(statusId).textContent = message;
   window.location.assign("/setup");
 }
 
@@ -109,44 +115,90 @@ async function loadAccount() {
   }
 }
 
-function loginFailure(status, body) {
-  if (status === 401 || status === 422) return responseError(body);
-  if (status === 403) return "Your request was rejected. Reload the page and try again.";
-  return `PayAlign could not log you in (status ${status}). Please try again later.`;
-}
-
-async function submitLogin(event) {
-  event.preventDefault();
-  if (submitting || navigating || accountState !== "signed-out") return;
-  showMessage("login-error", "");
-  if (!validateRequired(loginFields)) return;
+async function authenticate(request) {
   submitting = true;
-  element("login-status").textContent = "Logging in …";
+  element(request.statusId).textContent = request.busy;
   updateControls();
   try {
     let token;
     try {
       token = await fetchCsrfToken();
     } catch (failure) {
-      showMessage("login-error", "Could not reach PayAlign. Nothing was sent; please try again.");
+      showMessage(request.errorId, "Could not reach PayAlign. Nothing was sent; please try again.");
       return;
     }
-    const {status, body} = await postCredentials(
-      "/api/v1/auth/login", {email: value("login-email"), password: value("login-password")}, token
-    );
-    if (status === 200 && isSession(body)) goToSetup("login-status");
-    else showMessage("login-error", status === 200 ? "Unexpected response from PayAlign. Please try again." : loginFailure(status, body));
+    const {status, body} = await postCredentials(request.path, request.payload, token);
+    if (status === request.okStatus && isSession(body)) goToSetup(request.statusId, request.done);
+    else if (!request.rejected(status, body)) {
+      showMessage(request.errorId, `PayAlign returned an unexpected response (status ${status}). Please try again later. ${request.unsure}`.trim());
+    }
   } catch (failure) {
-    showMessage("login-error", "Could not reach PayAlign. Please check your connection and try again.");
+    showMessage(request.errorId, `Could not reach PayAlign. Please check your connection and try again. ${request.unsure}`.trim());
   } finally {
     submitting = false;
-    if (!navigating) element("login-status").textContent = "";
+    if (!navigating) element(request.statusId).textContent = "";
     updateControls();
   }
 }
 
-for (const id of Object.values(loginFields)) {
+function loginRejected(status, body) {
+  if (status === 401 || status === 422) showMessage("login-error", responseError(body));
+  else if (status === 403) showMessage("login-error", rejectedRequest);
+  else return false;
+  return true;
+}
+
+function signupRejected(status, body) {
+  if (status === 409) setFieldError("signup-email", `${responseError(body)} Log in instead, or use another email.`);
+  else if (status === 422) showMessage("signup-error", responseError(body));
+  else if (status === 403) showMessage("signup-error", rejectedRequest);
+  else return false;
+  return true;
+}
+
+function submitLogin(event) {
+  event.preventDefault();
+  if (submitting || navigating || accountState !== "signed-out") return;
+  showMessage("login-error", "");
+  if (!validateRequired(loginFields)) return;
+  return authenticate({
+    path: "/api/v1/auth/login", okStatus: 200,
+    payload: {email: value("login-email"), password: value("login-password")},
+    statusId: "login-status", errorId: "login-error", busy: "Logging in …", done: "Signed in. Opening setup …",
+    unsure: "", rejected: loginRejected
+  });
+}
+
+function submitSignup(event) {
+  event.preventDefault();
+  if (submitting || navigating || accountState !== "signed-out") return;
+  showMessage("signup-error", "");
+  if (!validateRequired(signupFields)) return;
+  return authenticate({
+    path: "/api/v1/auth/register", okStatus: 201,
+    payload: Object.fromEntries(Object.entries(signupFields).map(([key, id]) => [key, value(id)])),
+    statusId: "signup-status", errorId: "signup-error", busy: "Creating your account …", done: "Account created. Opening setup …",
+    unsure: "The account may already have been created: log in with the same email before registering again.",
+    rejected: signupRejected
+  });
+}
+
+function resetSignup() {
+  for (const id of Object.values(signupFields)) {
+    element(id).value = "";
+    setFieldError(id, "");
+  }
+  showMessage("signup-error", "");
+  element("signup-status").textContent = "";
+}
+
+for (const id of [...Object.values(loginFields), ...Object.values(signupFields)]) {
   element(id).addEventListener("input", () => setFieldError(id, ""));
 }
 element("login-form").addEventListener("submit", submitLogin);
+element("signup-form").addEventListener("submit", submitSignup);
+element("open-signup").addEventListener("click", () => element("signup-dialog").showModal());
+element("signup-cancel").addEventListener("click", () => element("signup-dialog").close());
+element("signup-dialog").addEventListener("close", resetSignup);
+element("signup-dialog").addEventListener("cancel", event => { if (submitting || navigating) event.preventDefault(); });
 loadAccount();
