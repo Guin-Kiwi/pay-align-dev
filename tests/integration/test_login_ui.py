@@ -8,6 +8,7 @@ import subprocess
 import pytest
 from fastapi.testclient import TestClient
 
+from src.app.domain.constants import MIN_PASSWORD_LENGTH
 from src.app.infrastructure.web.app import create_app
 from tests.integration.authenticated_client import TEST_PASSWORD, AuthenticatedTestClient
 
@@ -37,7 +38,10 @@ def node_binary():
     return node
 
 
-def run_flow(scenario, email='anna@example.ch', password=TEST_PASSWORD):
+def run_flow(scenario, email='anna@example.ch', password=TEST_PASSWORD, signup=None):
+    signup = signup or {
+        'first_name': 'Anna', 'last_name': 'Muster', 'email': 'anna@example.ch', 'password': TEST_PASSWORD,
+    }
     client = TestClient(create_app())
     page = Page(client.get('/login').text)
     result = subprocess.run(
@@ -46,6 +50,7 @@ def run_flow(scenario, email='anna@example.ch', password=TEST_PASSWORD):
             'scenario': scenario, 'elements': page.by_id(),
             'javascript': client.get('/setup-assets/login.js').text,
             'credentials': {'email': email, 'password': password},
+            'signup': signup,
         }),
         text=True, capture_output=True, timeout=10,
     )
@@ -122,6 +127,69 @@ def test_login_assets_are_available(asset, content_type):
     assert content_type in response.headers['content-type']
 
 
+def test_sign_up_dialog_shows_the_password_policy_before_the_fields():
+    html = TestClient(create_app()).get('/login').text
+    page = Page(html)
+    fields = page.by_id()
+    dialog = next(attrs for tag, attrs in page.tags if tag == 'dialog')
+    assert dialog['id'] == 'signup-dialog'
+    assert dialog['aria-labelledby'] == 'signup-heading'
+    assert 'signup-heading' in fields
+    policy = re.search(r'<p id="password-policy">(.*?)</p>', html, re.S).group(1)
+    assert f'at least {MIN_PASSWORD_LENGTH} characters' in policy
+    assert 'a number' in policy
+    assert 'a special character' in policy
+    assert 'hidden' not in fields['password-policy']
+    assert html.index('id="password-policy"') < html.index('id="signup-first-name"')
+    assert 'password-policy' in fields['signup-password']['aria-describedby'].split()
+    assert 'signup-password-error' in fields['signup-password']['aria-describedby'].split()
+
+
+def test_sign_up_form_is_accessible_and_cannot_be_submitted_before_the_account_check():
+    page = Page(TestClient(create_app()).get('/login').text)
+    fields = page.by_id()
+    assert fields['signup-form']['method'] == 'post'
+    assert 'novalidate' in fields['signup-form']
+    expected = {
+        'signup-first-name': ('text', 'given-name'),
+        'signup-last-name': ('text', 'family-name'),
+        'signup-email': ('email', 'username'),
+        'signup-password': ('password', 'new-password'),
+    }
+    labels = {attrs.get('for') for tag, attrs in page.tags if tag == 'label'}
+    for field, (kind, autocomplete) in expected.items():
+        assert fields[field].get('type', 'text') == kind
+        assert fields[field]['autocomplete'] == autocomplete
+        assert 'required' in fields[field]
+        assert field in labels
+        assert fields[field]['aria-describedby'].split()[-1] == f'{field}-error'
+        assert fields[f'{field}-error']['role'] == 'alert'
+        assert 'hidden' in fields[f'{field}-error']
+    assert fields['signup-status']['role'] == 'status'
+    assert fields['signup-error']['role'] == 'alert'
+    assert 'hidden' in fields['signup-error']
+    assert fields['signup-submit']['type'] == 'submit'
+    assert 'disabled' in fields['signup-submit']
+    assert 'disabled' in fields['open-signup']
+
+
+def test_main_and_secondary_buttons_are_told_apart():
+    page = Page(TestClient(create_app()).get('/login').text)
+    fields = page.by_id()
+    for main in ('login-submit', 'signup-submit'):
+        assert fields[main]['class'].split() == ['primary']
+    for secondary in ('open-signup', 'signup-cancel'):
+        assert fields[secondary]['class'].split() == ['secondary']
+        assert fields[secondary]['type'] == 'button'
+    css = (STATIC / 'login.css').read_text()
+    backgrounds = {}
+    for selector in ('.primary:enabled', '.secondary:enabled'):
+        rule = re.search(re.escape(selector) + r'\s*\{([^}]*)\}', css)
+        assert rule, selector
+        backgrounds[selector] = re.search(r'(?<![-\w])background:\s*([^;]+);', rule.group(1)).group(1)
+    assert backgrounds['.primary:enabled'] != backgrounds['.secondary:enabled']
+
+
 def test_login_css_only_uses_colours_that_setup_css_already_defines():
     colour = re.compile(r'#[0-9a-fA-F]{3,8}\b')
     setup_colours = set(colour.findall((STATIC / 'setup.css').read_text()))
@@ -134,6 +202,9 @@ def test_login_css_only_uses_colours_that_setup_css_already_defines():
     'signed-out', 'signed-in', 'loading', 'me-network', 'me-500', 'me-malformed', 'me-timeout',
     'login', 'login-empty', 'login-401', 'login-403', 'login-422', 'login-500',
     'login-network', 'login-timeout', 'login-csrf-failure', 'login-malformed', 'login-duplicate',
+    'signup-open', 'signup-cancel', 'signup-empty',
+    'register', 'register-409', 'register-422', 'register-403', 'register-500', 'register-network',
+    'register-timeout', 'register-csrf-failure', 'register-malformed', 'register-duplicate',
 ])
 def test_login_javascript(scenario):
     run_flow(scenario)
@@ -152,3 +223,39 @@ def test_login_requests_are_accepted_by_the_real_authentication_api():
     assert me.status_code == 200
     assert me.json()['email'] == 'anna@example.ch'
 
+
+
+def test_register_requests_are_accepted_by_the_real_authentication_api():
+    app = create_app()
+    signup = {'first_name': 'Berta', 'last_name': 'Beispiel', 'email': 'berta@example.ch', 'password': TEST_PASSWORD}
+    calls = run_flow('register', signup=signup)['calls']
+    browser = TestClient(app, base_url='https://testserver')
+    responses = replay(browser, calls)
+    assert [response.status_code for response in responses] == [401, 200, 201]
+    assert responses[2].json()['email'] == 'berta@example.ch'
+    assert responses[2].json()['csrf_token']
+    me = browser.get('/api/v1/auth/me')
+    assert me.status_code == 200
+    assert (me.json()['first_name'], me.json()['last_name']) == ('Berta', 'Beispiel')
+
+
+def test_the_pages_registration_error_handling_matches_the_real_authentication_api():
+    app = create_app()
+    AuthenticatedTestClient(app, email='anna@example.ch')
+    duplicate = replay(
+        TestClient(app, base_url='https://testserver'),
+        run_flow('register-409', signup={
+            'first_name': 'Anna', 'last_name': 'Muster', 'email': 'anna@example.ch', 'password': TEST_PASSWORD,
+        })['calls'],
+    )
+    assert duplicate[2].status_code == 409
+    assert duplicate[2].json() == {'detail': 'An account already uses this email.'}
+    weak = replay(
+        TestClient(app, base_url='https://testserver'),
+        run_flow('register-422', signup={
+            'first_name': 'Berta', 'last_name': 'Beispiel', 'email': 'berta@example.ch', 'password': 'weakpass',
+        })['calls'],
+    )
+    assert weak[2].status_code == 422
+    assert isinstance(weak[2].json()['detail'], str)
+    assert str(MIN_PASSWORD_LENGTH) in weak[2].json()['detail']
