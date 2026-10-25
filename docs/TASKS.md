@@ -12,8 +12,8 @@ STATUS: in-progress
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 Amendment 2 specifies session and CSRF behavior; ADR-007 Amendment 1 selects Starlette `SessionMiddleware` and links to the owning requirements. |
 | 2 — Design | Done | UC-003 Amendment 3 defines the five view boundaries for application logic. Presentation details remain with the UI implementation task. ADR-007 already sets the account-scoped read boundary; no new domain rule or ADR is needed. |
-| 3 — Develop | In progress | UC-003 account-scoped logic and backend slices are complete and locally verified; the browser UI slice remains open. Existing payroll validation work remains tracked under its own tasks. Existing payroll calculation, persistent payroll saving and payroll-router database wiring are implemented; that slice goes through VALIDATE next. |
-| 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
+| 3 — Develop | In progress | UC-003 account-scoped logic and backend slices are complete and locally verified; the browser UI slice remains open. Existing payroll validation work remains tracked under its own tasks. Existing payroll calculation, persistent payroll saving and payroll-router database wiring are implemented. |
+| 4 — Validate | In progress alongside development | The UC-002 saving slice was validated on a clean checkout; one open gap and one partly-covered criterion are recorded in the UC-002 Validation plan. |
 | 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
 Phase status records verified phase outputs. Merging #34 to `main` accepts UC-003.
@@ -70,8 +70,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
 | `payslip-response` | todo | Return the whole payslip directly from `POST /api/v1/monthly-payroll`. Its 201 response still has only `monthly_record_id`, `gross_wage` and `net_payout`; the account-scoped `GET /api/v1/employments/{employment_id}/months/{year}/{month}` can retrieve the saved deductions, employer costs and holiday balance afterward. Add to the response the employee deductions (`ahv_deduction`, `alv_deduction`, `nbu_deduction`, `tax_deduction`), the employer costs (`employer_ahv`, `employer_alv`, `employer_fak`, `employer_bu`, `admin_charge`, `total_employer_cost`) and the holiday balance after the month (`holiday_balance_minutes` of the run snapshot), with `PayslipResponse` as the response model instead of `dict`. Why: UC-002 promises a compliant payslip, and the Basel household NAV requires one with all deductions and the holiday balance. Done when UC-002 has an acceptance line for it and an API test checks every field. Ayla reviews. | UC-002 | | |
-| `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | `validate-uc002` | |
-| `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | Mon 26 Oct |
+| `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | | |
 
 ### Assvinth
 
@@ -80,7 +79,7 @@ Feature freeze is Sat 24 October: fixes only from then.
 | `arch-test` | todo | Make the layer check in `tests/unit/test_architecture.py` recognise `src.app` imports; it must fail on a deliberate inner-to-outer import and pass on `main`. An extended check exists separately and is not integrated into `main`; it was validated against an earlier payroll router, so re-validate it against the current wiring before reporting it passing. | ADR-001 | | |
 | `ui-merge` | doing | Finish review and merge or close the setup UI (#24). The branch now provides authenticated `GET /setup`, CSRF-protected setup submission, account-scoped employer loading, UC-001 input validation and guidance, duplicate-submit protection, safe employer rendering, and automated JavaScript and restart-persistence coverage using Node.js 22. Resolve remaining PR review feedback; the `/login` page remains owned by #46. | UC-001, UC-003 Amendments 1 and 2 | | |
 | `readme-final` | todo | Finish the README for the capstone, with a diagram of the four layers and the main components (the grading criteria ask for a clear architecture presentation; PROJECT.md describes the layers only in text). | Capstone brief | `ui-merge` | Tue 27 Oct |
-| `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `validate-uc002`, `readme-final` | Wed 28 Oct |
+| `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `readme-final` | Wed 28 Oct |
 | `align-gating` | todo | Align `docs/INDEX.json` and `.github/CODEOWNERS` on which files are review-gated. | INDEX.json | | |
 | `uc003-ui` | todo | Choose presentation and navigation for the five UC-003 Amendment 3 views, coordinating with the existing setup UI work. Build against the account-scoped read and write contracts; end-to-end tests cover registration/login, first and later setup, employment selection, month entry, completed-month/payslip viewing and two-account isolation. Completed months can be viewed but not changed or deleted. Employment changes/endings and completed-month corrections remain outside UC-001/UC-002. | UC-003 Amendment 3, UC-001, UC-002 | `ui-merge` | |
 
