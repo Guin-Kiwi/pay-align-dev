@@ -6,6 +6,7 @@ process.stdin.on('data', chunk => input += chunk);
 process.stdin.on('end', async () => {
   try {
     const {scenario, elements: attributes, javascript} = JSON.parse(input);
+    const focused = [];
     const elements = Object.fromEntries(Object.entries(attributes).map(([id, attrs]) => [id, {
       id, value: attrs.value ?? (id === 'holiday-weeks' ? '4' : ''),
       hidden: Object.hasOwn(attrs, 'hidden'), disabled: Object.hasOwn(attrs, 'disabled'),
@@ -13,6 +14,7 @@ process.stdin.on('end', async () => {
       setCustomValidity(message) { this.validationMessage = message; },
       setAttribute(name, value) { this[name] = value; },
       addEventListener(event, callback) { this.listeners[event] = callback; },
+      focus() { focused.push(id); },
       append(...children) { this.children.push(...children); },
       replaceChildren(...children) { this.children = children; },
       set innerHTML(value) { throw new Error('Unsafe HTML rendering'); }
@@ -84,9 +86,25 @@ process.stdin.on('end', async () => {
       'employee-name': 'Maria', 'employee-address': 'Basel', 'employee-ahv': '756.9876.5432.10', 'employee-nationality': 'Italy',
       'start-date': '2026-03-01', 'hourly-wage': '28.50', 'weekly-hours': '6:30', 'holiday-weeks': '4'
     };
-    for (const [id, value] of Object.entries(values)) set(id, value);
     const submit = () => elements['setup-form'].listeners.submit({preventDefault() {}});
-    if (scenario.startsWith('lookup-') || scenario === 'loading') {
+    if (scenario === 'required-empty') {
+      const required = [
+        'employer-name', 'employer-address', 'employer-ahv', 'employer-contact',
+        'employee-name', 'employee-address', 'employee-ahv', 'employee-nationality',
+        'start-date', 'hourly-wage', 'weekly-hours'
+      ];
+      assert.equal(elements['save-setup'].disabled, false);
+      for (const id of required) assert.equal(elements[`${id}-error`].hidden, true, id);
+      await submit();
+      assert.equal(posts.length, 0);
+      for (const id of required) {
+        assert.equal(elements[`${id}-error`].hidden, false, id);
+        assert.notEqual(elements[`${id}-error`].textContent, '', id);
+        assert.equal(elements[id]['aria-invalid'], 'true', id);
+      }
+      assert.deepEqual(focused, ['employer-name']);
+      assert.equal(elements['save-setup'].disabled, false);
+    } else if (scenario.startsWith('lookup-') || scenario === 'loading') {
       assert.equal(elements['save-setup'].disabled, true);
       await submit(); assert.equal(posts.length, 0);
       if (releaseLookup) {releaseLookup(); await settle();}
@@ -96,52 +114,55 @@ process.stdin.on('end', async () => {
         assert.equal(elements['employer-error'].children.length, 1);
         assert.equal(elements['employer-error'].children[0].href, '/login');
       }
-    } else if (scenario === 'invalid') {
-      for (const [id, bad] of [['weekly-hours', '0:00'], ['hourly-wage', '22.19'], ['start-date', '2027-01-01'], ['employee-ahv', '7561234567897'], ['employee-name', '   '], ['holiday-weeks', '20'], ['employer-name', ''], ['employer-ahv', 'bad']]) {
-        set(id, bad); assert.equal(elements['save-setup'].disabled, true); await submit();
-        assert.equal(posts.length, 0); set(id, values[id]);
-      }
     } else {
-      assert.equal(elements['save-setup'].disabled, false);
-      if (scenario === 'end-date') set('end-date', '2027-08-31');
-      if (scenario === 'holiday-five') set('holiday-weeks', '5');
-      const pending = submit();
-      if (scenario === 'timeout') abortPost();
-      if (scenario === 'duplicate') {
-        assert.equal(elements['save-setup'].disabled, true);
-        await submit(); assert.equal(posts.length, 1); releasePost();
-      }
-      await pending; await settle();
-      assert.equal(posts.length, 1);
-      const expected = {
-        employee: {name: 'Maria', address: 'Basel', ahv_number: '756.9876.5432.10', nationality: 'Italy', tax_status: 'ordinary'},
-        employment: {start_date: '2026-03-01', end_date: scenario === 'end-date' ? '2027-08-31' : null, hourly_wage: '28.50', weekly_hours: '6:30', holiday_weeks: scenario === 'holiday-five' ? 5 : 4}
-      };
-      if (scenario !== 'existing') expected.employer = {name: 'Anna', address: 'Basel', ahv_number: '756.1234.5678.97', contact_info: 'anna@example.ch'};
-      assert.deepEqual(posts[0], expected);
-      for (const [id, value] of Object.entries(values)) assert.equal(elements[id].value, scenario === 'holiday-five' && id === 'holiday-weeks' ? '5' : value);
-      if (['400', '409', '422'].includes(scenario)) {
-        assert.equal(elements['setup-error'].hidden, false);
-        assert.ok(elements['setup-error'].textContent.includes(attack));
-        assert.equal(elements['save-setup'].disabled, false);
-      } else if (['401', '403'].includes(scenario)) {
-        assert.match(elements['setup-error'].textContent, /request was rejected/i);
-        assert.match(elements['setup-error'].textContent, /log in again/i);
-        assert.doesNotMatch(elements['setup-error'].textContent, /may have been saved/i);
-        assert.equal(elements['setup-error'].children.length, 1);
-        assert.equal(elements['setup-error'].children[0].href, '/login');
-        assert.equal(elements['save-setup'].disabled, false);
-        await settle(); assert.equal(posts.length, 1, 'Authentication rejection must not retry');
-      } else if (['network', 'timeout', '200', '500', 'malformed-success', 'invalid-json'].includes(scenario)) {
-        assert.match(elements['setup-error'].textContent, /may have been saved/);
-        assert.equal(elements['save-setup'].disabled, true);
-        await submit(); assert.equal(posts.length, 1);
+      for (const [id, value] of Object.entries(values)) set(id, value);
+      if (scenario === 'invalid') {
+        for (const [id, bad] of [['weekly-hours', '0:00'], ['hourly-wage', '22.19'], ['start-date', '2027-01-01'], ['employee-ahv', '7561234567897'], ['employee-name', '   '], ['holiday-weeks', '20'], ['employer-name', ''], ['employer-ahv', 'bad']]) {
+          set(id, bad); assert.equal(elements['save-setup'].disabled, false); await submit();
+          assert.equal(posts.length, 0); set(id, values[id]);
+        }
       } else {
-        assert.equal(elements['setup-success'].hidden, false);
-        assert.match(elements['setup-success'].textContent, /Employment set up successfully/);
-        assert.equal(gets, 2);
-        assert.equal(elements['save-setup'].disabled, true);
-        await submit(); assert.equal(posts.length, 1);
+        assert.equal(elements['save-setup'].disabled, false);
+        if (scenario === 'end-date') set('end-date', '2027-08-31');
+        if (scenario === 'holiday-five') set('holiday-weeks', '5');
+        const pending = submit();
+        if (scenario === 'timeout') abortPost();
+        if (scenario === 'duplicate') {
+          assert.equal(elements['save-setup'].disabled, true);
+          await submit(); assert.equal(posts.length, 1); releasePost();
+        }
+        await pending; await settle();
+        assert.equal(posts.length, 1);
+        const expected = {
+          employee: {name: 'Maria', address: 'Basel', ahv_number: '756.9876.5432.10', nationality: 'Italy', tax_status: 'ordinary'},
+          employment: {start_date: '2026-03-01', end_date: scenario === 'end-date' ? '2027-08-31' : null, hourly_wage: '28.50', weekly_hours: '6:30', holiday_weeks: scenario === 'holiday-five' ? 5 : 4}
+        };
+        if (scenario !== 'existing') expected.employer = {name: 'Anna', address: 'Basel', ahv_number: '756.1234.5678.97', contact_info: 'anna@example.ch'};
+        assert.deepEqual(posts[0], expected);
+        for (const [id, value] of Object.entries(values)) assert.equal(elements[id].value, scenario === 'holiday-five' && id === 'holiday-weeks' ? '5' : value);
+        if (['400', '409', '422'].includes(scenario)) {
+          assert.equal(elements['setup-error'].hidden, false);
+          assert.ok(elements['setup-error'].textContent.includes(attack));
+          assert.equal(elements['save-setup'].disabled, false);
+        } else if (['401', '403'].includes(scenario)) {
+          assert.match(elements['setup-error'].textContent, /request was rejected/i);
+          assert.match(elements['setup-error'].textContent, /log in again/i);
+          assert.doesNotMatch(elements['setup-error'].textContent, /may have been saved/i);
+          assert.equal(elements['setup-error'].children.length, 1);
+          assert.equal(elements['setup-error'].children[0].href, '/login');
+          assert.equal(elements['save-setup'].disabled, false);
+          await settle(); assert.equal(posts.length, 1, 'Authentication rejection must not retry');
+        } else if (['network', 'timeout', '200', '500', 'malformed-success', 'invalid-json'].includes(scenario)) {
+          assert.match(elements['setup-error'].textContent, /may have been saved/);
+          assert.equal(elements['save-setup'].disabled, true);
+          await submit(); assert.equal(posts.length, 1);
+        } else {
+          assert.equal(elements['setup-success'].hidden, false);
+          assert.match(elements['setup-success'].textContent, /Employment set up successfully/);
+          assert.equal(gets, 2);
+          assert.equal(elements['save-setup'].disabled, true);
+          await submit(); assert.equal(posts.length, 1);
+        }
       }
     }
     process.stdout.write(JSON.stringify(posts));

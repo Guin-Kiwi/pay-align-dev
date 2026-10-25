@@ -68,7 +68,7 @@ function validateFields(reveal = false) {
     }
   }
   const valid = Object.values(errors).every(message => !message);
-  save.disabled = !valid || !csrfToken || !["new", "existing"].includes(employerState) || submitting || submissionLocked;
+  save.disabled = !csrfToken || !["new", "existing"].includes(employerState) || submitting || submissionLocked;
   return valid;
 }
 
@@ -169,7 +169,11 @@ function responseError(body) {
 async function submitSetup(event) {
   event.preventDefault();
   if (submitting || submissionLocked || !csrfToken || !["new", "existing"].includes(employerState)) return;
-  if (!validateFields(true)) return;
+  if (!validateFields(true)) {
+    const firstInvalid = allFields.find(id => element(id).validationMessage);
+    if (firstInvalid) element(firstInvalid).focus();
+    return;
+  }
   const payload = buildPayload();
   submitting = true;
   form.setAttribute("aria-busy", "true");
