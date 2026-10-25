@@ -147,6 +147,7 @@ async function loadAccount() {
   } finally {
     updateControls();
   }
+  if (accountState === "signed-out" && window.location.hash === "#signup") element("signup-dialog").showModal();
 }
 
 async function authenticate(request) {
