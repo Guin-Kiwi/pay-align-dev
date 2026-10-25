@@ -123,6 +123,8 @@ process.stdin.on('end', async () => {
         assert.deepEqual(assigned, []);
         assert.equal(elements['account-error'].hidden, false);
         assert.match(elements['account-error'].textContent, /reload/i);
+        assert.match(elements['account-error'].textContent, /could not load your details/);
+        assert.doesNotMatch(elements['account-error'].textContent, /employer/i);
       } else {
         assert.deepEqual(assigned, [scenario.includes('with-employer') ? '/employments' : '/setup']);
       }
@@ -403,6 +405,8 @@ process.stdin.on('end', async () => {
         assert.equal(elements['account-error'].hidden, false);
         assert.match(elements['account-error'].textContent, /signed in/i);
         assert.match(elements['account-error'].textContent, /reload/i);
+        assert.match(elements['account-error'].textContent, /could not load your details/);
+        assert.doesNotMatch(elements['account-error'].textContent, /employer/i);
         assert.equal(elements['login-submit'].disabled, true);
         assert.equal(elements['login-error'].hidden, true);
       } else {
