@@ -396,3 +396,15 @@ def test_the_pages_employer_check_matches_the_real_api_for_an_account_with_an_em
     employer = responses[3].json()
     assert isinstance(employer['id'], int) and employer['id'] > 0
     assert employer['name'] == 'Anna Muster'
+
+
+def test_an_employer_that_belongs_to_another_account_does_not_count_for_the_page():
+    app = create_app()
+    owner = AuthenticatedTestClient(app, email='anna@example.ch')
+    assert owner.post('/api/v1/setup', json=SETUP).status_code == 201
+    AuthenticatedTestClient(app, email='bea@example.ch')
+    calls = run_flow('login', email='bea@example.ch')['calls']
+    responses = replay(TestClient(app, base_url='https://testserver'), calls)
+    assert [response.status_code for response in responses] == [401, 200, 200, 404]
+    assert responses[3].json() == {'detail': 'No employer is set up yet.'}
+    assert owner.get('/api/v1/employer').status_code == 200
