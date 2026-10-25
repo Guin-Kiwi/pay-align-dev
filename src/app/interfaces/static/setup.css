@@ -1,0 +1,17 @@
+:root { font-family: system-ui, sans-serif; color: #172b3a; background: #f3f6f8; }
+body { margin: 0; }
+main { max-width: 48rem; margin: 2rem auto; padding: 1.5rem; background: white; border-radius: .75rem; }
+.brand { color: #116257; font-weight: 700; }
+h1 { line-height: 1.2; }
+section { border-top: 1px solid #c7d1d8; margin-top: 2rem; }
+label { display: block; margin-top: 1rem; font-weight: 600; }
+input, select { box-sizing: border-box; width: 100%; padding: .7rem; margin-top: .3rem; font: inherit; border: 1px solid #637783; border-radius: .25rem; }
+fieldset { margin: 1rem 0; border: 1px solid #c7d1d8; }
+button { padding: .8rem 1.2rem; font: inherit; }
+input:disabled, select:disabled, button:disabled { background: #e5e9ed; color: #4b5963; cursor: not-allowed; }
+:focus-visible { outline: 3px solid #116257; outline-offset: 3px; }
+[role="alert"] { color: #912323; }
+dt { font-weight: 600; margin-top: .75rem; }
+dd { margin-left: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.muted { color: #4b5963; }
+@media (max-width: 52rem) { main { margin: 0; border-radius: 0; } }
