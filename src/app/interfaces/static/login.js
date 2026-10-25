@@ -4,6 +4,8 @@ const element = id => document.getElementById(id);
 const value = id => element(id).value;
 const loginFields = {email: "login-email", password: "login-password"};
 const signupFields = {first_name: "signup-first-name", last_name: "signup-last-name", email: "signup-email", password: "signup-password"};
+const MIN_PASSWORD_LENGTH = 8;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const rejectedRequest = "Your request was rejected. Reload the page and try again.";
 let accountState = "loading";
 let submitting = false;
@@ -19,10 +21,34 @@ function setFieldError(id, message) {
   showMessage(`${id}-error`, message);
 }
 
-function validateRequired(fields) {
+function isEmailAddress(text) {
+  return emailPattern.test(text.trim());
+}
+
+function passwordProblems(password) {
+  const length = [...password].length;
+  const problems = [];
+  if (length < MIN_PASSWORD_LENGTH) problems.push(`at least ${MIN_PASSWORD_LENGTH} characters (you have ${length})`);
+  if (!/\p{Nd}/u.test(password)) problems.push("a number");
+  if (!/[^\p{L}\p{N}\s]/u.test(password)) problems.push("a special character");
+  return problems;
+}
+
+const emailProblem = text => isEmailAddress(text) ? "" : "Enter an email address in the form name@example.ch.";
+
+function passwordProblem(text) {
+  const problems = passwordProblems(text);
+  return problems.length ? `Your password still needs: ${problems.join(", ")}.` : "";
+}
+
+const loginChecks = {"login-email": emailProblem};
+const signupChecks = {"signup-email": emailProblem, "signup-password": passwordProblem};
+
+function validateFields(fields, checks) {
   let valid = true;
   for (const id of Object.values(fields)) {
-    const message = value(id).trim() ? "" : "This field is required.";
+    const blank = !value(id).trim();
+    const message = blank ? "This field is required." : (checks[id]?.(value(id)) ?? "");
     setFieldError(id, message);
     valid = valid && !message;
   }
@@ -160,7 +186,7 @@ function submitLogin(event) {
   event.preventDefault();
   if (submitting || navigating || accountState !== "signed-out") return;
   showMessage("login-error", "");
-  if (!validateRequired(loginFields)) return;
+  if (!validateFields(loginFields, loginChecks)) return;
   return authenticate({
     path: "/api/v1/auth/login", okStatus: 200,
     payload: {email: value("login-email"), password: value("login-password")},
@@ -173,7 +199,7 @@ function submitSignup(event) {
   event.preventDefault();
   if (submitting || navigating || accountState !== "signed-out") return;
   showMessage("signup-error", "");
-  if (!validateRequired(signupFields)) return;
+  if (!validateFields(signupFields, signupChecks)) return;
   return authenticate({
     path: "/api/v1/auth/register", okStatus: 201,
     payload: Object.fromEntries(Object.entries(signupFields).map(([key, id]) => [key, value(id)])),

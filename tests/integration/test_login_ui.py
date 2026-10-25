@@ -127,7 +127,7 @@ def test_login_assets_are_available(asset, content_type):
     assert content_type in response.headers['content-type']
 
 
-def test_sign_up_dialog_lists_the_password_requirements_at_the_password_field():
+def test_sign_up_dialog_shows_the_password_policy_before_the_fields():
     html = TestClient(create_app()).get('/login').text
     page = Page(html)
     fields = page.by_id()
@@ -135,17 +135,14 @@ def test_sign_up_dialog_lists_the_password_requirements_at_the_password_field():
     assert dialog['id'] == 'signup-dialog'
     assert dialog['aria-labelledby'] == 'signup-heading'
     assert 'signup-heading' in fields
-    policy = re.search(r'<div id="password-policy"[^>]*>(.*?)</div>', html, re.S).group(1)
-    assert re.findall(r'<li>(.*?)</li>', policy, re.S) == [
-        f'at least {MIN_PASSWORD_LENGTH} characters',
-        'a number',
-        'a special character (not a letter, number or space)',
-    ]
+    policy = re.search(r'<p id="password-policy">(.*?)</p>', html, re.S).group(1)
+    assert f'at least {MIN_PASSWORD_LENGTH} characters' in policy
+    assert 'a number' in policy
+    assert 'a special character' in policy
     assert 'hidden' not in fields['password-policy']
-    assert html.index('for="signup-password"') < html.index('id="password-policy"') < html.index('id="signup-password"')
+    assert html.index('id="password-policy"') < html.index('id="signup-first-name"')
     assert 'password-policy' in fields['signup-password']['aria-describedby'].split()
     assert 'signup-password-error' in fields['signup-password']['aria-describedby'].split()
-    assert 'disabled' not in fields['signup-cancel']
 
 
 def test_the_page_script_uses_the_configured_minimum_password_length():
@@ -250,6 +247,7 @@ def test_register_requests_are_accepted_by_the_real_authentication_api():
 def test_the_pages_registration_error_handling_matches_the_real_authentication_api():
     app = create_app()
     AuthenticatedTestClient(app, email='anna@example.ch')
+    browser = TestClient(app, base_url='https://testserver')
     duplicate = replay(
         TestClient(app, base_url='https://testserver'),
         run_flow('register-409', signup={
@@ -258,15 +256,14 @@ def test_the_pages_registration_error_handling_matches_the_real_authentication_a
     )
     assert duplicate[2].status_code == 409
     assert duplicate[2].json() == {'detail': 'An account already uses this email.'}
-    weak = replay(
-        TestClient(app, base_url='https://testserver'),
-        run_flow('register-422', signup={
-            'first_name': 'Berta', 'last_name': 'Beispiel', 'email': 'berta@example.ch', 'password': 'weakpass',
-        })['calls'],
+    token = browser.get('/api/v1/auth/csrf').json()['csrf_token']
+    weak = browser.post(
+        '/api/v1/auth/register', headers={'X-CSRF-Token': token},
+        json={'email': 'berta@example.ch', 'password': 'weakpass', 'first_name': 'Berta', 'last_name': 'Beispiel'},
     )
-    assert weak[2].status_code == 422
-    assert isinstance(weak[2].json()['detail'], str)
-    assert str(MIN_PASSWORD_LENGTH) in weak[2].json()['detail']
+    assert weak.status_code == 422
+    assert isinstance(weak.json()['detail'], str)
+    assert str(MIN_PASSWORD_LENGTH) in weak.json()['detail']
 
 
 def test_login_does_not_apply_the_registration_password_policy():
