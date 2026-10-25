@@ -29,6 +29,7 @@ from src.app.interfaces.payroll import payroll_router
 from src.app.interfaces.setup import setup_router
 from src.app.interfaces.auth import auth_router
 from src.app.interfaces.employment_reads import employment_reads_router
+from src.app.interfaces.ui import ui_router
 
 
 def create_app(
@@ -78,6 +79,7 @@ def create_app(
         same_site="lax",
         https_only=session_cookie_secure,
     )
+    app.include_router(ui_router)
     app.state.engine = engine
     app.state.session_cookie_secure = session_cookie_secure
     app.state.setup_repository = setup_repository
