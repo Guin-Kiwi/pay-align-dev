@@ -31,7 +31,7 @@ process.stdin.on('end', async () => {
     let releaseMe, releasePost, abortTimer, rules;
     const context = {
       document: {getElementById: id => { assert.ok(elements[id], id); return elements[id]; }},
-      window: {location: {assign: url => assigned.push(url)}},
+      window: {location: {assign: url => assigned.push(url), hash: scenario.startsWith('link-') ? '#signup' : ''}},
       AbortController,
       setTimeout: (callback, delay) => {
         if (scenario === 'me-timeout' && delay === 10000) { abortTimer = callback; return -1; }
@@ -46,9 +46,9 @@ process.stdin.on('end', async () => {
           if (scenario === 'loading') await new Promise(resolve => releaseMe = resolve);
           if (scenario === 'me-timeout') await hang();
           if (scenario === 'me-network') throw new Error('offline');
-          if (scenario === 'me-500') return response(500, {detail: 'boom'});
+          if (scenario === 'me-500' || scenario === 'link-me-500') return response(500, {detail: 'boom'});
           if (scenario === 'me-malformed') return response(200, {email: 'anna@example.ch'});
-          if (scenario === 'signed-in') return response(200, {...account, first_name: attack});
+          if (scenario === 'signed-in' || scenario === 'link-signed-in') return response(200, {...account, first_name: attack});
           return response(401, {detail: 'Authentication required.'});
         }
         if (url === '/api/v1/auth/csrf') {
@@ -262,6 +262,19 @@ process.stdin.on('end', async () => {
         assert.equal(flag(id), 'false', id);
       }
       assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
+    } else if (scenario === 'link-signup') {
+      assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
+      assert.equal(elements['signup-dialog'].open, true);
+      assert.equal(elements['signup-submit'].disabled, false);
+      assert.equal(elements['signup-cancel'].disabled, false);
+      for (const id of Object.values(signupIds)) assert.equal(elements[id].value, '', id);
+      elements['signup-cancel'].listeners.click();
+      assert.equal(elements['signup-dialog'].open, false);
+      assert.equal(elements['login-submit'].disabled, false);
+    } else if (scenario === 'link-signed-in' || scenario === 'link-me-500') {
+      assert.deepEqual(urls(), ['GET /api/v1/auth/me']);
+      assert.equal(elements['signup-dialog'].open, false);
+      assert.equal(elements['signup-submit'].disabled, true);
     } else if (scenario === 'signup-open') {
       openSignup();
       assert.equal(elements['signup-dialog'].open, true);
