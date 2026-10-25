@@ -16,7 +16,7 @@ STATUS: in-progress
 | 4 — Validate | In progress alongside development | Golden payroll tests, CI and Docker/release validation are underway. |
 | 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
-Phase status records verified phase outputs, not final UC-003 acceptance. UC-003 acceptance is pending until the reviewed PR is merged to `main` and its checks are confirmed there.
+Phase status records verified phase outputs. Merging #34 to `main` accepts UC-003.
 
 ## Active objective
 
@@ -28,16 +28,14 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Complete human integration review of the UC-003 authentication, ownership and
-release configuration corrections, and confirm the team's decision on including UC-003
-in the release. The corrected authentication and ownership contracts are in
+Confirm the team's decision on including UC-003 in the release (#44). The corrected authentication and ownership contracts are in
 [UC-003 Amendments 4 and 5](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-4--2026-10-24-registration-policy-and-csrf-token-return).
 Release verification supplies test-only session secrets through the container
 checks; Render still needs the deployment configuration documented in
-[PROJECT.md](PROJECT.md#architecture). These corrections do not complete the
-browser UI or accept UC-003.
+[PROJECT.md](PROJECT.md#architecture). These corrections do not build the
+browser views.
 
-Assign the `uc003-ui` task, test the browser journey across the five UC-003 view boundaries, then connect it to the account-scoped setup, employment, month and payroll interfaces. Completed months remain view-only.
+Assvinth builds the browser UI: test the browser journey across the five UC-003 view boundaries, then connect it to the account-scoped setup, employment, month and payroll interfaces. Completed months remain view-only.
 
 UC-003 TDD slices:
 1. Account persistence, password hashing, registration/login/logout and four-hour session; tests-only RED checkpoint is committed and the implementation passes focused tests.
@@ -46,7 +44,7 @@ UC-003 TDD slices:
 4. Account-scoped employment list/detail, month-history and saved-payslip reads for the five views; tests-only RED checkpoint committed (2 failing), implementation passes focused and full project checks.
 5. Browser views defined by UC-003 Amendment 3; the UI owner chooses presentation and navigation details, adds failing end-to-end coverage, then implements. Completed months are view-only. The owning use cases exclude employment changes/endings and completed-month corrections; no update or delete work is implied by these views.
 6. Run the full project validation after all slices; record results in the validation commit and PR evidence.
-7. After the reviewed UC-003 PR is merged to `main`, confirm its checks on `main` and record UC-003 acceptance. Passing local or PR checks alone does not accept the use case.
+7. Merging #34 to `main` accepts UC-003.
 
 ## Tasks
 
@@ -74,30 +72,28 @@ Feature freeze is Sat 24 October: fixes only from then.
 | `payslip-response` | todo | Return the whole payslip directly from `POST /api/v1/monthly-payroll`. Its 201 response still has only `monthly_record_id`, `gross_wage` and `net_payout`; the account-scoped `GET /api/v1/employments/{employment_id}/months/{year}/{month}` can retrieve the saved deductions, employer costs and holiday balance afterward. Add to the response the employee deductions (`ahv_deduction`, `alv_deduction`, `nbu_deduction`, `tax_deduction`), the employer costs (`employer_ahv`, `employer_alv`, `employer_fak`, `employer_bu`, `admin_charge`, `total_employer_cost`) and the holiday balance after the month (`holiday_balance_minutes` of the run snapshot), with `PayslipResponse` as the response model instead of `dict`. Why: UC-002 promises a compliant payslip, and the Basel household NAV requires one with all deductions and the holiday balance. Done when UC-002 has an acceptance line for it and an API test checks every field. Ayla reviews. | UC-002 | | |
 | `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | `validate-uc002` | |
 | `validate-uc002` | todo | Run the UC-002 saving slice through VALIDATE: confirm the golden payroll cases and the end-to-end API test on a clean checkout, then review the slice. | UC-002 | | Mon 26 Oct |
-| `uc003-payroll-review` | todo | Review the UC-003 PR's payroll boundary before merge: check that setup and monthly writes, employment/month reads and saved payslips stay within the signed-in employer; foreign IDs reveal no records, and completed months remain view-only. Report findings in the PR. | UC-003, ADR-007 | | |
 
 ### Assvinth
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
 | `arch-test` | todo | Make the layer check in `tests/unit/test_architecture.py` recognise `src.app` imports; it must fail on a deliberate inner-to-outer import and pass on `main`. An extended check exists separately and is not integrated into `main`; it was validated against an earlier payroll router, so re-validate it against the current wiring before reporting it passing. | ADR-001 | | |
-| `ui-merge` | doing | Finish the setup UI review and merge or close it. Before merging, change two lines in `setup.html`: (1) delete "Employee tax status defaults to ordinary taxation.", because the simplified procedure takes 5% source tax from every employee, which is what payroll does; (2) extend the wage note with the known limitation of UC-001, for example: "Minimum CHF 22.20 per hour, with at most two decimal places. From 5 hours a week, the NAV Hauswirtschaft minimum applies instead (CHF 20.35, or 22.30 with 4 years' experience or EBA, or 24.55 with EFZ); this version accepts only CHF 22.20 or more and does not check the NAV category." Assvinth reported manual Safari checks (page load, saving, employer lookup after reload, invalid weekly hours, keyboard focus, a narrow window); they are unverified, and are not browser automation, a screenreader audit, a device test or proof of persistence across restarts. The UI branch also adds Node.js 22 to the PROJECT.md Commands and changes the devcontainer; CI and Release already install Node.js 22. | UC-001 | | Sat 24 Oct |
+| `ui-merge` | doing | Finish the setup UI (#24) and merge or close it. Before merging, change two lines in `setup.html`: (1) delete "Employee tax status defaults to ordinary taxation.", because the simplified procedure takes 5% source tax from every employee, which is what payroll does; (2) extend the wage note with the known limitation of UC-001, for example: "Minimum CHF 22.20 per hour, with at most two decimal places. From 5 hours a week, the NAV Hauswirtschaft minimum applies instead (CHF 20.35, or 22.30 with 4 years' experience or EBA, or 24.55 with EFZ); this version accepts only CHF 22.20 or more and does not check the NAV category." Assvinth reported manual Safari checks (page load, saving, employer lookup after reload, invalid weekly hours, keyboard focus, a narrow window); they are unverified, and are not browser automation, a screenreader audit, a device test or proof of persistence across restarts. The UI branch also adds Node.js 22 to the PROJECT.md Commands and changes the devcontainer; CI and Release already install Node.js 22. | UC-001 | | Sat 24 Oct |
 | `readme-final` | todo | Finish the README for the capstone, with a diagram of the four layers and the main components (the grading criteria ask for a clear architecture presentation; PROJECT.md describes the layers only in text). | Capstone brief | `ui-merge` | Tue 27 Oct |
 | `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `validate-uc002`, `readme-final` | Wed 28 Oct |
 | `align-gating` | todo | Align `docs/INDEX.json` and `.github/CODEOWNERS` on which files are review-gated. | INDEX.json | | |
+| `uc003-ui` | todo | Choose presentation and navigation for the five UC-003 Amendment 3 views, coordinating with the existing setup UI work. Build against the account-scoped read and write contracts; end-to-end tests cover registration/login, first and later setup, employment selection, month entry, completed-month/payslip viewing and two-account isolation. Completed months can be viewed but not changed or deleted. Employment changes/endings and completed-month corrections remain outside UC-001/UC-002. | UC-003 Amendment 3, UC-001, UC-002 | `ui-merge` | |
 
 ### Unassigned
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `uc003-ui` | todo | Assign an owner to choose presentation and navigation for the five UC-003 Amendment 3 views, coordinating with the existing setup UI work. Build against the account-scoped read and write contracts; end-to-end tests cover registration/login, first and later setup, employment selection, month entry, completed-month/payslip viewing and two-account isolation. Completed months can be viewed but not changed or deleted. Employment changes/endings and completed-month corrections remain outside UC-001/UC-002. | UC-003 Amendment 3, UC-001, UC-002 | `ui-merge` | |
-| `uc003-acceptance` | todo | After the reviewed UC-003 PR merges to `main`, confirm the merged implementation and required checks on `main`; only then record use-case acceptance and remove this task. ADR-007 decision approval is separate from use-case acceptance. | UC-003, human direction 2026-10-23 | `uc003-ui` | |
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
 
 ## Acceptance / validation cues
 
-These cues guide review and validation. UC-003 acceptance is recorded only after its reviewed PR is merged to `main` and the merged result is checked there; branch-local results are evidence for the PR, not final acceptance.
+These cues guide validation. Merging #34 to `main` accepts UC-003.
 
 - Both use cases have an explicit component path through domain, application,
   interfaces, and infrastructure.
@@ -110,7 +106,7 @@ These cues guide review and validation. UC-003 acceptance is recorded only after
 - The architecture remains consistent with ADR-001 through ADR-007 (see Evidence links); UC-003's architecture is recorded in ADR-007.
 - Previously tracked design acceptance cue: the architecture remains consistent with ADR-001 through ADR-006; UC-003's architecture will be recorded during DESIGN. This cue is now satisfied by ADR-007.
 - UC-003 records account registration, browser-isolated identity, employer ownership and the initial empty-database assumption.
-- Branch-local tests verify authenticated setup/payroll writes, account-scoped employment and month reads, and view-only completed payslips. The browser journey remains under `uc003-ui`; UC-003 acceptance remains pending merge to `main`.
+- Tests verify authenticated setup/payroll writes, account-scoped employment and month reads, and view-only completed payslips. The browser views remain open under Assvinth's browser UI task.
 - Evidence: the three use-case specifications, ADR-001 to ADR-006 and the tests
   under `tests/`.
 - Additional UC-003 design evidence: ADR-007 and UC-003 Amendment 1.
