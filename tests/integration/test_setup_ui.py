@@ -239,8 +239,8 @@ process.stdin.on('end', async () => {
 
 @pytest.mark.parametrize('scenario', [
     'new', 'existing', 'end-date', 'duplicate', 'loading', 'invalid',
-    'lookup-network', 'lookup-500', 'lookup-malformed', 'lookup-id', 'lookup-404',
-    '400', '409', '422', '500', 'network', 'malformed-success', 'invalid-json',
+    'lookup-network', 'lookup-401', 'lookup-500', 'lookup-malformed', 'lookup-id', 'lookup-404',
+    '400', '401', '403', '409', '422', '500', 'network', 'malformed-success', 'invalid-json',
     'refresh-failure', 'timeout', '200', 'holiday-five',
 ])
 def test_setup_submission_javascript(scenario):

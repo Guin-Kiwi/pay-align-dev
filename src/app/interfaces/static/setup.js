@@ -26,6 +26,15 @@ function isDate(text) {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === text;
 }
 
+function showLoginMessage(container, message) {
+  container.textContent = `${message} `;
+  const link = document.createElement("a");
+  link.href = "/login";
+  link.textContent = "Open the login page.";
+  container.append(link);
+  container.hidden = false;
+}
+
 function validateFields(reveal = false) {
   const errors = Object.fromEntries(allFields.map(id => [id, ""]));
   const required = [...Object.values(employeeFields), ...(employerState === "new" ? Object.values(employerFields) : [])];
@@ -92,7 +101,11 @@ async function loadEmployer() {
       headers: {Accept: "application/json"}, cache: "no-store", signal: controller.signal
     });
     const body = await response.json();
-    if (response.status === 404 && body?.detail === "No employer is set up yet.") {
+    if (response.status === 401) {
+      employerState = "failed";
+      element("employer-status").textContent = "Session expired.";
+      showLoginMessage(element("employer-error"), "Your session has expired. Please log in again to continue.");
+    } else if (response.status === 404 && body?.detail === "No employer is set up yet.") {
       employerState = "new";
       element("employer-fields").hidden = false;
       element("employer-fields").disabled = false;
@@ -181,6 +194,11 @@ async function submitSetup(event) {
       element("setup-success").textContent = "Employment set up successfully. Setup records are saved in the configured database. Whether they remain available after a server restart depends on the database configuration. Reload the page to set up another employment.";
       element("setup-success").hidden = false;
       await loadEmployer();
+    } else if ([401, 403].includes(response.status)) {
+      showLoginMessage(
+        element("setup-error"),
+        "Authentication/session or CSRF validation failed. The request was rejected. Please log in again."
+      );
     } else if ([400, 409, 422].includes(response.status)) {
       element("setup-error").textContent = responseError(body) + (response.status === 409 ? " Reload the page to refresh the employer status." : "");
       element("setup-error").hidden = false;
