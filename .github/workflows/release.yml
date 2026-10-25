@@ -22,7 +22,6 @@ jobs:
     env:
       IMAGE_NAME: payalign:${{ github.sha }}
       ARCHIVE_NAME: payalign-${{ github.sha }}-linux-amd64.tar.gz
-      TEST_CONTAINER: payalign-release-check-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -34,13 +33,11 @@ jobs:
         with:
           python-version-file: ${{ hashFiles('.python-version') != '' && '.python-version' || 'environments/python/.python-version' }}
           cache: pip
-          cache-dependency-path: "**/requirements.txt"
+          cache-dependency-path: "**/requirements*.txt"
 
       - name: Install dependencies
         run: |
-          req=requirements.txt
-          [ -f "$req" ] || req=environments/python/requirements.txt
-          python -m pip install -r "$req"
+          python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.txt
 
       - name: Check AI-SDLC lifecycle artefacts
         run: bash scripts/check-lifecycle.sh
@@ -73,7 +70,15 @@ jobs:
           docker run --rm --platform linux/amd64 --entrypoint python "$IMAGE_NAME" -c '
           from pathlib import Path
           import fnmatch
+          import importlib.util
           root = Path("/app")
+          allowed = {"src", "requirements.txt", "LICENSE", "data"}
+          unexpected = {p.name for p in root.iterdir()} - allowed
+          if unexpected:
+              raise SystemExit("Unexpected image contents: " + ", ".join(sorted(unexpected)))
+          for module in ("pytest", "httpx"):
+              if importlib.util.find_spec(module) is not None:
+                  raise SystemExit("Test dependency in runtime image: " + module)
           excluded = {
               ".git", ".github", ".devcontainer", ".vscode", ".venv",
               ".agents", ".claude", ".cursor", "docs", "skills", "scripts",
@@ -90,9 +95,12 @@ jobs:
               "*.egg-info", ".DS_Store", "AGENTS.md", "CLAUDE.md",
               "CONTRIBUTING.md", "CITATION.cff", ".zenodo.json", "pytest.ini",
           )
+          runtime_data = root / "data"
+          if not runtime_data.is_dir() or any(runtime_data.iterdir()):
+              raise SystemExit("Runtime data directory must exist and be empty")
           found = [str(p.relative_to(root)) for p in root.rglob("*")
-                   if p.name in excluded or any(fnmatch.fnmatchcase(p.name, pattern)
-                                                for pattern in patterns)]
+                   if p != runtime_data and (p.name in excluded or any(
+                       fnmatch.fnmatchcase(p.name, pattern) for pattern in patterns))]
           if found:
               raise SystemExit("Disallowed files in image: " + ", ".join(sorted(found)))
           for required in ("src/app/infrastructure/web/app.py", "requirements.txt", "LICENSE"):
@@ -100,60 +108,9 @@ jobs:
                   raise SystemExit("Required file missing: " + required)
           '
 
-      - name: Start isolated test container
-        run: |
-          docker run --detach --platform linux/amd64 --name "$TEST_CONTAINER" \
-            --env DATABASE_URL=sqlite:///:memory: \
-            --publish 127.0.0.1::8000 "$IMAGE_NAME"
-
-      - name: Check health endpoint
-        shell: bash
-        run: |
-          set -euo pipefail
-          address=$(docker port "$TEST_CONTAINER" 8000/tcp)
-          response="$RUNNER_TEMP/payalign-health.json"
-          healthy=false
-          for attempt in {1..30}; do
-            if status=$(curl --silent --show-error --connect-timeout 2 --max-time 3 \
-                --output "$response" --write-out '%{http_code}' "http://$address/health"); then
-              if [ "$status" = "200" ]; then
-                healthy=true
-                break
-              fi
-            fi
-            sleep 2
-          done
-          if [ "$healthy" != "true" ]; then
-            echo "Health check did not return HTTP 200." >&2
-            exit 1
-          fi
-          python - "$response" <<'PY'
-          import json
-          import sys
-          with open(sys.argv[1]) as response:
-              if json.load(response) != {"status": "ok"}:
-                  raise SystemExit("Unexpected health response")
-          PY
-
-      - name: Show test container logs on failure
-        if: failure()
-        shell: bash
-        run: |
-          set -euo pipefail
-          container_id=$(docker ps --all --filter "name=^/${TEST_CONTAINER}$" --format '{{.ID}}')
-          if [ -n "$container_id" ]; then
-            docker logs "$TEST_CONTAINER"
-          fi
-
-      - name: Clean up own test container
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          container_id=$(docker ps --all --filter "name=^/${TEST_CONTAINER}$" --format '{{.ID}}')
-          if [ -n "$container_id" ]; then
-            docker container rm --force "$TEST_CONTAINER"
-          fi
+      - name: Verify container runtime and persistent setup
+        timeout-minutes: 5
+        run: TEST_DOCKER_IMAGE="$IMAGE_NAME" python -m pytest -q tests/e2e/test_docker_runtime.py
 
       - name: Save verified image archive
         shell: bash
@@ -192,3 +149,9 @@ jobs:
           generate_release_notes: true
           files: release-artifacts/*.tar.gz
           fail_on_unmatched_files: true
+
+  deploy:
+    needs: publish
+    uses: ./.github/workflows/cd.yml
+    secrets:
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}

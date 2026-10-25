@@ -1,10 +1,18 @@
+import os
 from datetime import date
+
+import pytest
 
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
+from src.app.infrastructure.pwdlib_password_hasher import PwdlibPasswordHasher
+from tests.integration.authenticated_client import TEST_PASSWORD
 
 from src.app.domain.constants import RULES_YEAR_START
+from src.app.infrastructure.database import create_database_engine
 from src.app.infrastructure.orm_models import (
+    AccountRow,
+    Base,
     EmployeeRow,
     EmployerRow,
     EmploymentRow,
@@ -21,6 +29,8 @@ TABLES = {
     "payslips": PayslipRow,
 }
 
+TEST_PASSWORD_HASH = PwdlibPasswordHasher().hash(TEST_PASSWORD)
+
 
 def add_employment(
     engine: Engine,
@@ -35,10 +45,21 @@ def add_employment(
 ) -> int:
     """Create the employer, employee and employment rows a payroll run points at."""
     with Session(engine) as session, session.begin():
+        if session.get(AccountRow, employer_id) is None:
+            session.add(
+                AccountRow(
+                    id=employer_id,
+                    email=f"employer-{employer_id}@example.ch",
+                    password_hash=TEST_PASSWORD_HASH,
+                    first_name="Test",
+                    last_name="Employer",
+                )
+            )
         if session.get(EmployerRow, employer_id) is None:
             session.add(
                 EmployerRow(
                     id=employer_id,
+                    account_id=employer_id,
                     name=f"Employer {employer_id}",
                     address="Freie Strasse 1, 4001 Basel",
                     ahv_number=f"employer-{employer_id}",
@@ -49,6 +70,7 @@ def add_employment(
             session.add(
                 EmployeeRow(
                     id=employee_id,
+                    employer_id=employer_id,
                     name=f"Employee {employee_id}",
                     address="Clarastrasse 10, 4058 Basel",
                     ahv_number=f"employee-{employee_id}",
@@ -94,3 +116,14 @@ def add_monthly_record(engine: Engine, month: int = 1) -> int:
 def count_rows(engine: Engine, table_name: str) -> int:
     with Session(engine) as session:
         return int(session.scalar(select(func.count()).select_from(TABLES[table_name])))
+
+
+def empty_postgres_url() -> str:
+    """TEST_POSTGRES_URL with all tables dropped; skips the test when it is not set."""
+    url = os.environ.get("TEST_POSTGRES_URL")
+    if not url:
+        pytest.skip("TEST_POSTGRES_URL is not set")
+    engine = create_database_engine(url)
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+    return url

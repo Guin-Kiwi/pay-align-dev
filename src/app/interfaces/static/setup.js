@@ -5,6 +5,7 @@ const value = id => element(id).value;
 const form = element("setup-form");
 const save = element("save-setup");
 let employerState = "loading";
+let csrfToken = null;
 let submitting = false;
 let submissionLocked = false;
 const touched = new Set();
@@ -41,8 +42,8 @@ function validateFields(reveal = false) {
   else if (value("end-date") && isDate(value("start-date")) && value("end-date") < value("start-date")) {
     errors["end-date"] = "End date cannot be before the start date.";
   }
-  if (!fullMatch(/^[0-9]+(?:\.[0-9]{1,2})?$/, value("hourly-wage")) || !Number.isFinite(Number(value("hourly-wage"))) || Number(value("hourly-wage")) < 22.20) {
-    errors["hourly-wage"] = "Enter at least CHF 22.20 per hour with at most two decimal places.";
+  if (!fullMatch(/^[0-9]+(?:\.[0-9]{1,2})?$/, value("hourly-wage")) || !Number.isFinite(Number(value("hourly-wage"))) || Number(value("hourly-wage")) < 22.20 || Number(value("hourly-wage")) > 500) {
+    errors["hourly-wage"] = "Enter CHF 22.20 to 500.00 per hour with at most two decimal places.";
   }
   const hours = /^([0-9]{1,2}):([0-5][0-9])$/.exec(value("weekly-hours"));
   if (!hours || hours[0] !== value("weekly-hours") || Number(hours[1]) * 60 + Number(hours[2]) === 0) {
@@ -58,8 +59,23 @@ function validateFields(reveal = false) {
     }
   }
   const valid = Object.values(errors).every(message => !message);
-  save.disabled = !valid || !["new", "existing"].includes(employerState) || submitting || submissionLocked;
+  save.disabled = !valid || !csrfToken || !["new", "existing"].includes(employerState) || submitting || submissionLocked;
   return valid;
+}
+
+async function loadCsrfToken() {
+  try {
+    const response = await fetch("/api/v1/auth/csrf", {headers: {Accept: "application/json"}, cache: "no-store"});
+    const body = await response.json();
+    if (response.status !== 200 || typeof body?.csrf_token !== "string" || !body.csrf_token) throw new Error("response");
+    csrfToken = body.csrf_token;
+  } catch (failure) {
+    csrfToken = null;
+    element("setup-error").textContent = "Could not prepare the secure setup form. Please reload the page before saving.";
+    element("setup-error").hidden = false;
+  } finally {
+    validateFields();
+  }
 }
 
 async function loadEmployer() {
@@ -139,7 +155,7 @@ function responseError(body) {
 
 async function submitSetup(event) {
   event.preventDefault();
-  if (submitting || submissionLocked || !["new", "existing"].includes(employerState)) return;
+  if (submitting || submissionLocked || !csrfToken || !["new", "existing"].includes(employerState)) return;
   if (!validateFields(true)) return;
   const payload = buildPayload();
   submitting = true;
@@ -152,7 +168,7 @@ async function submitSetup(event) {
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
     const response = await fetch("/api/v1/setup", {
-      method: "POST", headers: {"Content-Type": "application/json", Accept: "application/json"},
+      method: "POST", headers: {"Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken},
       body: JSON.stringify(payload), signal: controller.signal
     });
     const body = await response.json();
@@ -192,4 +208,8 @@ for (const id of allFields) {
   });
 }
 form.addEventListener("submit", submitSetup);
-loadEmployer();
+async function initialize() {
+  await loadCsrfToken();
+  await loadEmployer();
+}
+initialize();

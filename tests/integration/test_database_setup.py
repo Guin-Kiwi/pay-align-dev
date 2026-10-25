@@ -1,17 +1,19 @@
 import pytest
-from sqlalchemy import Date, Integer, String, Time, inspect, text
+from sqlalchemy import Date, event, Integer, String, Time, inspect, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.pool import StaticPool
 
 from src.app.infrastructure.database import (
     DatabaseConfigurationError,
     create_database_engine,
+    _enable_foreign_keys,
     create_schema,
     get_database_url,
 )
 from tests.database_helpers import add_monthly_record
 
 ENTITY_TABLES = {
+    "accounts",
     "employers",
     "employees",
     "employments",
@@ -52,7 +54,7 @@ def test_unset_or_blank_database_url_is_rejected(monkeypatch, value):
 
 
 @pytest.mark.parametrize(
-    "url", ["postgresql://user:pw@host/db", "mysql://host/db", "not a url", "payroll.db"]
+    "url", ["postgres://user:pw@host/db", "mysql://host/db", "not a url", "payroll.db"]
 )
 def test_unsupported_or_malformed_database_url_is_rejected(url):
     with pytest.raises(DatabaseConfigurationError, match="DATABASE_URL"):
@@ -133,6 +135,19 @@ def test_create_schema_creates_skeleton_tables_for_the_five_entities(tmp_path, e
     assert set(inspect(engine).get_table_names()) == ENTITY_TABLES
 
 
+def test_accounts_table_stores_login_identity_and_hash_only(tmp_path, engines):
+    engine = engines(f"sqlite:///{tmp_path / 'payroll.db'}")
+    create_schema(engine)
+    inspector = inspect(engine)
+    columns = {column["name"]: column for column in inspector.get_columns("accounts")}
+
+    assert set(columns) == {"id", "email", "password_hash", "first_name", "last_name"}
+    assert all(columns[name]["nullable"] is False for name in columns)
+    assert {tuple(item["column_names"]) for item in inspector.get_unique_constraints("accounts")} == {
+        ("email",)
+    }
+
+
 def test_create_schema_preserves_foreign_key_relationships(tmp_path, engines):
     engine = engines(f"sqlite:///{tmp_path / 'payroll.db'}")
     create_schema(engine)
@@ -146,7 +161,7 @@ def test_create_schema_preserves_foreign_key_relationships(tmp_path, engines):
 
     assert references("employments") == {
         (("employer_id",), "employers"),
-        (("employee_id",), "employees"),
+        (("employee_id", "employer_id"), "employees"),
     }
     assert references("monthly_records") == {
         (("employment_id",), "employments"),
@@ -309,3 +324,10 @@ def test_schema_persists_in_the_file_named_by_the_url(tmp_path, engines):
     url = f"sqlite:///{tmp_path / 'payroll.db'}"
     create_schema(engines(url))
     assert set(inspect(engines(url)).get_table_names()) == ENTITY_TABLES
+
+
+def test_postgresql_url_uses_psycopg_without_the_sqlite_settings():
+    engine = create_database_engine("postgresql://user:pw@localhost/payalign")
+
+    assert engine.url.drivername == "postgresql+psycopg"
+    assert not event.contains(engine, "connect", _enable_foreign_keys)

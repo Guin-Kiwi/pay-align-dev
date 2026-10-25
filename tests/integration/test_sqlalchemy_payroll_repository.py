@@ -34,7 +34,7 @@ def repository(tmp_path):
     create_schema(engine)
     add_employment(engine, employment_id=7, employer_id=3, employee_id=9)
     add_employment(engine, employment_id=8, employer_id=3, employee_id=9)
-    add_employment(engine, employment_id=10, employer_id=4, employee_id=9)
+    add_employment(engine, employment_id=10, employer_id=4, employee_id=10)
     yield SqlAlchemyPayrollRepository(engine)
     engine.dispose()
 
@@ -126,10 +126,10 @@ def test_employee_limit_sums_across_employments(repository):
 
 def test_employee_limit_ignores_wages_paid_by_other_employers(repository):
     repository.save_payroll_run(*make_run(employment_id=7, employer_id=3, month=1))
-    repository.save_payroll_run(*make_run(employment_id=10, employer_id=4, month=2))
+    repository.save_payroll_run(*make_run(employment_id=10, employer_id=4, employee_id=10, month=2))
 
     assert repository.employee_gross_to_date(employee_id=9, employer_id=3, year=2026) == 25000
-    assert repository.employee_gross_to_date(employee_id=9, employer_id=4, year=2026) == 25000
+    assert repository.employee_gross_to_date(employee_id=10, employer_id=4, year=2026) == 25000
     assert repository.employer_gross_to_date(employer_id=3, year=2026) == 25000
     assert repository.employer_gross_to_date(employer_id=4, year=2026) == 25000
 
@@ -452,7 +452,7 @@ def test_employment_terms_reads_the_stored_integers(tmp_path):
         holiday_weeks=5,
     )
 
-    stored = SqlAlchemyPayrollRepository(engine).employment_terms(4)
+    stored = SqlAlchemyPayrollRepository(engine).employment_terms(4, account_id=2)
 
     assert stored == StoredEmployment(
         employer_id=2,
@@ -471,4 +471,14 @@ def test_employment_terms_reads_the_stored_integers(tmp_path):
 
 
 def test_employment_terms_is_none_for_an_unknown_id(repository):
-    assert repository.employment_terms(999) is None
+    assert repository.employment_terms(999, account_id=3) is None
+
+
+def test_employment_terms_cannot_be_read_without_an_account(repository):
+    with pytest.raises(TypeError):
+        repository.employment_terms(7)
+
+
+@pytest.mark.parametrize("account_id", [None, False, 0, -1, 4])
+def test_employment_terms_do_not_expose_records_to_another_or_invalid_account(repository, account_id):
+    assert repository.employment_terms(7, account_id) is None

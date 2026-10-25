@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.app.infrastructure.web.app import create_app
+from tests.integration.authenticated_client import AuthenticatedTestClient
 
 
 class Page(HTMLParser):
@@ -16,8 +17,23 @@ class Page(HTMLParser):
         self.tags.append((tag, dict(attrs)))
 
 
+def node_runtime():
+    import shutil
+
+    node = shutil.which('node')
+    if node is None:
+        pytest.fail('The UI tests require the project Node.js runtime.')
+    return node
+
+
+def test_unauthenticated_setup_page_redirects_to_login():
+    response = TestClient(create_app()).get('/setup', follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers['location'] == '/login'
+
+
 def test_setup_page_is_accessible_and_initially_cannot_submit():
-    client = TestClient(create_app())
+    client = AuthenticatedTestClient(create_app())
     response = client.get('/setup')
     assert response.status_code == 200
     assert response.headers['content-type'].startswith('text/html')
@@ -50,7 +66,12 @@ def test_setup_page_is_accessible_and_initially_cannot_submit():
     assert 'required' not in fields['end-date']
     assert 'max' not in fields['end-date']
     assert fields['hourly-wage']['min'] == '22.20'
+    assert fields['hourly-wage']['max'] == '500.00'
     assert fields['hourly-wage']['step'] == '0.01'
+    assert fields['employer-name']['autocomplete'] == 'section-employer name'
+    assert fields['employer-address']['autocomplete'] == 'section-employer street-address'
+    assert fields['employee-name']['autocomplete'] == 'section-employee name'
+    assert fields['employee-address']['autocomplete'] == 'section-employee street-address'
     options = [attrs for tag, attrs in page.tags if tag == 'option']
     assert options == [{'value': '4', 'selected': None}, {'value': '5'}]
     assert 'holiday-entitlement' not in fields
@@ -73,13 +94,13 @@ def test_setup_assets_are_available(asset, content_type):
 
 
 def test_employer_lookup_uses_existing_api_without_configuring_an_employer():
-    client = TestClient(create_app())
+    client = AuthenticatedTestClient(create_app())
     assert client.get('/setup').status_code == 200
     assert client.get('/api/v1/employer').status_code == 404
 
 
 def test_existing_employer_remains_available_after_loading_page():
-    client = TestClient(create_app())
+    client = AuthenticatedTestClient(create_app())
     employer = {
         'name': 'Anna Muster',
         'address': 'Basel',
@@ -97,23 +118,17 @@ def test_existing_employer_remains_available_after_loading_page():
     assert response.status_code == 201
     assert client.get('/setup').status_code == 200
     assert client.get('/api/v1/employer').json() == {'id': 1, **employer}
-    assert TestClient(create_app()).get('/api/v1/employer').status_code == 404
+    assert TestClient(create_app()).get('/api/v1/employer').status_code == 401
 
 
 @pytest.mark.parametrize('employer_name', ['Anna Muster', '<img src=x onerror=alert(1)>'])
 def test_existing_employer_javascript_displays_details_without_enabling_save(employer_name):
     import json
-    from pathlib import Path
-    import shutil
     import subprocess
 
-    node = shutil.which('node')
-    if node is None:
-        candidates = sorted(Path('/vscode/vscode-server/bin').glob('*/*/node'))
-        assert candidates, 'This JavaScript regression test requires an existing Node.js runtime.'
-        node = str(candidates[-1])
+    node = node_runtime()
 
-    client = TestClient(create_app())
+    client = AuthenticatedTestClient(create_app())
     page = Page(client.get('/setup').text)
     initial_elements = {attrs['id']: attrs for _, attrs in page.tags if 'id' in attrs}
     employer = {
@@ -156,15 +171,17 @@ process.stdin.on('end', async () => {
         getElementById(id) { assert.ok(elements[id], id); return elements[id]; },
         createElement(tag) { assert.ok(['dt', 'dd'].includes(tag)); return element(); }
       },
-      fetch: async (url, options) => {
+      fetch: async (url, options = {}) => {
         calls.push({url, options});
+        if (url === '/api/v1/auth/csrf') return {status: 200, ok: true, json: async () => ({csrf_token: 'test-csrf-token'})};
         return {status: 200, ok: true, json: async () => employer};
       },
       AbortController, setTimeout, clearTimeout
     }, {timeout: 1000});
-    assert.equal(calls.length, 1);
-    assert.equal(calls[0].url, '/api/v1/employer');
-    assert.equal(calls[0].options.method ?? 'GET', 'GET');
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].url, '/api/v1/auth/csrf');
+    assert.equal(calls[1].url, '/api/v1/employer');
+    assert.equal(calls[1].options.method ?? 'GET', 'GET');
     assert.equal(elements['employer-status'].textContent, 'Existing employer loaded.');
     assert.equal(elements['employer-details'].hidden, false);
     assert.deepEqual(elements['employer-details'].children.map(child => child.textContent), [
@@ -189,8 +206,8 @@ process.stdin.on('end', async () => {
     for (const value of ['', '0:00', '00:00', '6.5', '6:5', '6:60', '100:00', '٦:٣٠', ' 6:30', '6:30\n']) {
       check('weekly-hours', value, false);
     }
-    for (const value of ['22.20', '28.5', '28.50', '100']) check('hourly-wage', value, true);
-    for (const value of ['', '22.19', '28.505', '-1', 'NaN']) check('hourly-wage', value, false);
+    for (const value of ['22.20', '28.5', '28.50', '100', '500', '500.00']) check('hourly-wage', value, true);
+    for (const value of ['', '22.19', '28.505', '500.01', '501', '-1', 'NaN']) check('hourly-wage', value, false);
     for (const value of ['2026-01-01', '2026-12-31']) check('start-date', value, true);
     for (const value of ['', '2025-12-31', '2027-01-01', '2026-02-30']) check('start-date', value, false);
     check('start-date', '2026-03-01', true);
@@ -201,7 +218,7 @@ process.stdin.on('end', async () => {
     assert.notEqual(elements['end-date'].validationMessage, '');
     for (const value of ['4', '5']) check('holiday-weeks', value, true, 'change');
     check('holiday-weeks', '20', false, 'change');
-    assert.equal(calls.length, 1, 'Editing must not submit or fetch');
+    assert.equal(calls.length, 2, 'Editing must not submit or fetch');
     assert.equal(elements['save-setup'].disabled, true);
     console.log('Existing employer UI state verified');
   } catch (error) {
@@ -228,16 +245,10 @@ process.stdin.on('end', async () => {
 ])
 def test_setup_submission_javascript(scenario):
     import json
-    from pathlib import Path
-    import shutil
     import subprocess
 
-    node = shutil.which('node')
-    if node is None:
-        candidates = sorted(Path('/vscode/vscode-server/bin').glob('*/*/node'))
-        assert candidates, 'The UI tests require Node.js.'
-        node = str(candidates[-1])
-    client = TestClient(create_app())
+    node = node_runtime()
+    client = AuthenticatedTestClient(create_app())
     html = client.get('/setup').text
     elements = {attrs['id']: attrs for _, attrs in Page(html).tags if 'id' in attrs}
     result = subprocess.run(
@@ -263,8 +274,6 @@ def test_setup_submission_javascript(scenario):
 def test_ui_setup_payload_persists_across_app_restarts(monkeypatch, tmp_path):
     import json
     from datetime import date
-    from pathlib import Path
-    import shutil
     import subprocess
 
     from sqlalchemy import select
@@ -272,15 +281,11 @@ def test_ui_setup_payload_persists_across_app_restarts(monkeypatch, tmp_path):
 
     from src.app.infrastructure.orm_models import EmployeeRow, EmploymentRow
 
-    node = shutil.which('node')
-    if node is None:
-        candidates = sorted(Path('/vscode/vscode-server/bin').glob('*/*/node'))
-        assert candidates, 'The UI tests require Node.js.'
-        node = str(candidates[-1])
+    node = node_runtime()
 
     database = tmp_path / 'setup.db'
     monkeypatch.setenv('DATABASE_URL', f'sqlite:///{database}')
-    with TestClient(create_app()) as client:
+    with AuthenticatedTestClient(create_app()) as client:
         assert client.get('/api/v1/employer').status_code == 404
         html = client.get('/setup').text
         elements = {attrs['id']: attrs for _, attrs in Page(html).tags if 'id' in attrs}
@@ -300,7 +305,7 @@ def test_ui_setup_payload_persists_across_app_restarts(monkeypatch, tmp_path):
 
     assert database.is_file()
     restarted = create_app()
-    with TestClient(restarted) as client:
+    with AuthenticatedTestClient(restarted, register=False) as client:
         response = client.get('/api/v1/employer')
         assert response.status_code == 200
         assert response.json() == {'id': saved['employer_id'], **payload['employer']}

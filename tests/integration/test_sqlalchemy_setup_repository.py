@@ -9,7 +9,7 @@ from src.app.domain.employee import Employee
 from src.app.domain.employer import Employer
 from src.app.domain.employment import Employment
 from src.app.infrastructure.database import create_database_engine, create_schema
-from src.app.infrastructure.orm_models import EmployeeRow, EmployerRow, EmploymentRow
+from src.app.infrastructure.orm_models import AccountRow, EmployeeRow, EmployerRow, EmploymentRow
 from src.app.infrastructure.sqlalchemy_setup_repository import SqlAlchemySetupRepository
 
 EMPLOYEE_AHV = "756.9876.5432.10"
@@ -55,6 +55,11 @@ def database_url(tmp_path):
 def engine(database_url):
     engine = create_database_engine(database_url)
     create_schema(engine)
+    with Session(engine) as session, session.begin():
+        session.add(AccountRow(
+            id=1, email="test@example.ch", password_hash="fixture-only-hash",
+            first_name="Test", last_name="Employer",
+        ))
     yield engine
     engine.dispose()
 
@@ -70,11 +75,11 @@ def count(engine, row):
 
 
 def test_get_employer_is_none_before_setup(repository):
-    assert repository.get_employer() is None
+    assert repository.get_employer(1) is None
 
 
 def test_save_stores_all_three_linked_with_minutes_and_centimes(repository, engine):
-    result = repository.save(make_employer(), make_employee(), make_employment())
+    result = repository.save(1, make_employer(), make_employee(), make_employment())
 
     with Session(engine) as session:
         row = session.get(EmploymentRow, result.employment_id)
@@ -88,16 +93,16 @@ def test_save_stores_all_three_linked_with_minutes_and_centimes(repository, engi
 
 
 def test_saved_employer_is_returned_with_its_id(repository):
-    result = repository.save(make_employer(), make_employee(), make_employment())
+    result = repository.save(1, make_employer(), make_employee(), make_employment())
 
-    assert repository.get_employer() == make_employer(id=result.employer_id)
+    assert repository.get_employer(1) == make_employer(id=result.employer_id)
 
 
 def test_employer_with_an_id_is_only_linked(repository, engine):
-    first = repository.save(make_employer(), make_employee(), make_employment())
+    first = repository.save(1, make_employer(), make_employee(), make_employment())
 
-    second = repository.save(
-        repository.get_employer(), make_employee(ahv_number="756.1111.2222.33"), make_employment()
+    second = repository.save(1,
+        repository.get_employer(1), make_employee(ahv_number="756.1111.2222.33"), make_employment()
     )
 
     assert second.employer_id == first.employer_id
@@ -105,17 +110,17 @@ def test_employer_with_an_id_is_only_linked(repository, engine):
 
 
 def test_get_employee_finds_the_saved_employee_by_ahv_number(repository):
-    result = repository.save(make_employer(), make_employee(), make_employment())
+    result = repository.save(1, make_employer(), make_employee(), make_employment())
 
-    assert repository.get_employee(EMPLOYEE_AHV) == make_employee(id=result.employee_id)
-    assert repository.get_employee("756.1111.2222.33") is None
+    assert repository.get_employee(EMPLOYEE_AHV, 1) == make_employee(id=result.employee_id)
+    assert repository.get_employee("756.1111.2222.33", 1) is None
 
 
 def test_employee_with_an_id_is_only_linked(repository, engine):
-    first = repository.save(make_employer(), make_employee(), make_employment())
+    first = repository.save(1, make_employer(), make_employee(), make_employment())
 
-    second = repository.save(
-        repository.get_employer(), repository.get_employee(EMPLOYEE_AHV), make_employment()
+    second = repository.save(1,
+        repository.get_employer(1), repository.get_employee(EMPLOYEE_AHV, 1), make_employment()
     )
 
     assert second.employee_id == first.employee_id
@@ -125,21 +130,21 @@ def test_employee_with_an_id_is_only_linked(repository, engine):
 
 
 def test_get_employment_returns_the_saved_employment_in_hours_and_francs(repository):
-    result = repository.save(make_employer(), make_employee(), make_employment())
+    result = repository.save(1, make_employer(), make_employee(), make_employment())
 
-    employment = repository.get_employment(result.employment_id)
+    employment = repository.get_employment(result.employment_id, 1)
 
     assert employment == make_employment(
         id=result.employment_id, employer_id=result.employer_id, employee_id=result.employee_id
     )
-    assert repository.get_employment(result.employment_id + 1) is None
+    assert repository.get_employment(result.employment_id + 1, 1) is None
 
 
 def test_failed_save_leaves_nothing_saved(repository, engine):
-    repository.save(make_employer(), make_employee(), make_employment())
+    repository.save(1, make_employer(), make_employee(), make_employment())
 
     with pytest.raises(IntegrityError):
-        repository.save(
+        repository.save(1,
             make_employer(ahv_number="756.2222.3333.44"), make_employee(), make_employment()
         )
 
@@ -149,13 +154,13 @@ def test_failed_save_leaves_nothing_saved(repository, engine):
 
 
 def test_setup_data_survives_a_restart(database_url, engine):
-    result = SqlAlchemySetupRepository(engine).save(make_employer(), make_employee(), make_employment())
+    result = SqlAlchemySetupRepository(engine).save(1, make_employer(), make_employee(), make_employment())
     engine.dispose()
 
     restarted = create_database_engine(database_url)
     try:
         repository = SqlAlchemySetupRepository(restarted)
-        assert repository.get_employer().id == result.employer_id
-        assert repository.get_employment(result.employment_id).weekly_hours == 6.5
+        assert repository.get_employer(1).id == result.employer_id
+        assert repository.get_employment(result.employment_id, 1).weekly_hours == 6.5
     finally:
         restarted.dispose()

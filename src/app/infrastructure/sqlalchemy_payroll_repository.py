@@ -21,6 +21,7 @@ from src.app.domain.errors import (
 )
 from src.app.infrastructure.orm_models import (
     EmploymentRow,
+    EmployerRow,
     MonthlyRecordRow,
     PayrollSnapshotRow,
     PayslipRow,
@@ -28,7 +29,12 @@ from src.app.infrastructure.orm_models import (
 )
 
 
+POSTGRES_UNIQUE_VIOLATION = "23505"
+
+
 def _is_unique_violation(error: IntegrityError) -> bool:
+    if getattr(error.orig, "sqlstate", None) == POSTGRES_UNIQUE_VIOLATION:
+        return True
     return "UNIQUE constraint failed" in str(error.orig)
 
 
@@ -164,9 +170,17 @@ class SqlAlchemyPayrollRepository(PayrollRepositoryPort):
                 record.id, record.year, record.month, snapshot.holiday_balance_minutes
             )
 
-    def employment_terms(self, employment_id: int) -> StoredEmployment | None:
+    def employment_terms(
+        self, employment_id: int, account_id: int
+    ) -> StoredEmployment | None:
+        if not isinstance(account_id, int) or isinstance(account_id, bool) or account_id <= 0:
+            return None
         with Session(self.engine) as session:
-            row = session.get(EmploymentRow, employment_id)
+            query = select(EmploymentRow).join(EmployerRow).where(
+                EmploymentRow.id == employment_id,
+                EmployerRow.account_id == account_id,
+            )
+            row = session.scalar(query)
             if row is None:
                 return None
             return StoredEmployment(

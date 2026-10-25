@@ -21,6 +21,7 @@ process.stdin.on('end', async () => {
     const response = (status, body) => ({status, ok: status >= 200 && status < 300, json: async () => body});
     const posts = [];
     let gets = 0;
+    let csrfGets = 0;
     let releasePost, releaseLookup, abortPost;
     const success = {message: 'Employment set up successfully', employer_id: 1, employee_id: 1, employment_id: 1};
     const attack = '<img src=x onerror=alert(1)>';
@@ -36,6 +37,10 @@ process.stdin.on('end', async () => {
       },
       clearTimeout: timer => { if (timer !== -1) clearTimeout(timer); },
       fetch: async (url, options = {}) => {
+        if (url === '/api/v1/auth/csrf') {
+          csrfGets++;
+          return response(200, {csrf_token: 'test-csrf-token'});
+        }
         if (url === '/api/v1/employer') {
           gets++;
           if (scenario === 'loading') await new Promise(resolve => releaseLookup = resolve);
@@ -49,6 +54,7 @@ process.stdin.on('end', async () => {
         assert.equal(url, '/api/v1/setup');
         assert.equal(options.method, 'POST');
         assert.equal(options.headers['Content-Type'], 'application/json');
+        assert.equal(options.headers['X-CSRF-Token'], 'test-csrf-token');
         posts.push(JSON.parse(options.body));
         if (scenario === 'duplicate') await new Promise(resolve => releasePost = resolve);
         if (scenario === 'timeout') await new Promise((resolve, reject) => options.signal.addEventListener('abort', () => reject(new Error('timeout'))));
@@ -64,6 +70,7 @@ process.stdin.on('end', async () => {
     vm.runInNewContext(javascript, context);
     const settle = async () => { for (let i = 0; i < 15; i++) await Promise.resolve(); };
     await settle();
+    assert.equal(csrfGets, 1);
     const set = (id, value) => {
       elements[id].value = value;
       const handler = elements[id].listeners[id === 'holiday-weeks' ? 'change' : 'input'];

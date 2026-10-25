@@ -16,6 +16,7 @@ from src.app.domain.errors import (
 )
 from src.app.domain.hour_categories import HourCategory
 from src.app.domain.work_entry import WorkEntry, calculate_paid_minutes
+from src.app.interfaces.auth import require_account_id, require_csrf_token
 
 payroll_router = APIRouter()
 
@@ -89,6 +90,8 @@ def _to_work_entry(entry: WorkEntryRequest) -> WorkEntry:
 @payroll_router.post("/monthly-payroll", response_model=dict, status_code=201)
 def process_monthly_payroll(
     payload: MonthlyPayrollRequest,
+    _: None = Depends(require_csrf_token),
+    account_id: int = Depends(require_account_id),
     service: PayrollService = Depends(get_payroll_service),
     repository: PayrollRepositoryPort = Depends(get_payroll_repository),
 ):
@@ -101,6 +104,7 @@ def process_monthly_payroll(
             work_entries=[_to_work_entry(entry) for entry in payload.work_entries],
             cash_bonus=payload.cash_bonus,
             expense_reimbursements=payload.expense_reimbursements,
+            account_id=account_id,
         )
     except EmploymentNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error

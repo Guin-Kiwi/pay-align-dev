@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from src.app.application.setup_service import EmployerAlreadyExistsError, SetupService
+from src.app.interfaces.auth import require_account_id, require_csrf_token
 
 setup_router = APIRouter()
 
@@ -66,8 +67,10 @@ class EmployerResponse(BaseModel):
     contact_info: str
 
 
-def get_setup_service(request: Request) -> SetupService:
-    return request.app.state.setup_service
+def get_setup_service(
+    request: Request, account_id: int = Depends(require_account_id)
+) -> SetupService:
+    return SetupService(request.app.state.setup_repository, account_id)
 
 
 @setup_router.get("/employer", response_model=EmployerResponse)
@@ -79,7 +82,11 @@ def get_employer(service: SetupService = Depends(get_setup_service)):
 
 
 @setup_router.post("/setup", response_model=SetupResponse, status_code=201)
-def set_up_employment(payload: SetupRequest, service: SetupService = Depends(get_setup_service)):
+def set_up_employment(
+    payload: SetupRequest,
+    _: None = Depends(require_csrf_token),
+    service: SetupService = Depends(get_setup_service),
+):
     employment = payload.employment.model_dump()
     try:
         weekly_minutes = parse_hours(employment["weekly_hours"])

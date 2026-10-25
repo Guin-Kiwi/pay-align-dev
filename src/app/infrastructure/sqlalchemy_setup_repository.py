@@ -16,32 +16,68 @@ class SqlAlchemySetupRepository(SetupRepository):
     def __init__(self, engine: Engine):
         self.engine = engine
 
-    def get_employer(self) -> Employer | None:
+    def get_employer(self, account_id: int) -> Employer | None:
         with Session(self.engine) as session:
-            row = session.scalars(select(EmployerRow).order_by(EmployerRow.id)).first()
+            row = session.scalar(
+                select(EmployerRow).where(EmployerRow.account_id == account_id)
+            )
             return _to_employer(row) if row else None
 
-    def get_employee(self, ahv_number: str) -> Employee | None:
+    def get_employee(self, ahv_number: str, account_id: int) -> Employee | None:
         with Session(self.engine) as session:
             row = session.scalars(
-                select(EmployeeRow).where(EmployeeRow.ahv_number == ahv_number)
+                select(EmployeeRow)
+                .join(EmployerRow, EmployerRow.id == EmployeeRow.employer_id)
+                .where(
+                    EmployeeRow.ahv_number == ahv_number,
+                    EmployerRow.account_id == account_id,
+                )
             ).first()
             return _to_employee(row) if row else None
 
-    def get_employment(self, employment_id: int) -> Employment | None:
+    def get_employment(self, employment_id: int, account_id: int) -> Employment | None:
         with Session(self.engine) as session:
-            row = session.get(EmploymentRow, employment_id)
+            row = session.scalar(
+                select(EmploymentRow)
+                .join(EmployerRow, EmployerRow.id == EmploymentRow.employer_id)
+                .where(
+                    EmploymentRow.id == employment_id,
+                    EmployerRow.account_id == account_id,
+                )
+            )
             return _to_employment(row) if row else None
 
-    def save(self, employer: Employer, employee: Employee, employment: Employment) -> SetupResult:
+    def save(
+        self, account_id: int, employer: Employer, employee: Employee, employment: Employment
+    ) -> SetupResult:
         with Session(self.engine) as session, session.begin():
+            if employer.id is not None:
+                owned = session.scalar(
+                    select(EmployerRow.id).where(
+                        EmployerRow.id == employer.id,
+                        EmployerRow.account_id == account_id,
+                    )
+                )
+                if owned is None:
+                    raise ValueError("Employer not found.")
             employer_id = employer.id or _insert(session, EmployerRow(
+                account_id=account_id,
                 name=employer.name,
                 address=employer.address,
                 ahv_number=employer.ahv_number,
                 contact_info=employer.contact_info,
             ))
+            if employee.id is not None:
+                linked = session.scalar(
+                    select(EmployeeRow.id).where(
+                        EmployeeRow.id == employee.id,
+                        EmployeeRow.employer_id == employer_id,
+                    )
+                )
+                if linked is None:
+                    raise ValueError("Employee not found.")
             employee_id = employee.id or _insert(session, EmployeeRow(
+                employer_id=employer_id,
                 name=employee.name,
                 address=employee.address,
                 ahv_number=employee.ahv_number,

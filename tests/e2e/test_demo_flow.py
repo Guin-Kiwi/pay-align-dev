@@ -9,6 +9,9 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import httpx
+import pytest
+
+from tests.database_helpers import empty_postgres_url
 
 ROOT = Path(__file__).resolve().parents[2]
 START_TIMEOUT_SECONDS = 20
@@ -87,10 +90,14 @@ def _wait_until_healthy(base_url, process, log_file):
 
 
 @contextmanager
-def running_app(database_file, log_file):
+def running_app(database_url, log_file):
     port = _free_port()
     base_url = f"http://127.0.0.1:{port}"
-    env = {**os.environ, "DATABASE_URL": f"sqlite:///{database_file}"}
+    env = {
+        **os.environ,
+        "DATABASE_URL": database_url,
+        "SESSION_COOKIE_SECURE": "false",
+    }
     with log_file.open("a") as log:
         process = subprocess.Popen(
             [sys.executable, "-m", "uvicorn", "src.app.infrastructure.web.app:app",
@@ -110,26 +117,66 @@ def running_app(database_file, log_file):
             process.wait()
 
 
-def test_demo_flow_keeps_its_data_across_a_restart(tmp_path):
-    database_file = tmp_path / "payroll.db"
+@pytest.fixture(params=["sqlite", "postgresql"])
+def database_url(request, tmp_path):
+    if request.param == "postgresql":
+        return empty_postgres_url()
+    return f"sqlite:///{tmp_path / 'payroll.db'}"
+
+
+def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
     log_file = tmp_path / "server.log"
 
-    with running_app(database_file, log_file) as app:
-        setup = app.post("/api/v1/setup", json=SETUP)
+    with running_app(database_url, log_file) as app:
+        registration = app.post(
+            "/api/v1/auth/register",
+            headers=_csrf_header(app),
+            json={
+                "email": "demo@example.ch",
+                "password": "A-long-test-password-123!",
+                "first_name": "Anna",
+                "last_name": "Muster",
+            },
+        )
+        assert registration.status_code == 201, registration.text
+        setup = app.post("/api/v1/setup", headers=_csrf_header(app), json=SETUP)
         assert setup.status_code == 201, setup.text
         employment_id = setup.json()["employment_id"]
 
-        january = app.post("/api/v1/monthly-payroll", json=_january(employment_id))
+        january = app.post(
+            "/api/v1/monthly-payroll",
+            headers=_csrf_header(app),
+            json=_january(employment_id),
+        )
         assert january.status_code == 201, january.text
         assert january.json()["gross_wage"] == "741.00"
         assert january.json()["net_payout"] == "656.53"
 
-    with running_app(database_file, log_file) as app:
-        february = app.post("/api/v1/monthly-payroll", json=_february(employment_id))
+    with running_app(database_url, log_file) as app:
+        login = app.post(
+            "/api/v1/auth/login",
+            headers=_csrf_header(app),
+            json={"email": "demo@example.ch", "password": "A-long-test-password-123!"},
+        )
+        assert login.status_code == 200, login.text
+        february = app.post(
+            "/api/v1/monthly-payroll",
+            headers=_csrf_header(app),
+            json=_february(employment_id),
+        )
         assert february.status_code == 201, february.text
         assert february.json()["gross_wage"] == "791.00"
         assert february.json()["net_payout"] == "713.23"
 
-        again = app.post("/api/v1/monthly-payroll", json=_february(employment_id))
+        again = app.post(
+            "/api/v1/monthly-payroll",
+            headers=_csrf_header(app),
+            json=_february(employment_id),
+        )
         assert again.status_code == 400
         assert again.json()["detail"] == "This month was already processed."
+
+
+def _csrf_header(app):
+    token = app.get("/api/v1/auth/csrf").json()["csrf_token"]
+    return {"X-CSRF-Token": token}
