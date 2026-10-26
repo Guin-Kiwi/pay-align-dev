@@ -9,7 +9,8 @@ description: Implement the current use case using strict TDD.
 
 Replace the full test sequence with a regression test before the fix.
 Documentation only → check content and links, no code tests.
-Use the UC/task entry; record actual results and phase 3.
+Use the `docs/TASKS.md` entry; put actual results in the commit message and
+record phase 3.
 
 ## Goal
 

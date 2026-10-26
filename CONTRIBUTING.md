@@ -24,7 +24,7 @@ Pick the lowest level that fits.
 | Level | What qualifies | Record it in |
 |---|---|---|
 | 1. Commit | A step inside already-scoped work: a test, an implementation step, a refactor | The commit, on the use case's branch |
-| 2. Fast Track | A small correction within existing behaviour: a bug fix (start with a failing test), wording, config, docs | One line in the PR description or `docs/TASKS.md` |
+| 2. Fast Track | A small correction within existing behaviour: a bug fix (start with a failing test), wording, config, docs | `docs/TASKS.md` while you work; the commit message before merging |
 | 3. Use case | Anything that adds or changes observable behaviour, i.e. something an acceptance criterion would describe | `docs/specs/UC-NNN-<NAME>.md` → branch → PR |
 | 4. ADR | A consequential decision that is hard to reverse or spans use cases: data store, auth approach, framework, a break in the layer rules | `docs/adr/ADR-NNN-<title>.md`, Proposed until a human accepts it, usually inside a use case's PR |
 
@@ -35,6 +35,30 @@ and continue as a use case.
 Borderline? If a teammate would need to agree on *what* it should do before
 you build it, it is a use case. If they only need to check *how* you did it,
 it is Fast Track.
+
+## Where to write what
+
+Write each thing in one place only. Anywhere else, link to it instead of
+copying it, so there is never a second version that goes out of date.
+
+| You want to write down… | Put it in |
+|---|---|
+| How the app is built and run: architecture, endpoints, commands, scope | `docs/PROJECT.md`, in the same PR as the change |
+| Work still to do, who does it, and what comes next | `docs/TASKS.md` |
+| What a use case does, and decisions that only affect it | Its file in `docs/specs/` |
+| A decision that affects several use cases or the architecture | A file in `docs/adr/` |
+| A rate, limit or other number the app uses | The constants module named in `docs/PROJECT.md` |
+| A formula, or a summary of an outside source | `docs/reference/` |
+| PR numbers, branch names, test results | The commit message |
+
+Three more habits:
+
+- **Don't edit an old decision.** Add a dated amendment below it and say in
+  the original that it changed.
+- **Say who approved what, and when**, and only if they really did.
+- **Only write what someone can check** in the code or the repo.
+
+The full rules are under "Collaboration" in `AGENTS.md`.
 
 ## Working with an agent
 
@@ -80,11 +104,14 @@ tier. Move down when a task turns out to be Fast Track.
   free number. Pick one way as a team so numbers do not clash.
 - One use case per branch and per PR. With an issue, the PR body says
   `Closes #42`.
-- On a branch, `docs/TASKS.md` describes that branch's use case only. Before
-  merging, update the branch from `main` and reconcile `docs/TASKS.md` and
-  any UC or ADR numbers with what `main` already has.
+- `docs/TASKS.md` is the team's shared task list. Add a row under the
+  person who owns the work (unowned work under Unassigned) and name them in
+  the PR description; an owner who disagrees changes or deletes the row. The
+  PR that finishes a task deletes its row. Before merging, update the branch from `main` and
+  reconcile `docs/TASKS.md` and any UC or ADR numbers with what `main`
+  already has.
 - ADR numbers: take the next unused number on `main`. CI rejects duplicates.
-- Change shared files (`AGENTS.md`, `docs/PROJECT.md`, `docs/INDEX.json`,
+- Change shared files (`AGENTS.md`, `docs/INDEX.json`,
   `.github/`) in their own small PR, not mixed into feature work.
 - App code, including app scripts and CLIs, lives under `src/app/` and its
   tests under `tests/`. `scripts/` is AI-SDLC tooling; do not put app code there.
@@ -146,9 +173,10 @@ only settles the advisory; the teammate's approval is still required.
 - The author merges after approval, using **Rebase and merge** (choose it
   from the arrow next to the merge button).
 - **`docs/TASKS.md` conflicts** are expected when two branches run in
-  parallel: each branch records its own use case there. To resolve, keep
-  `main`'s version, then put back your branch's PHASE, STATUS and current use
-  case. You can ask your agent to do this.
+  parallel. To resolve, keep `main`'s version, then delete the row your
+  branch finishes, put back the rows you added (under whoever owns them), and put
+  back your branch's PHASE, STATUS and current use case. You can ask your
+  agent to do this.
 - If the `advisory` job warns, the reviewer looks harder at the flagged files,
   ideally with a second review by a larger model (Copilot code review on the
   PR, or an agent's code-review command), and leaves a one-to-three line

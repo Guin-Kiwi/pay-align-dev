@@ -1,363 +1,237 @@
 # src/app/application/payroll_service.py
 
-from datetime import date
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Optional
+from decimal import Decimal
 
-from src.app.domain.constants import (
-    AHV_RATE, ALV_RATE, TAX_RATE, NBU_RATE, FAK_RATE, BU_RATE, ADMIN_CHARGE_RATE,
-    EMPLOYEE_GROSS_LIMIT, EMPLOYER_GROSS_LIMIT, PUBLIC_HOLIDAYS_2026
+from src.app.application.ports.payroll_repository import (
+    EmploymentTerms,
+    MonthlyRecordInput,
+    PayrollRepositoryPort,
+    PayslipInput,
+    PriorRun,
+    RunSnapshot,
+    WorkEntryInput,
 )
-from src.app.domain.employment import Employment
+from src.app.domain.constants import RULES_YEAR
+from src.app.domain.errors import (
+    DuplicateMonthError,
+    EmploymentNotFoundError,
+    InvalidHolidayBalanceError,
+    InvalidPayrollInputError,
+)
+from src.app.domain.holiday_balance import (
+    holiday_entitlement_minutes,
+    remaining_holiday_minutes,
+)
+from src.app.domain.hour_categories import MinuteTotals
 from src.app.domain.monthly_record import MonthlyRecord
+from src.app.domain.payroll_calculation import (
+    calculate_monthly_totals,
+    classify_public_holidays,
+    generate_payslip_from_terms,
+    round_money,
+    validate_annual_limits,
+)
 from src.app.domain.payslip import Payslip
-from src.app.domain.work_entry import WorkEntry
+from src.app.domain.work_entry import WorkEntry, reject_overlapping_entries
 
-# Constants
-HOLIDAY_PREMIUM_RATE = 0.5  # 50% premium for working on public holidays
+RULESET_VERSION = str(RULES_YEAR)
 
-# Custom Exceptions
-class AnnualLimitExceededError(Exception):
-    """Raised when the annual gross wage limit is exceeded."""
-    pass
 
-class InvalidPayrollInputError(Exception):
-    """Raised when payroll input values are invalid."""
-    pass
+def _to_cents(value: Decimal) -> int:
+    return int(round_money(value).scaleb(2))
+
+
+def _following_month(year: int, month: int) -> tuple[int, int]:
+    return (year + 1, 1) if month == 12 else (year, month + 1)
 
 
 class PayrollService:
     """Handles monthly payroll processing for household employment."""
 
-    @staticmethod
-    def _round_money(value: float) -> float:
-        """Round a monetary value to Swiss centimes using half-up rounding."""
-        return float(Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
-
-    @staticmethod
-    def calculate_paid_hours(entry: WorkEntry) -> float:
-        """Return paid hours for one work entry after unpaid breaks."""
-        if not entry.paid:
-            return 0.0
-        elapsed_hours = (
-            entry.end_time.hour * 60
-            + entry.end_time.minute
-            - entry.start_time.hour * 60
-            - entry.start_time.minute
-        ) / 60
-        paid_hours = elapsed_hours - entry.unpaid_break_hours
-        if paid_hours < 0:
-            raise InvalidPayrollInputError("Unpaid breaks exceed the work duration.")
-        return paid_hours
-
-    @staticmethod
-    def is_public_holiday(work_date: date) -> bool:
-        """Return whether a date is a configured 2026 Basel-Stadt holiday."""
-        return work_date in PUBLIC_HOLIDAYS_2026
-
-    def calculate_monthly_hours(self, entries: list[WorkEntry]) -> tuple[float, float]:
-        """Return regular paid hours and paid public-holiday hours for entries."""
-        if not entries:
-            return 0.0, 0.0
-
-        first_month = entries[0].work_date.month, entries[0].work_date.year
-        if any((entry.work_date.month, entry.work_date.year) != first_month for entry in entries):
-            raise InvalidPayrollInputError("Work entries must belong to one calendar month.")
-
-        regular_hours = 0.0
-        public_holiday_hours = 0.0
-        for entry in entries:
-            paid_hours = self.calculate_paid_hours(entry)
-            if self.is_public_holiday(entry.work_date):
-                public_holiday_hours += paid_hours
-            else:
-                regular_hours += paid_hours
-        return regular_hours, public_holiday_hours
-
-    def calculate_gross_wage(
-        self, 
-        hours_worked: float, 
-        hourly_wage: float, 
-        holiday_hours: float = 0.0, 
-        public_holiday_hours: float = 0.0, 
-        cash_bonus: float = 0.0
-    ) -> float:
-        """Calculate the gross wage for the month.
-        
-        Args:
-            hours_worked: Hours worked in the month (must be >= 0).
-            hourly_wage: Gross hourly wage (must be >= 0).
-            holiday_hours: Paid holiday hours taken (must be >= 0).
-            public_holiday_hours: Hours worked on public holidays (must be >= 0).
-            cash_bonus: Cash bonus for the month (must be >= 0).
-            
-        Returns:
-            float: Gross wage for the month.
-            
-        Raises:
-            InvalidPayrollInputError: If any input is negative.
-            
-        Example:
-            >>> service = PayrollService()
-            >>> service.calculate_gross_wage(160, 25.0, 8, 4, 100)
-            4450.0  # (160 + 8 + 4) * 25 + (4 * 25 * 0.5) + 100
-        """
-        # Validate inputs
-        if hours_worked < 0:
-            raise InvalidPayrollInputError("Hours worked cannot be negative.")
-        if hourly_wage < 0:
-            raise InvalidPayrollInputError("Hourly wage cannot be negative.")
-        if holiday_hours < 0:
-            raise InvalidPayrollInputError("Holiday hours cannot be negative.")
-        if public_holiday_hours < 0:
-            raise InvalidPayrollInputError("Public holiday hours cannot be negative.")
-        if cash_bonus < 0:
-            raise InvalidPayrollInputError("Cash bonus cannot be negative.")
-
-        # TODO(PR #3 review): money uses float; switch to Decimal per ADR-003. Owner: person 3.
-        base_pay = (hours_worked + holiday_hours + public_holiday_hours) * hourly_wage
-        holiday_premium = public_holiday_hours * hourly_wage * HOLIDAY_PREMIUM_RATE
-        return base_pay + holiday_premium + cash_bonus
-
-    def calculate_employee_deductions(
-        self, 
-        gross_wage: float, 
-        weekly_hours: float
-    ) -> tuple[float, float, float, float]:
-        """Calculate employee deductions.
-        
-        Args:
-            gross_wage: Gross wage for the month.
-            weekly_hours: Weekly working hours (NBU applies if >= 8).
-            
-        Returns:
-            tuple: (AHV deduction, ALV deduction, tax deduction, NBU deduction)
-        """
-        ahv_deduction = gross_wage * AHV_RATE
-        alv_deduction = gross_wage * ALV_RATE
-        tax_deduction = gross_wage * TAX_RATE
-        nbu_deduction = gross_wage * NBU_RATE if weekly_hours >= 8 else 0.0
-        return ahv_deduction, alv_deduction, tax_deduction, nbu_deduction
-
-    def calculate_employer_costs(
-        self, 
-        gross_wage: float
-    ) -> tuple[float, float, float, float, float]:
-        """Calculate employer social contributions.
-        
-        Args:
-            gross_wage: Gross wage for the month.
-            
-        Returns:
-            tuple: (Employer AHV, Employer ALV, Employer FAK, Employer BU, Admin Charge)
-        """
-        employer_ahv = gross_wage * AHV_RATE
-        employer_alv = gross_wage * ALV_RATE
-        employer_fak = gross_wage * FAK_RATE
-        employer_bu = gross_wage * BU_RATE
-        admin_charge = employer_ahv * ADMIN_CHARGE_RATE
-        return employer_ahv, employer_alv, employer_fak, employer_bu, admin_charge
-
-    def create_monthly_record(
-        self, 
-        employment: Employment, 
-        month: int, 
-        year: int, 
-        hours_worked: float, 
-        holiday_hours: float = 0.0, 
-        public_holiday_hours: float = 0.0, 
-        cash_bonus: float = 0.0, 
-        expense_reimbursements: float = 0.0
-    ) -> MonthlyRecord:
-        """Create a monthly record for payroll processing.
-        
-        Args:
-            employment: Employment relationship.
-            month: Month of the record (1-12).
-            year: Year of the record.
-            hours_worked: Hours worked in the month (must be >= 0).
-            holiday_hours: Paid holiday hours taken (must be >= 0).
-            public_holiday_hours: Hours worked on public holidays (must be >= 0).
-            cash_bonus: Cash bonus for the month (must be >= 0).
-            expense_reimbursements: Documented expense reimbursements (must be >= 0).
-            
-        Returns:
-            MonthlyRecord: The created monthly record.
-            
-        Raises:
-            InvalidPayrollInputError: If any input is negative.
-        """
-        # Validate inputs
-        if hours_worked < 0:
-            raise InvalidPayrollInputError("Hours worked cannot be negative.")
-        if holiday_hours < 0:
-            raise InvalidPayrollInputError("Holiday hours cannot be negative.")
-        if public_holiday_hours < 0:
-            raise InvalidPayrollInputError("Public holiday hours cannot be negative.")
-        if cash_bonus < 0:
-            raise InvalidPayrollInputError("Cash bonus cannot be negative.")
-        if expense_reimbursements < 0:
-            raise InvalidPayrollInputError("Expense reimbursements cannot be negative.")
-
-        monthly_record = MonthlyRecord(
-            employment_id=employment.id,
-            month=month,
-            year=year,
-            hours_worked=hours_worked,
-            holiday_hours=holiday_hours,
-            public_holiday_hours=public_holiday_hours,
-            cash_bonus=cash_bonus,
-            expense_reimbursements=expense_reimbursements
-        )
-        return monthly_record
-
-    def generate_payslip(
-        self, 
-        monthly_record: MonthlyRecord, 
-        employment: Employment
-    ) -> Payslip:
-        """Generate a payslip for the monthly record."""
-        # Calculate gross wage
-        gross_wage = self.calculate_gross_wage(
-            hours_worked=monthly_record.hours_worked,
-            hourly_wage=employment.hourly_wage,
-            holiday_hours=monthly_record.holiday_hours,
-            public_holiday_hours=monthly_record.public_holiday_hours,
-            cash_bonus=monthly_record.cash_bonus
-        )
-
-        # Calculate employee deductions
-        ahv_deduction, alv_deduction, tax_deduction, nbu_deduction = self.calculate_employee_deductions(
-            gross_wage=gross_wage,
-            weekly_hours=employment.weekly_hours
-        )
-
-        # Round payslip lines before deriving totals so displayed amounts reconcile.
-        gross_wage = self._round_money(gross_wage)
-        ahv_deduction = self._round_money(ahv_deduction)
-        alv_deduction = self._round_money(alv_deduction)
-        tax_deduction = self._round_money(tax_deduction)
-        nbu_deduction = self._round_money(nbu_deduction)
-        expense_reimbursements = self._round_money(monthly_record.expense_reimbursements)
-
-        # Calculate net payout from rounded payslip lines.
-        net_payout = self._round_money(
-            gross_wage - (ahv_deduction + alv_deduction + tax_deduction + nbu_deduction)
-            + expense_reimbursements
-        )
-
-        # Calculate employer costs
-        employer_ahv, employer_alv, employer_fak, employer_bu, admin_charge = self.calculate_employer_costs(
-            gross_wage=gross_wage
-        )
-        employer_ahv = self._round_money(employer_ahv)
-        employer_alv = self._round_money(employer_alv)
-        employer_fak = self._round_money(employer_fak)
-        employer_bu = self._round_money(employer_bu)
-        admin_charge = self._round_money(admin_charge)
-        total_employer_cost = self._round_money(
-            gross_wage + employer_ahv + employer_alv + employer_fak + employer_bu + admin_charge
-            + expense_reimbursements
-        )
-
-        # Create payslip
-        payslip = Payslip(
-            monthly_record_id=monthly_record.id,
-            gross_wage=gross_wage,
-            ahv_deduction=ahv_deduction,
-            alv_deduction=alv_deduction,
-            tax_deduction=tax_deduction,
-            nbu_deduction=nbu_deduction,
-            net_payout=net_payout,
-            employer_ahv=employer_ahv,
-            employer_alv=employer_alv,
-            employer_fak=employer_fak,
-            employer_bu=employer_bu,
-            admin_charge=admin_charge,
-            total_employer_cost=total_employer_cost
-        )
-        return payslip
-
     def process_monthly_payroll(
         self,
-        repository,
-        employment: Employment,
+        repository: PayrollRepositoryPort,
+        employment_id: int,
         month: int,
         year: int,
-        hours_worked: float | None = None,
-        holiday_hours: float = 0.0,
-        public_holiday_hours: float = 0.0,
-        cash_bonus: float = 0.0,
-        expense_reimbursements: float = 0.0,
-        work_entries: list[WorkEntry] | None = None,
+        work_entries: list[WorkEntry],
+        account_id: int,
+        cash_bonus: Decimal = Decimal("0.00"),
+        expense_reimbursements: Decimal = Decimal("0.00"),
     ) -> tuple[MonthlyRecord, Payslip]:
-        """Calculate, validate, and persist one monthly payroll run."""
-        if work_entries is not None:
-            hours_worked, public_holiday_hours = self.calculate_monthly_hours(work_entries)
-        elif hours_worked is None:
+        """Calculate, validate and persist one monthly payroll run."""
+        if not isinstance(account_id, int) or isinstance(account_id, bool) or account_id <= 0:
+            raise InvalidPayrollInputError("An authenticated account is required.")
+        if year != RULES_YEAR:
             raise InvalidPayrollInputError(
-                "Either hours_worked or work_entries must be provided."
+                f"Payroll rules exist for {RULES_YEAR} only."
             )
 
-        monthly_record = self.create_monthly_record(
-            employment=employment,
-            month=month,
-            year=year,
-            hours_worked=hours_worked,
-            holiday_hours=holiday_hours,
-            public_holiday_hours=public_holiday_hours,
+        stored = repository.employment_terms(employment_id, account_id)
+        if stored is None:
+            raise EmploymentNotFoundError(f"Employment {employment_id} not found.")
+        terms = stored.terms
+        hourly_wage = Decimal(terms.hourly_wage_cents) / 100
+        cash_bonus = round_money(cash_bonus)
+        expense_reimbursements = round_money(expense_reimbursements)
+
+        if any(
+            (entry.work_date.month, entry.work_date.year) != (month, year)
+            for entry in work_entries
+        ):
+            raise InvalidPayrollInputError(
+                "Work entries must belong to the payroll month."
+            )
+        self._check_entries_within_employment(work_entries, terms)
+        reject_overlapping_entries(work_entries)
+        work_entries = classify_public_holidays(work_entries)
+        totals = calculate_monthly_totals(work_entries)
+
+        self._check_month_not_after_end(terms, month, year)
+        prior = repository.prior_run(employment_id)
+        self._check_run_sequence(prior, terms, month, year)
+
+        payslip = generate_payslip_from_terms(
+            totals=totals,
+            hourly_wage=hourly_wage,
+            weekly_minutes=terms.weekly_minutes,
             cash_bonus=cash_bonus,
             expense_reimbursements=expense_reimbursements,
         )
-        payslip = self.generate_payslip(monthly_record, employment)
 
-        self.validate_annual_limits(
-            employment=employment,
+        validate_annual_limits(
             current_gross_wage=payslip.gross_wage,
-            employee_gross_to_date=repository.employee_gross_to_date(
-                employment.id, year
+            employee_gross_to_date=Decimal(
+                repository.employee_gross_to_date(
+                    stored.employee_id, stored.employer_id, year
+                )
+            ) / 100,
+            employer_gross_to_date=Decimal(
+                repository.employer_gross_to_date(stored.employer_id, year)
+            ) / 100,
+        )
+
+        holiday_balance = self._holiday_balance_after_run(prior, terms, totals)
+
+        record = MonthlyRecord(
+            employment_id=employment_id,
+            employee_id=stored.employee_id,
+            employer_id=stored.employer_id,
+            month=month,
+            year=year,
+            cash_bonus=cash_bonus,
+            expense_reimbursements=expense_reimbursements,
+        )
+
+        saved = repository.save_payroll_run(
+            record=MonthlyRecordInput(
+                employment_id=employment_id,
+                employee_id=stored.employee_id,
+                employer_id=stored.employer_id,
+                month=month,
+                year=year,
+                cash_bonus_cents=_to_cents(cash_bonus),
+                expense_reimbursements_cents=_to_cents(expense_reimbursements),
             ),
-            employer_gross_to_date=repository.employer_gross_to_date(
-                employment.employer_id, year
+            entries=tuple(
+                WorkEntryInput(
+                    work_date=entry.work_date,
+                    category=entry.category.value,
+                    start_time=entry.start_time,
+                    end_time=entry.end_time,
+                    unpaid_break_minutes=entry.unpaid_break_minutes,
+                    paid_minutes=entry.paid_minutes,
+                )
+                for entry in work_entries
+            ),
+            snapshot=RunSnapshot(
+                employment=terms,
+                ruleset_version=RULESET_VERSION,
+                hours=totals,
+                holiday_balance_minutes=holiday_balance,
+            ),
+            payslip=PayslipInput(
+                gross_wage_cents=_to_cents(payslip.gross_wage),
+                ahv_deduction_cents=_to_cents(payslip.ahv_deduction),
+                alv_deduction_cents=_to_cents(payslip.alv_deduction),
+                tax_deduction_cents=_to_cents(payslip.tax_deduction),
+                nbu_deduction_cents=_to_cents(payslip.nbu_deduction),
+                net_payout_cents=_to_cents(payslip.net_payout),
+                employer_ahv_cents=_to_cents(payslip.employer_ahv),
+                employer_alv_cents=_to_cents(payslip.employer_alv),
+                employer_fak_cents=_to_cents(payslip.employer_fak),
+                employer_bu_cents=_to_cents(payslip.employer_bu),
+                admin_charge_cents=_to_cents(payslip.admin_charge),
+                total_employer_cost_cents=_to_cents(payslip.total_employer_cost),
             ),
         )
 
-        return repository.save_payroll_run(
-            monthly_record, payslip, employer_id=employment.employer_id
-        )
+        record.id = saved.monthly_record_id
+        payslip.id = saved.payslip_id
+        payslip.monthly_record_id = saved.monthly_record_id
+        return record, payslip
 
-    def validate_annual_limits(
-        self, 
-        employment: Employment, 
-        current_gross_wage: float,
-        employee_gross_to_date: float = 0.0,
-        employer_gross_to_date: float = 0.0,
+    @staticmethod
+    def _check_month_not_after_end(
+        terms: EmploymentTerms, month: int, year: int
     ) -> None:
-        """Validate annual gross wage limits for the employee and employer.
-        
-        Args:
-            employment: Employment relationship.
-            current_gross_wage: Gross wage for the current month.
-            employee_gross_to_date: Employee gross wage accumulated before this run.
-            employer_gross_to_date: Employer gross wage accumulated before this run.
-            
-        Raises:
-            AnnualLimitExceededError: If the annual limit for the employee or employer is exceeded.
-            InvalidPayrollInputError: If a gross wage total is negative.
-        """
-        if current_gross_wage < 0:
-            raise InvalidPayrollInputError("Current gross wage cannot be negative.")
-        if employee_gross_to_date < 0 or employer_gross_to_date < 0:
-            raise InvalidPayrollInputError("Year-to-date gross wage cannot be negative.")
-
-        employee_total = employee_gross_to_date + current_gross_wage
-        if employee_total > EMPLOYEE_GROSS_LIMIT:
-            raise AnnualLimitExceededError(
-                f"Employee annual gross wage limit (CHF {EMPLOYEE_GROSS_LIMIT}) exceeded."
+        end = terms.employment_end_date
+        if end is not None and (year, month) > (end.year, end.month):
+            raise InvalidPayrollInputError(
+                f"The employment ended on {end.isoformat()}; "
+                f"no payroll run is possible for {month:02d}/{year}."
             )
 
-        employer_total = employer_gross_to_date + current_gross_wage
-        if employer_total > EMPLOYER_GROSS_LIMIT:
-            raise AnnualLimitExceededError(
-                f"Employer annual gross wage limit (CHF {EMPLOYER_GROSS_LIMIT}) exceeded."
+    @staticmethod
+    def _check_entries_within_employment(
+        work_entries: list[WorkEntry], terms: EmploymentTerms
+    ) -> None:
+        start, end = terms.employment_start_date, terms.employment_end_date
+        for entry in work_entries:
+            if entry.work_date < start or (end is not None and entry.work_date > end):
+                raise InvalidPayrollInputError(
+                    f"Entry on {entry.work_date.isoformat()} is outside the employment "
+                    f"({start.isoformat()} to {end.isoformat() if end else 'open end'})."
+                )
+
+    @staticmethod
+    def _check_run_sequence(
+        prior: PriorRun | None, terms: EmploymentTerms, month: int, year: int
+    ) -> None:
+        """First run: the start month. Later runs: the month after the last run."""
+        if prior is None:
+            expected = (
+                terms.employment_start_date.year,
+                terms.employment_start_date.month,
             )
+        else:
+            expected = _following_month(prior.year, prior.month)
+            if (year, month) < expected:
+                raise DuplicateMonthError("This month was already processed.")
+        if (year, month) != expected:
+            raise InvalidPayrollInputError(
+                f"The next payroll run is for {expected[1]:02d}/{expected[0]}."
+            )
+
+    @staticmethod
+    def _holiday_balance_after_run(
+        prior: PriorRun | None,
+        terms: EmploymentTerms,
+        totals: MinuteTotals,
+    ) -> int:
+        opening_balance = (
+            prior.holiday_balance_minutes
+            if prior is not None
+            else holiday_entitlement_minutes(
+                holiday_weeks=terms.holiday_weeks,
+                weekly_minutes=terms.weekly_minutes,
+                start_date=terms.employment_start_date,
+                end_date=terms.employment_end_date,
+            )
+        )
+        try:
+            return remaining_holiday_minutes(
+                opening_balance, totals.annual_holiday_taken
+            )
+        except InvalidPayrollInputError as error:
+            raise InvalidHolidayBalanceError(str(error)) from error

@@ -1,110 +1,123 @@
-import sqlite3
 from datetime import date, time
+from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from src.app.application.payroll_service import PayrollService
-from src.app.application.setup_service import SetupService
-from src.app.domain.employment import Employment
-from src.app.domain.work_entry import WorkEntry
-from src.app.infrastructure.sqlite_payroll_repository import SQLitePayrollRepository
+from src.app.application.ports.payroll_repository import PayrollRepositoryPort
+from src.app.domain.constants import RULES_YEAR
+from src.app.domain.errors import (
+    AnnualLimitExceededError,
+    DuplicateMonthError,
+    EmploymentNotFoundError,
+    InvalidHolidayBalanceError,
+    InvalidPayrollInputError,
+)
+from src.app.domain.hour_categories import HourCategory
+from src.app.domain.work_entry import WorkEntry, calculate_paid_minutes
+from src.app.interfaces.auth import require_account_id, require_csrf_token
 
 payroll_router = APIRouter()
-payroll_service = PayrollService()
-setup_service = SetupService()
-# TODO(PR #3 review): in-memory database; read DATABASE_URL, to be replaced by SQLAlchemy. Owner: Ayla.
-repository = SQLitePayrollRepository(sqlite3.connect(":memory:", check_same_thread=False))
-
-class EmploymentCreate(BaseModel):
-    employer_id: int = Field(..., description="Employer ID")
-    employee_id: int = Field(..., description="Employee ID")
-    start_date: date
-    hourly_wage: float = Field(..., gt=0, description="Gross hourly wage in CHF")
-    weekly_hours: float = Field(..., gt=0)
-    holiday_entitlement: int = Field(20, ge=0)
-
-class MonthlyPayrollRequest(BaseModel):
-    employment_id: int
-    employer_id: int
-    employee_id: int
-    hourly_wage: float = Field(..., gt=0)
-    weekly_hours: float = Field(..., gt=0)
-    year: int = Field(..., ge=2026)
-    month: int = Field(..., ge=1, le=12)
-    hours_worked: float | None = Field(None, ge=0)
-    holiday_hours: float = Field(0, ge=0)
-    public_holiday_hours: float = Field(0, ge=0)
-    cash_bonus: float = Field(0, ge=0)
-    expense_reimbursements: float = Field(0, ge=0)
 
 
 class WorkEntryRequest(BaseModel):
     work_date: date
-    start_time: time
-    end_time: time
-    unpaid_break_hours: float = Field(0, ge=0)
-    paid: bool = True
+    category: HourCategory
+    start_time: time | None = None
+    end_time: time | None = None
+    unpaid_break_minutes: int = Field(0, ge=0)
+    paid_minutes: int | None = Field(None, ge=0)
 
 
-# TODO(PR #3 review): duplicate class; merge into one. Owner: payroll router (Ayla, then person 3).
-class MonthlyPayrollRequest(MonthlyPayrollRequest):
-    work_entries: list[WorkEntryRequest] | None = None
+class MonthlyPayrollRequest(BaseModel):
+    employment_id: int
+    year: int = Field(..., ge=RULES_YEAR, le=RULES_YEAR)
+    month: int = Field(..., ge=1, le=12)
+    cash_bonus: Decimal = Field(Decimal("0.00"), ge=0)
+    expense_reimbursements: Decimal = Field(Decimal("0.00"), ge=0)
+    work_entries: list[WorkEntryRequest]
+
 
 class PayslipResponse(BaseModel):
     monthly_record_id: int
-    gross_wage: float = Field(..., description="Gross wage in CHF")
-    net_payout: float
+    gross_wage: Decimal
+    net_payout: Decimal
 
-# TODO(PR #3 review): moves to the setup router. Owner: Nano.
-@payroll_router.post("/employments", response_model=dict)
-async def create_employment(payload: EmploymentCreate):
-    try:
-        return setup_service.create_employment(
-            employer_id=payload.employer_id,
-            employee_id=payload.employee_id,
-            start_date=payload.start_date,
-            hourly_wage=payload.hourly_wage,
-            weekly_hours=payload.weekly_hours,
-            holiday_entitlement=payload.holiday_entitlement,
+
+def get_payroll_service(request: Request) -> PayrollService:
+    return request.app.state.payroll_service
+
+
+def get_payroll_repository(request: Request) -> PayrollRepositoryPort:
+    return request.app.state.payroll_repository
+
+
+def _to_work_entry(entry: WorkEntryRequest) -> WorkEntry:
+    if entry.start_time is None and entry.end_time is None:
+        if entry.category in (HourCategory.WORKED, HourCategory.PUBLIC_HOLIDAY_WORKED):
+            raise InvalidPayrollInputError(
+                "A work entry needs a start and an end time."
+            )
+        if entry.paid_minutes is None:
+            raise InvalidPayrollInputError(
+                "A leave entry needs paid_minutes or a start and end time."
+            )
+        return WorkEntry(
+            work_date=entry.work_date,
+            category=entry.category,
+            paid_minutes=entry.paid_minutes,
         )
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
-
-@payroll_router.post("/monthly-payroll", response_model=dict)
-async def process_monthly_payroll(payload: MonthlyPayrollRequest):
-    employment = Employment(
-        id=payload.employment_id,
-        employer_id=payload.employer_id,
-        employee_id=payload.employee_id,
-        hourly_wage=payload.hourly_wage,
-        weekly_hours=payload.weekly_hours,
+    if entry.start_time is None or entry.end_time is None:
+        raise InvalidPayrollInputError("A work entry needs both a start and an end time.")
+    paid_minutes = calculate_paid_minutes(
+        entry.start_time, entry.end_time, entry.unpaid_break_minutes
     )
-    entries = None
-    if payload.work_entries is not None:
-        entries = [WorkEntry(**entry.model_dump()) for entry in payload.work_entries]
+    if entry.paid_minutes is not None and entry.paid_minutes != paid_minutes:
+        raise InvalidPayrollInputError(
+            "paid_minutes does not match the start time, end time and break."
+        )
+    return WorkEntry(
+        work_date=entry.work_date,
+        category=entry.category,
+        paid_minutes=paid_minutes,
+        start_time=entry.start_time,
+        end_time=entry.end_time,
+        unpaid_break_minutes=entry.unpaid_break_minutes,
+    )
+
+
+@payroll_router.post("/monthly-payroll", response_model=dict, status_code=201)
+def process_monthly_payroll(
+    payload: MonthlyPayrollRequest,
+    _: None = Depends(require_csrf_token),
+    account_id: int = Depends(require_account_id),
+    service: PayrollService = Depends(get_payroll_service),
+    repository: PayrollRepositoryPort = Depends(get_payroll_repository),
+):
     try:
-        record, payslip = payroll_service.process_monthly_payroll(
+        record, payslip = service.process_monthly_payroll(
             repository=repository,
-            employment=employment,
+            employment_id=payload.employment_id,
             month=payload.month,
             year=payload.year,
-            hours_worked=payload.hours_worked,
-            holiday_hours=payload.holiday_hours,
-            public_holiday_hours=payload.public_holiday_hours,
+            work_entries=[_to_work_entry(entry) for entry in payload.work_entries],
             cash_bonus=payload.cash_bonus,
             expense_reimbursements=payload.expense_reimbursements,
-            work_entries=entries,
+            account_id=account_id,
         )
-    # TODO(PR #3 review): AnnualLimitExceededError, InvalidPayrollInputError and IntegrityError become HTTP 500. Owner: payroll router (Ayla, then person 3).
-    except (ValueError, KeyError) as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
-    return {"monthly_record_id": record.id, **payslip.__dict__}
-
-# TODO(PR #3 review): TASKS.md specifies /payslips/{employment_id}/{year}/{month}. Owner: payroll router (Ayla, then person 3).
-@payroll_router.get("/payslips/{monthly_record_id}", response_model=PayslipResponse)
-async def get_payslip(monthly_record_id: int):
-    try:
-        return repository.get_payslip(monthly_record_id)
-    except KeyError as error:
+    except EmploymentNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except (
+        AnnualLimitExceededError,
+        DuplicateMonthError,
+        InvalidHolidayBalanceError,
+        InvalidPayrollInputError,
+        ValueError,
+    ) as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return {
+        "monthly_record_id": record.id,
+        "gross_wage": str(payslip.gross_wage),
+        "net_payout": str(payslip.net_payout),
+    }
