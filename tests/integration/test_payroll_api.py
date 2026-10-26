@@ -167,9 +167,18 @@ def test_posting_a_month_returns_the_saved_payslip_and_a_confirmation_message(cl
     )
 
     assert saved.status_code == 200, saved.text
-    assert {
-        key: value for key, value in response_values.items() if key != "message"
-    } == saved.json()
+    assert all(
+        saved.json()[key] == value
+        for key, value in response_values.items() if key != "message"
+    )
+
+    assert saved.json()["cash_bonus"] == "100.00"
+    assert saved.json()["expense_reimbursements"] == "50.00"
+    assert saved.json()["hourly_wage"] == "25.00"
+    assert saved.json()["worked_minutes"] == 600
+    assert saved.json()["public_holiday_worked_minutes"] == 0
+    assert saved.json()["annual_holiday_taken_minutes"] == 0
+    assert saved.json()["public_holiday_taken_minutes"] == 0
 
 
 def test_saved_snapshot_holds_the_minute_totals_and_balance(client):
