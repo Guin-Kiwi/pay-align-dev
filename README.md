@@ -73,6 +73,7 @@ The browser views are defined in
 **Login and registration**
 
 ![PayAlign login page](docs/screenshots/login.png)
+![PayAlign signup page](docs/screenshots/signup.png)
 
 **Employment setup**
 
@@ -80,12 +81,10 @@ The browser views are defined in
 
 **Payslip**
 
-![PayAlign payslip for a saved month](docs/screenshots/payslip.png)
-
-<!-- Screenshots: add docs/screenshots/login.png, setup.png and payslip.png, then uncomment.
+<!-- add monthlyentry.png and payslip.png,  then uncomment.
 ![Employements screen](docs/screenshots/setup.png)
 ![Employer setup](docs/screenshots/setup.png)
-![Monthly entry](docs/screenshots/employee-october.png)
+![Monthly entry](docs/screenshots/monthlyentry.png)
 ![Payslip](docs/screenshots/payslip.png)
 -->
 
