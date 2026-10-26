@@ -68,9 +68,24 @@ come from the AKBS payslip workbook.
 The browser views are defined in
 [UC-003 Amendment 3](docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views).
 
+### Screenshots
+
+**Login and registration**
+
+![PayAlign login page](docs/screenshots/login.png)
+
+**Employment setup**
+
+![PayAlign employment setup page](docs/screenshots/setup.png)
+
+**Payslip**
+
+![PayAlign payslip for a saved month](docs/screenshots/payslip.png)
+
 <!-- Screenshots: add docs/screenshots/login.png, setup.png and payslip.png, then uncomment.
-![Login](docs/screenshots/login.png)
-![Employment setup](docs/screenshots/setup.png)
+![Employements screen](docs/screenshots/setup.png)
+![Employer setup](docs/screenshots/setup.png)
+![Monthly entry](docs/screenshots/employee-october.png)
 ![Payslip](docs/screenshots/payslip.png)
 -->
 
