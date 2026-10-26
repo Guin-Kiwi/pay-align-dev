@@ -355,6 +355,13 @@ process.stdin.on('end', async () => {
         assert.equal(elements['signup-submit'].disabled, true);
         assert.equal(elements['signup-cancel'].disabled, true);
         assert.equal(elements['signup-error'].hidden, true);
+      } else if (scenario === 'register-lookup-error') {
+        assert.deepEqual(urls(), ['GET /api/v1/auth/me', 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/register', 'GET /api/v1/employer']);
+        assert.deepEqual(assigned, []);
+        assert.equal(elements['signup-dialog'].open, true);
+        assert.equal(elements['signup-error'].hidden, false);
+        assert.match(elements['signup-error'].textContent, /signed in.*could not load your details/i);
+        assert.equal(elements['account-error'].hidden, true);
       } else {
         assert.deepEqual(assigned, []);
         assert.equal(elements['signup-dialog'].open, true);

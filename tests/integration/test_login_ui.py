@@ -285,7 +285,7 @@ def test_login_css_only_uses_colours_that_setup_css_already_defines():
     'signed-in-with-employer', 'signed-in-lookup-error', 'signed-in-lookup-network',
     'signed-in-lookup-malformed', 'signed-in-lookup-other-404', 'login-with-employer', 'login-lookup-error',
     'login-invalid-email', 'blur-validation', 'signup-open', 'signup-cancel', 'signup-empty', 'signup-invalid', 'signup-password-rules',
-    'register', 'register-409', 'register-422', 'register-403', 'register-500', 'register-network',
+    'register', 'register-lookup-error', 'register-409', 'register-422', 'register-403', 'register-500', 'register-network',
     'register-timeout', 'register-csrf-failure', 'register-malformed', 'register-duplicate',
 ])
 def test_login_javascript(scenario):
