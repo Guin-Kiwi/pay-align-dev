@@ -103,6 +103,7 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - The system must display a confirmation message upon success.
 
 ## Security / trust-boundary notes
+Superseded by [Amendment 1](#amendment-1--2026-10-26-payroll-access-and-storage).
 - All data is stored locally and not shared with external systems.
 - The employer must authenticate to access the system (future consideration).
 
@@ -156,3 +157,6 @@ The employer selects **"Process Monthly Payroll"** in the application.
 ## Amendment 2 — 2026-10-26: Annual-limit warning
 
 When a monthly run exceeds either annual gross wage limit, the rejection warning identifies the employee or employer limit and its CHF value. It tells the employer that the simplified procedure no longer applies and to contact AKBS about the ordinary procedure, which PayAlign does not support. The warning includes the URL of [AKBS's household employment page](https://ak-bs.ch/themen/beitraege/haushaltshilfen). The [household-help guide](../reference/Employing_Household_Help_Basel.md#background-how-it-all-works) gives the simplified-procedure eligibility limits and its [contact section](../reference/Employing_Household_Help_Basel.md#official-links-and-contacts) identifies AKBS; [PROJECT.md](../PROJECT.md#purpose) excludes the ordinary procedure.
+## Amendment 1 — 2026-10-26: Payroll access and storage
+
+Payroll data is stored in the app's own database and is not shared with external systems. The employer must be signed in to run or view payroll and can reach only their own employments and months, as specified by [UC-003](UC-003-Employer-Accounts-and-Secure-Access.md). This supersedes the earlier local-storage and future-authentication notes.
