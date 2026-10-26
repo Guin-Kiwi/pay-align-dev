@@ -136,8 +136,9 @@ async function continueToPage(statusId, message) {
     navigating = false;
     accountState = "failed";
     element(statusId).textContent = "";
-    const errorId = element("signup-dialog").open ? "signup-error" : "account-error";
-    showMessage(errorId, "You are signed in, but PayAlign could not load your details. Please reload the page to continue.");
+    const message = "You are signed in, but PayAlign could not load your details. Please reload the page to continue.";
+    showMessage("account-error", message);
+    if (element("signup-dialog").open) showMessage("signup-error", message);
     updateControls();
   }
 }

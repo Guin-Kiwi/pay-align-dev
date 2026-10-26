@@ -212,7 +212,13 @@ async function run({scenario, elements: attributes, javascript, credentials, sig
       inspect({redirects: [], hidden: {[action === 'register' ? 'signup-error' : 'account-error']: false}});
       const id = action === 'register' ? 'signup-error' : 'account-error';
       inspect({matches: {[id]: [/signed in/i, /could not load your details/i]}});
-      if (action === 'register') inspect({open: {'signup-dialog': true}, hidden: {'account-error': true}});
+      if (action === 'register') {
+        inspect({open: {'signup-dialog': true}, hidden: {'account-error': false},
+          matches: {'account-error': [/signed in/i, /could not load your details/i]}});
+        cancel();
+        inspect({open: {'signup-dialog': false}, hidden: {'signup-error': true, 'account-error': false},
+          matches: {'account-error': [/signed in/i, /could not load your details/i]}});
+      }
       else inspect({matches: {'account-error': /reload/i}, excludes: {'account-error': /employer/i},
         disabled: {'login-submit': true}, hidden: {'login-error': true}});
     } else {

@@ -53,8 +53,7 @@ yours, hand it to a named teammate rather than moving it to Unassigned.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `render-session-secret` | todo | Set `SESSION_SECRET_KEY` on Render before the next deployment; without it, the app fails to start and its health check cannot answer. Never put the value in a file, commit, PR or chat. | UC-003, PROJECT.md | | |
-| `demo-path` | todo | Prepare the demo of all three use cases on the Render deployment, through the browser flow in UC-003 Amendment 3. Use made-up names and AHV numbers only; open the free instance before the demo. Done when the whole flow has run once on the Render URL. | Capstone brief, UC-003 | `uc003-ui`, `payslip-response`, `render-session-secret` | Wed 28 Oct |
+| `demo-path` | todo | Prepare the demo of all three use cases on the Render deployment, through the browser flow in UC-003 Amendment 3. Use made-up names and AHV numbers only; open the free instance before the demo. Done when the whole flow has run once on the Render URL. | Capstone brief, UC-003 | `uc003-ui`, `payslip-response` | Wed 28 Oct |
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 
 ### Aaron
@@ -101,7 +100,6 @@ Each use case's tests are named in its Validation plan ([UC-001](specs/UC-001-Se
 
 ## Blockers / assumptions
 
-- Render needs `SESSION_SECRET_KEY` before the next deployment; without it, the app fails to start and the health check cannot answer (`render-session-secret`).
 - Open decision: whether `release-tag` also waits on the browser views and `payslip-response`, or v0.1.0 ships without them.
 - The browser UI feasibility check, deferred when ADR-007 was accepted on 23 October 2026, happens in the review of `uc003-ui`.
 - Human review remains required for the review-gated use-case specifications.
