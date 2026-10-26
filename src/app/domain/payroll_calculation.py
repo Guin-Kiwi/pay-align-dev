@@ -247,8 +247,12 @@ def validate_annual_limits(
     if employee_gross_to_date + current_gross_wage > Decimal(str(EMPLOYEE_GROSS_LIMIT)):
         raise AnnualLimitExceededError(
             f"Employee annual gross wage limit (CHF {EMPLOYEE_GROSS_LIMIT}) exceeded."
+            " The simplified procedure no longer applies. Contact AKBS about the"
+            " ordinary procedure, which PayAlign does not support."
         )
     if employer_gross_to_date + current_gross_wage > Decimal(str(EMPLOYER_GROSS_LIMIT)):
         raise AnnualLimitExceededError(
             f"Employer annual gross wage limit (CHF {EMPLOYER_GROSS_LIMIT}) exceeded."
+            " The simplified procedure no longer applies. Contact AKBS about the"
+            " ordinary procedure, which PayAlign does not support."
         )

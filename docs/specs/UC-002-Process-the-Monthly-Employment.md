@@ -60,7 +60,7 @@ The employer selects **"Process Monthly Payroll"** in the application.
 7. The system displays a **confirmation message** (e.g., "Payroll processed successfully").
 
 ## Alternate / edge flows
-- If the monthly run would take the calendar-year total above the employee or the employer limit, the system warns the employer and rejects the submission.
+- If the monthly run would take the calendar-year total above the employee or the employer limit, the system warns the employer and rejects the submission. [Amendment 2](#amendment-2--2026-10-26-annual-limit-warning) specifies what the warning says.
 - If the requested month is after the month in which the employment ends, the system rejects the submission. The end month itself is still processed.
 - If an entry is dated before the employment's start date or after its end date, the system rejects the submission. Both dates are inclusive: the start date is the first and the end date the last possible working day.
 - If the database refuses the save because of a constraint other than the duplicate month, the system rejects the submission with a fixed message. Text from the database is never shown to the employer.
@@ -117,6 +117,7 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - **Unit test: expense reimbursements do not inflate the AHV-liable gross wage [unit (no database)]**: `tests/unit/test_payroll_calculation.py::TestPayrollCalculation::test_generate_payslip` (it uses a CHF 50 expense reimbursement; gross wage and the AHV deduction are calculated without it, and it is added to the net payout).
 - **Acceptance: employee annual gross limit is enforced for this employer [unit (no database); SQLite]**: `tests/unit/test_payroll_service.py::TestPayrollService::test_rejects_a_run_that_exceeds_the_employee_limit`; `tests/integration/test_payroll_api.py::test_wages_from_another_employer_do_not_count_towards_the_employee_limit`; `tests/integration/test_payroll_api.py::test_a_second_employments_later_months_count_towards_the_employee_limit`.
 - **Acceptance: employer annual gross limit is enforced [unit (no database); SQLite]**: `tests/unit/test_payroll_service.py::TestPayrollService::test_rejects_a_run_that_exceeds_the_employer_limit`; `tests/integration/test_sqlalchemy_payroll_repository.py::test_employer_limit_sums_all_of_its_employees`.
+- **Acceptance: both annual-limit warnings explain the next step [unit (no database)]**: `tests/unit/test_payroll_calculation.py::TestPayrollCalculation::test_employee_annual_limit_message_explains_next_step`; `tests/unit/test_payroll_calculation.py::TestPayrollCalculation::test_employer_annual_limit_message_explains_next_step` ([Amendment 2](#amendment-2--2026-10-26-annual-limit-warning)).
 - **Acceptance: both limits count the whole calendar year [SQLite]**: `tests/integration/test_sqlalchemy_payroll_repository.py::test_gross_to_date_counts_every_month_of_the_year`; `tests/integration/test_sqlalchemy_payroll_repository.py::test_gross_to_date_ignores_other_years`.
 - **Acceptance: duplicate months and skipped months are rejected [SQLite; unit (no database)]**: `tests/integration/test_payroll_api.py::test_posting_the_same_month_again_is_a_4xx_and_duplicates_nothing`; `tests/integration/test_payroll_api.py::test_months_must_follow_one_another`; `tests/unit/test_payroll_service.py::TestPayrollService::test_a_skipped_month_is_rejected`.
 - **Acceptance: a run after the employment end month is rejected [SQLite; unit (no database)]**: `tests/integration/test_payroll_api.py::test_a_run_after_the_end_month_is_a_4xx_and_saves_nothing`; `tests/unit/test_payroll_service.py::TestPayrollService::test_a_run_after_the_end_month_is_rejected_and_nothing_is_saved`.
@@ -151,3 +152,7 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - **Ruleset:** the run snapshot stores the ruleset version only. A run reproduces correctly only while a published ruleset is never edited in place (ADR-002).
 - **Immutability:** it is enforced in the application. Direct SQL can still edit stored rows.
 - **Period snapshots:** there are none. Each run starts from the previous run's closing holiday balance.
+
+## Amendment 2 — 2026-10-26: Annual-limit warning
+
+When a monthly run exceeds either annual gross wage limit, the rejection warning identifies the employee or employer limit and its CHF value. It tells the employer that the simplified procedure no longer applies and to contact AKBS about the ordinary procedure, which PayAlign does not support. The [household-help guide](../reference/Employing_Household_Help_Basel.md#background-how-it-all-works) gives the simplified-procedure eligibility limits and its [contact section](../reference/Employing_Household_Help_Basel.md#official-links-and-contacts) identifies AKBS; [PROJECT.md](../PROJECT.md#purpose) excludes the ordinary procedure.
