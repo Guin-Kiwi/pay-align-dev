@@ -126,7 +126,7 @@ process.stdin.on('end', async () => {
         assert.match(elements['account-error'].textContent, /could not load your details/);
         assert.doesNotMatch(elements['account-error'].textContent, /employer/i);
       } else {
-        assert.deepEqual(assigned, [scenario.includes('with-employer') ? '/employments' : '/setup']);
+        assert.deepEqual(assigned, ['/setup']);
       }
     } else if (scenario.startsWith('me-')) {
       if (scenario === 'me-timeout') { abortTimer(); await settle(); }
@@ -396,7 +396,7 @@ process.stdin.on('end', async () => {
           'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': 'csrf-token-1'
         });
         assert.deepEqual(JSON.parse(calls[2].body), {email: credentials.email, password: credentials.password});
-        assert.deepEqual(assigned, [scenario === 'login' ? '/setup' : '/employments']);
+        assert.deepEqual(assigned, ['/setup']);
         assert.equal(elements['login-submit'].disabled, true);
         assert.equal(elements['login-error'].hidden, true);
       } else if (scenario === 'login-lookup-error') {
