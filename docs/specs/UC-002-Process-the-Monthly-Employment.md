@@ -57,7 +57,7 @@ The employer selects **"Process Monthly Payroll"** in the application.
    - Employee limit ([`EMPLOYEE_GROSS_LIMIT`](../../src/app/domain/constants.py), gross wage): only wages from this employer count, across all of the employee's employments with this employer. Wages from other employers do not.
    - Employer limit ([`EMPLOYER_GROSS_LIMIT`](../../src/app/domain/constants.py), gross wage): all of this employer's employees count.
 6. The system saves the staged entries, run snapshot (ADR-004 Amendment 2), `MonthlyRecord`, and `Payslip` in one transaction.
-7. The system displays a **confirmation message** (e.g., "Payroll processed successfully").
+7. The system displays a **confirmation message** (e.g., "Payroll processed successfully"). The response contains the saved payslip, with every payslip line and the holiday balance after the run, and the confirmation message.
 
 ## Alternate / edge flows
 - If the monthly run would take the calendar-year total above the employee or the employer limit, the system warns the employer and rejects the submission.
@@ -101,6 +101,8 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - Sick-pay and other exception-management workflows must not be implemented by this use case.
 - The system must not provide corrections or reversals for completed runs.
 - The system must display a confirmation message upon success.
+- The system must return the saved payslip in the response to a successful run: `monthly_record_id`, `gross_wage`, `ahv_deduction`, `alv_deduction`, `tax_deduction`, `nbu_deduction`, `net_payout`, `employer_ahv`, `employer_alv`, `employer_fak`, `employer_bu`, `admin_charge`, `total_employer_cost` and `holiday_balance_minutes` (the holiday balance after the run, in minutes).
+- The system must return the confirmation message in the same response as `message` ("Payroll processed successfully."), for the interface to display.
 
 ## Security / trust-boundary notes
 Superseded by [Amendment 1](#amendment-1--2026-10-26-payroll-access-and-storage).
@@ -128,7 +130,7 @@ Superseded by [Amendment 1](#amendment-1--2026-10-26-payroll-access-and-storage)
 - **Acceptance: rejected runs persist nothing [SQLite]**: `tests/integration/test_payroll_api.py::test_annual_limit_breach_is_a_4xx_and_saves_nothing`; `tests/integration/test_payroll_api.py::test_overlapping_entries_are_a_4xx_and_save_nothing`; `tests/integration/test_sqlalchemy_payroll_repository.py::test_invalid_holiday_balance_rolls_back_everything`.
 - **Acceptance: sick-pay and other exception-management workflows are not implemented**: scope statement, not testable. No runtime test is claimed.
 - **Acceptance: corrections and reversals are not provided**: scope statement, not testable. No runtime test is claimed.
-- **Acceptance: a confirmation message is displayed upon success**: not covered. The endpoint currently returns `monthly_record_id`, `gross_wage` and `net_payout` only. This is an open gap tracked by the `payslip-response` task.
+- **Acceptance: the saved payslip and the confirmation message are returned [SQLite]**: `tests/integration/test_payroll_api.py::test_posting_a_month_returns_the_saved_payslip_and_a_confirmation_message`. The test checks the full set of response fields, the message, and that the fields equal what is read back from the saved month. Showing the message to the employer is the interface's job and is not covered by this test.
 
 ## Open questions / assumptions
 - Assumption: The employer has all required details (e.g., daily hours) at hand.
