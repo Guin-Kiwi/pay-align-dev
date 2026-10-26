@@ -27,9 +27,9 @@ from src.app.infrastructure.sqlalchemy_payroll_repository import (
 from src.app.infrastructure.sqlalchemy_setup_repository import SqlAlchemySetupRepository
 from src.app.interfaces.payroll import payroll_router
 from src.app.interfaces.setup import setup_router
+from src.app.interfaces.ui import ui_router
 from src.app.interfaces.auth import auth_router
 from src.app.interfaces.employment_reads import employment_reads_router
-from src.app.interfaces.ui import ui_router
 
 
 def create_app(
