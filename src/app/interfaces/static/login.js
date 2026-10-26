@@ -7,7 +7,7 @@ const signupFields = {first_name: "signup-first-name", last_name: "signup-last-n
 const MIN_PASSWORD_LENGTH = 8;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SETUP_PAGE = "/setup";
-const EMPLOYMENTS_PAGE = "/employments";
+const EMPLOYER_DESTINATION = "/setup";
 const rejectedRequest = "Your request was rejected. Reload the page and try again.";
 let accountState = "loading";
 let submitting = false;
@@ -121,7 +121,7 @@ function postCredentials(path, payload, token) {
 
 async function nextPage() {
   const {status, body} = await call("/api/v1/employer", {headers: {Accept: "application/json"}, cache: "no-store"}, 10000);
-  if (status === 200 && Number.isSafeInteger(body?.id) && body.id > 0) return EMPLOYMENTS_PAGE;
+  if (status === 200 && Number.isSafeInteger(body?.id) && body.id > 0) return EMPLOYER_DESTINATION;
   if (status === 404 && body?.detail === "No employer is set up yet.") return SETUP_PAGE;
   throw new Error("response");
 }
