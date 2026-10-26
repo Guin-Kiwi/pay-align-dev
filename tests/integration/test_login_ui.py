@@ -32,9 +32,7 @@ class Page(HTMLParser):
 def node_binary():
     node = shutil.which('node')
     if node is None:
-        candidates = sorted(Path('/vscode/vscode-server/bin').glob('*/*/node'))
-        assert candidates, 'The UI tests require Node.js.'
-        node = str(candidates[-1])
+        pytest.fail('The login UI tests require Node.js 22 on PATH.')
     return node
 
 
