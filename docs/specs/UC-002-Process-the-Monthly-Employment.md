@@ -103,11 +103,9 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - The system must display a confirmation message upon success.
 
 ## Security / trust-boundary notes
-Superceded by [Amendment 1](#amendment-1--2026-10-26-payroll-access-and-storage).
+Superseded by [Amendment 1](#amendment-1--2026-10-26-payroll-access-and-storage).
 - All data is stored locally and not shared with external systems.
 - The employer must authenticate to access the system (future consideration).
-
-
 
 ## Validation plan
 - **Acceptance: daily work details are accepted and saved [SQLite; unit (no database)]**: `tests/integration/test_payroll_api.py::test_entries_are_stored_as_submitted`; `tests/unit/test_payroll_service.py::TestPayrollService::test_entries_are_saved_as_submitted`.
