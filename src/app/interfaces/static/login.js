@@ -249,9 +249,12 @@ function resetSignup() {
 for (const id of [...Object.values(loginFields), ...Object.values(signupFields)]) {
   element(id).addEventListener("input", () => {
     if (id === signupFields.password) showRequirements(value(id));
-    if (flagged.has(id)) checkField(id);
+    if (flagged.has(id)) {
+      if (value(id).trim()) checkField(id);
+      else setFieldError(id, "");
+    }
   });
-  element(id).addEventListener("blur", () => checkField(id));
+  element(id).addEventListener("blur", () => { if (value(id).trim()) checkField(id); });
 }
 element("login-form").addEventListener("submit", submitLogin);
 element("signup-form").addEventListener("submit", submitSignup);
