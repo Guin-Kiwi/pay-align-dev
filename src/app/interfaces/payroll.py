@@ -19,7 +19,7 @@ from src.app.domain.errors import (
 from src.app.domain.hour_categories import HourCategory
 from src.app.domain.work_entry import WorkEntry, calculate_paid_minutes
 from src.app.interfaces.auth import require_account_id, require_csrf_token
-from src.app.interfaces.employment_reads import SavedPayslipResponse
+from src.app.interfaces.employment_reads import PayslipSummaryResponse
 
 payroll_router = APIRouter()
 PAYROLL_SAVED_CONFIRMATION_UNAVAILABLE_MESSAGE = (
@@ -46,7 +46,7 @@ class MonthlyPayrollRequest(BaseModel):
     work_entries: list[WorkEntryRequest]
 
 
-class PayslipResponse(SavedPayslipResponse):
+class PayslipResponse(PayslipSummaryResponse):
     message: str
 
 

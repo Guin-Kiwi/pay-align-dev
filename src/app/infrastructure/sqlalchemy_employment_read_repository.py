@@ -111,4 +111,11 @@ class SqlAlchemyEmploymentReadRepository(EmploymentReadRepository):
                     **amounts,
                 ),
                 holiday_balance_minutes=snapshot.holiday_balance_minutes,
+                hourly_wage=Decimal(snapshot.hourly_wage_cents).scaleb(-2),
+                cash_bonus=Decimal(record.cash_bonus_cents).scaleb(-2),
+                expense_reimbursements=Decimal(record.expense_reimbursements_cents).scaleb(-2),
+                worked_minutes=snapshot.worked_minutes,
+                public_holiday_worked_minutes=snapshot.public_holiday_worked_minutes,
+                annual_holiday_taken_minutes=snapshot.annual_holiday_taken_minutes,
+                public_holiday_taken_minutes=snapshot.public_holiday_taken_minutes,
             )
