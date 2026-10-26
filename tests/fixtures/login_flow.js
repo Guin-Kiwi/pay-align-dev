@@ -241,12 +241,18 @@ process.stdin.on('end', async () => {
       act(() => blur('signup-email'));
       assert.equal(note('signup-email'), 'Enter an email address in the form name@example.ch.');
       assert.equal(flag('signup-email'), 'true');
+      act(() => set('signup-email', ''));
+      assert.equal(note('signup-email'), '');
+      assert.equal(flag('signup-email'), 'false');
+      act(() => blur('signup-email'));
+      assert.equal(note('signup-email'), '');
+      assert.notEqual(flag('signup-email'), 'true');
       act(() => set('signup-email', 'asdasd@example.ch'));
       assert.equal(note('signup-email'), '');
       assert.equal(flag('signup-email'), 'false');
       act(() => blur('signup-first-name'));
-      assert.equal(note('signup-first-name'), 'This field is required.');
-      assert.equal(flag('signup-first-name'), 'true');
+      assert.equal(note('signup-first-name'), '');
+      assert.notEqual(flag('signup-first-name'), 'true');
       act(() => set('signup-first-name', 'Anna'));
       assert.equal(note('signup-first-name'), '');
       act(() => blur('signup-first-name'));
@@ -268,8 +274,15 @@ process.stdin.on('end', async () => {
       act(() => set('login-email', 'asdasd'));
       act(() => blur('login-email'));
       assert.equal(note('login-email'), 'Enter an email address in the form name@example.ch.');
+      act(() => set('login-email', ''));
+      assert.equal(note('login-email'), '');
+      assert.equal(flag('login-email'), 'false');
+      act(() => blur('login-email'));
+      assert.equal(note('login-email'), '');
+      assert.notEqual(flag('login-email'), 'true');
       act(() => blur('login-password'));
-      assert.equal(note('login-password'), 'This field is required.');
+      assert.equal(note('login-password'), '');
+      assert.notEqual(flag('login-password'), 'true');
       assert.equal(note('signup-email'), '');
       act(() => elements['signup-cancel'].listeners.click());
       for (const id of Object.values(signupIds)) {
