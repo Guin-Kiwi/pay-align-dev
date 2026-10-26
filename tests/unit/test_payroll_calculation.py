@@ -4,7 +4,11 @@ import unittest
 from datetime import date, time
 from decimal import Decimal
 
-from src.app.domain.constants import PUBLIC_HOLIDAYS
+from src.app.domain.constants import (
+    EMPLOYEE_GROSS_LIMIT,
+    EMPLOYER_GROSS_LIMIT,
+    PUBLIC_HOLIDAYS,
+)
 from src.app.domain.employment import Employment
 from src.app.domain.errors import AnnualLimitExceededError, InvalidPayrollInputError
 from src.app.domain.hour_categories import HourCategory, MinuteTotals
@@ -360,6 +364,34 @@ class TestPayrollCalculation(unittest.TestCase):
                 employee_gross_to_date=Decimal("0.00"),
                 employer_gross_to_date=Decimal("56000.00"),
             )
+
+    def test_employee_annual_limit_message_explains_next_step(self):
+        with self.assertRaises(AnnualLimitExceededError) as error:
+            validate_annual_limits(
+                current_gross_wage=Decimal("1.00"),
+                employee_gross_to_date=Decimal(EMPLOYEE_GROSS_LIMIT),
+            )
+
+        self.assertEqual(
+            str(error.exception),
+            f"Employee annual gross wage limit (CHF {EMPLOYEE_GROSS_LIMIT}) exceeded. "
+            "The simplified procedure no longer applies. Contact AKBS about the "
+            "ordinary procedure, which PayAlign does not support.",
+        )
+
+    def test_employer_annual_limit_message_explains_next_step(self):
+        with self.assertRaises(AnnualLimitExceededError) as error:
+            validate_annual_limits(
+                current_gross_wage=Decimal("1.00"),
+                employer_gross_to_date=Decimal(EMPLOYER_GROSS_LIMIT),
+            )
+
+        self.assertEqual(
+            str(error.exception),
+            f"Employer annual gross wage limit (CHF {EMPLOYER_GROSS_LIMIT}) exceeded. "
+            "The simplified procedure no longer applies. Contact AKBS about the "
+            "ordinary procedure, which PayAlign does not support.",
+        )
 
 
 if __name__ == "__main__":
