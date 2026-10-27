@@ -26,7 +26,7 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Obtain Ayla's review of the narrow holiday-calendar endpoint and the whole-month browser revision recorded in proposed UC-003 Amendment 8, then exercise the flow on the demo environment under `demo-path`. Completed months remain view-only. The owning use cases exclude employment changes or endings and completed-month corrections, so no persisted update or delete work is implied by these views.
+Obtain Ayla's review of the narrow holiday-calendar endpoint and the whole-month browser revision recorded in proposed UC-003 Amendment 6, then exercise the flow on the demo environment under `demo-path`. Completed months remain view-only. The owning use cases exclude employment changes or endings and completed-month corrections, so no persisted update or delete work is implied by these views.
 
 ## Tasks
 
