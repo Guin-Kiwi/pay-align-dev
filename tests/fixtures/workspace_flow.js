@@ -9,6 +9,8 @@ process.stdin.on("end", async () => {
     const {scenario, elements: attributes, javascript} = JSON.parse(input);
     const calls = [];
     const redirects = [];
+    const assigned = [];
+    const storage = new Map();
     const events = [];
     const confirmations = [];
     let releasePayroll;
@@ -34,13 +36,6 @@ process.stdin.on("end", async () => {
 
     const elements = Object.fromEntries(Object.entries(attributes).map(([id, attrs]) => [id, makeElement("existing", {id, ...attrs})]));
     const response = (status, body) => ({status, json: async () => body});
-    const payslip = {
-      monthly_record_id: 11, gross_wage: "741.00", ahv_deduction: "39.27",
-      alv_deduction: "8.15", tax_deduction: "33.35", nbu_deduction: "3.70",
-      net_payout: "656.53", employer_ahv: "39.27", employer_alv: "8.15",
-      employer_fak: "12.60", employer_bu: "2.96", admin_charge: "1.96",
-      total_employer_cost: "806.94", holiday_balance_minutes: 31,
-    };
     const publicHolidayScenario = scenario === "public-holiday";
     const month = publicHolidayScenario ? 5 : 2;
     const employment = {
@@ -54,7 +49,12 @@ process.stdin.on("end", async () => {
         createElement(tag) { return makeElement(tag); },
       },
       window: {
-        location: {replace(url) { redirects.push(url); }},
+        location: {replace(url) { redirects.push(url); }, assign(url) { assigned.push(url); }},
+        sessionStorage: {
+          getItem(key) { return storage.has(key) ? storage.get(key) : null; },
+          setItem(key, value) { storage.set(key, String(value)); },
+          removeItem(key) { storage.delete(key); },
+        },
         confirm(message) { confirmations.push(message); return confirmResult; },
         dispatchEvent(event) { events.push(event.type); },
       },
@@ -76,17 +76,13 @@ process.stdin.on("end", async () => {
           if (scenario === "months-401") return response(401, {detail: "Authentication required."});
           return response(200, {months: [{monthly_record_id: 11, year: 2026, month: 1}], next_month: {year: 2026, month}});
         }
-        if (url === "/api/v1/employments/7/months/2026/1" || url === `/api/v1/employments/7/months/2026/${month}`) {
-          if (scenario === "payslip-401") return response(401, {detail: "Authentication required."});
-          return response(200, payslip);
-        }
         if (url === "/api/v1/monthly-payroll") {
           assert.equal(options.method, "POST");
           if (scenario === "duplicate-submit") await new Promise(resolve => releasePayroll = resolve);
           if (scenario === "payroll-network") throw new Error("offline");
           if (scenario === "payroll-401") return response(401, {detail: "Authentication required."});
           if (scenario === "payroll-403") return response(403, {detail: "Invalid CSRF token."});
-          return response(201, {monthly_record_id: 11, gross_wage: "741.00", net_payout: "656.53"});
+          return response(201, {message: "Payroll processed successfully.", monthly_record_id: 11, gross_wage: "741.00", net_payout: "656.53"});
         }
         if (url === "/api/v1/auth/logout") {
           assert.equal(options.method, "POST");
@@ -145,14 +141,11 @@ process.stdin.on("end", async () => {
     } else if (scenario === "completed-month") {
       await selectEmployment();
       const completed = buttons(elements["month-list"]); assert.equal(completed.length, 1);
-      await click(completed[0]); assert.equal(elements["payslip-section"].hidden, false);
-      assert.match(elements["payslip-details"].textContent, /741\.00/);
-      assert.doesNotMatch(elements["payslip-details"].textContent, /delete|edit/i);
+      await click(completed[0]);
+      assert.deepEqual(assigned, ["/payslips?employment_id=7&year=2026&month=1"]);
+      assert.equal(calls.some(call => call.url.includes("/months/2026/")), false);
     } else if (scenario === "months-401") {
       await selectEmployment(); assert.match(elements["page-error"].textContent, /session.*expired|log in again/i);
-    } else if (scenario === "payslip-401") {
-      await selectEmployment(); await click(buttons(elements["month-list"])[0]);
-      assert.match(elements["page-error"].textContent, /session.*expired|log in again/i);
     } else if (scenario === "fill-month" || scenario === "fill-boundaries") {
       await openEntry(); await fillMondays();
       const rows = elements["work-entries-body"].children;
@@ -251,7 +244,9 @@ process.stdin.on("end", async () => {
         assert.match(elements["page-error"].textContent, /may have been saved/i); assert.equal(elements["save-payroll"].disabled, true);
         await click(elements["confirm-payroll"]); assert.equal(calls.filter(call => call.url === "/api/v1/monthly-payroll").length, 1);
       } else {
-        assert.equal(elements["payslip-section"].hidden, false);
+        assert.deepEqual(assigned, ["/payslips?employment_id=7&year=2026&month=2"]);
+        assert.deepEqual(JSON.parse(storage.get("payalign-saved-confirmation")), {url: "/payslips?employment_id=7&year=2026&month=2", message: "Payroll processed successfully."});
+        assert.equal(calls.some(call => call.url.includes("/months/2026/")), false);
         assert.deepEqual(events, ["payalign-payroll-saved"]);
       }
     } else if (scenario === "logout" || scenario === "logout-403") {

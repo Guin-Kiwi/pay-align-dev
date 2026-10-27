@@ -179,7 +179,61 @@ employer setup and record isolation on SQLite and, when configured, PostgreSQL.
 context. `tests/unit/test_setup_service.py` covers in-memory isolation and rejected
 foreign saves without partial changes.
 
-## Amendment 6 — 2026-10-26: Payslip view design
+## Amendment 6 — 2026-10-27: Minimum browser navigation
+
+Status: **Proposed — requires human review and is not yet accepted.**
+
+The authenticated employment list is the browser home after setup. The login
+page sends an account without an employer profile to `/setup` and an account
+with an employer profile to `/employments`. The setup page continues to create
+both first and later employments and links to `/employments` after a successful
+save; the employment list links back to `/setup` to add another employment.
+
+`/employments` presents Amendment 3 views 2 to 4 as states of one small browser
+workspace: employment selection, the selected employment's completed months and
+next eligible month, month entry, and a saved payslip. Selecting a completed
+month only reads its saved payslip. Saving the next month uses the existing
+monthly-payroll operation, then reads the saved payslip through the existing
+month endpoint so every persisted payslip field can be shown. No view adds an
+update or delete action.
+
+The workspace obtains a CSRF token for payroll creation and logout. It never
+automatically retries a state-changing request. An explicit authentication or
+CSRF rejection directs the employer to log in again; an uncertain payroll
+outcome prevents a duplicate submission until the employment's month history is
+reloaded. Logout ends the session and returns to `/login`.
+
+The next-month state stages the whole month before saving. The employer may
+define one start time, end time and unpaid break for each selected weekday and
+fill the actual dates within the employment boundaries. Staged entries remain
+editable and removable, and extra workdays may be added; non-overlapping split
+shifts on one date are allowed. Regenerating a pattern after manual changes
+requires confirmation because it replaces the staged work rows.
+
+The browser reads the authenticated 2026 public-holiday calendar from the
+interfaces layer; the domain constant remains its only source. A scheduled
+public holiday offers worked time or paid time off. Worked time is submitted as
+`worked` for server classification, while paid time off is submitted as
+`public_holiday_taken` with the scheduled duration. No holiday entry is created
+for a weekday outside the selected pattern. An individually added annual
+holiday is `annual_holiday_taken`, defaults to that weekday's scheduled minutes,
+and replaces conflicting regular work entries. Public holidays cannot be added
+as annual holiday.
+
+Before the immutable monthly run is created, the workspace shows totals for
+each category and overall paid minutes, presents all staged entries for review,
+and requires explicit confirmation. It then sends every entry in one request to
+the existing monthly-payroll operation. Patterns and staged rows are not
+persisted as drafts.
+
+Later employment setup reuses the existing `/setup` form and UC-001 setup
+operation. This slice does not add an employee picker or an employee-editing
+operation; persisted employee details remain governed by UC-001 and its
+employer-scoped setup behavior.
+
+[Amendment 11](#amendment-11--2026-10-27-welcome-page-employer-setup-and-payslip-handoff) changes this navigation.
+
+## Amendment 7 — 2026-10-26: Payslip view design
 
 This design extends views 3 and 4 of Amendment 3, within UC-002's existing
 payroll rules. It describes a browser view and the data it needs; it does not
@@ -208,6 +262,8 @@ claim that this screen satisfies every requirement for a salary statement.
   4. **Employer costs:** employer AHV/IV/EO, ALV, FAK, BU and administration
      charge, followed by total employer cost. Separate these from employee
      deductions; the total includes gross wage and reimbursements.
+     [Amendment 8](#amendment-8--2026-10-27-employer-costs-in-print) moves this
+     breakdown out of the printed payslip.
   5. **Holiday:** the remaining holiday balance after the run.
 - Show zero values as zero; label monetary values in CHF and durations clearly.
   Use the saved values and the project's formulas, not independently sourced
@@ -286,22 +342,22 @@ uses AKBS payroll rules, the responsible fund depends on the employer's
 circumstances; see the [AHV/IV simplified-procedure guidance, item 9](https://www.ahv-iv.ch/p/2.07.d).
 The employer's personal AHV number is not a substitute for the fund account number.
 
-## Amendment 7 — 2026-10-27: Employer costs in print
+## Amendment 8 — 2026-10-27: Employer costs in print
 
-The employer-cost breakdown in Amendment 6 remains visible in a separate
+The employer-cost breakdown in Amendment 7 remains visible in a separate
 on-screen employer panel beside the payslip, but is omitted when printing or
 saving the employee's payslip as a PDF. On smaller screens the panels stack.
 The employee deductions, payout and holiday balance remain in the printed
 view. `tests/integration/test_payslip_ui.py` checks that the employer-cost section
 uses the print-hiding class; the print layout still needs a real-browser check.
 
-## Amendment 8 — 2026-10-27: Employer profile operations
+## Amendment 9 — 2026-10-27: Employer profile operations
 
 Status: Proposed; human review pending.
 
-The owning account can create and update its employer profile independently of an employment. Authentication, CSRF and the one-employer-per-account boundary continue to apply. Combined setup remains available to existing API clients. Reopened payslips use current employer identity as described in Amendment 6.
+The owning account can create and update its employer profile independently of an employment. Authentication, CSRF and the one-employer-per-account boundary continue to apply. Combined setup remains available to existing API clients. Reopened payslips use current employer identity as described in [Amendment 7](#amendment-7--2026-10-26-payslip-view-design).
 
-## Amendment 9 — 2026-10-27: Employee overview and details reads
+## Amendment 10 — 2026-10-27: Employee overview and details reads
 
 The employee overview, details and stored-value decisions were approved by Guin-Kiwi on 2026-10-27 and checked against code and tests that day. These consolidated read-only views use stored values and add no payroll rule.
 
@@ -309,54 +365,14 @@ The employee overview, details and stored-value decisions were approved by Guin-
 
 `GET /api/v1/employees/{id}` returns address, AHV number, nationality and tax status only on request. An absent or another account's employee has the same not-found response.
 
-## Amendment 10 — 2026-10-27: Minimum browser navigation
+## Amendment 11 — 2026-10-27: Welcome page, employer setup and payslip handoff
 
 Status: **Proposed — requires human review and is not yet accepted.**
 
-The authenticated employment list is the browser home after setup. The login
-page sends an account without an employer profile to `/setup` and an account
-with an employer profile to `/employments`. The setup page continues to create
-both first and later employments and links to `/employments` after a successful
-save; the employment list links back to `/setup` to add another employment.
+This amendment changes the browser navigation of [Amendment 6](#amendment-6--2026-10-27-minimum-browser-navigation). The journey and presentation are owned by [UC-004](UC-004-UI-AND-USER-FLOW.md); no payroll rule, endpoint or stored data changes.
 
-`/employments` presents Amendment 3 views 2 to 4 as states of one small browser
-workspace: employment selection, the selected employment's completed months and
-next eligible month, month entry, and a saved payslip. Selecting a completed
-month only reads its saved payslip. Saving the next month uses the existing
-monthly-payroll operation, then reads the saved payslip through the existing
-month endpoint so every persisted payslip field can be shown. No view adds an
-update or delete action.
-
-The workspace obtains a CSRF token for payroll creation and logout. It never
-automatically retries a state-changing request. An explicit authentication or
-CSRF rejection directs the employer to log in again; an uncertain payroll
-outcome prevents a duplicate submission until the employment's month history is
-reloaded. Logout ends the session and returns to `/login`.
-
-The next-month state stages the whole month before saving. The employer may
-define one start time, end time and unpaid break for each selected weekday and
-fill the actual dates within the employment boundaries. Staged entries remain
-editable and removable, and extra workdays may be added; non-overlapping split
-shifts on one date are allowed. Regenerating a pattern after manual changes
-requires confirmation because it replaces the staged work rows.
-
-The browser reads the authenticated 2026 public-holiday calendar from the
-interfaces layer; the domain constant remains its only source. A scheduled
-public holiday offers worked time or paid time off. Worked time is submitted as
-`worked` for server classification, while paid time off is submitted as
-`public_holiday_taken` with the scheduled duration. No holiday entry is created
-for a weekday outside the selected pattern. An individually added annual
-holiday is `annual_holiday_taken`, defaults to that weekday's scheduled minutes,
-and replaces conflicting regular work entries. Public holidays cannot be added
-as annual holiday.
-
-Before the immutable monthly run is created, the workspace shows totals for
-each category and overall paid minutes, presents all staged entries for review,
-and requires explicit confirmation. It then sends every entry in one request to
-the existing monthly-payroll operation. Patterns and staged rows are not
-persisted as drafts.
-
-Later employment setup reuses the existing `/setup` form and UC-001 setup
-operation. This slice does not add an employee picker or an employee-editing
-operation; persisted employee details remain governed by UC-001 and its
-employer-scoped setup behavior.
+- `/` serves a public welcome page with Log in and Sign up links, instead of redirecting to `/login`.
+- After login or registration the browser opens `/employments` (Home), with or without an employer profile. Without one, Home stays available and asks for the account details before an employment is added.
+- The employer profile has its own page, `/employer-setup`, opened from Home's account-details button; saving it returns to `/employments`. Until a profile exists, `/setup` redirects to `/employments`. The profile operations are in [Amendment 9](#amendment-9--2026-10-27-employer-profile-operations).
+- Signed-in pages share one navigation: Home, Timesheets, Employees, Payslips and Log out, with a Back button outside Home.
+- `/payslips` is the only payslip renderer, as [Amendment 7](#amendment-7--2026-10-26-payslip-view-design) describes, so Home has no saved-payslip state. After a successful save, Home stores `{url, message}` in `sessionStorage` under `payalign-saved-confirmation` and opens that month's `/payslips?employment_id=ID&year=YYYY&month=M`; a completed month opens the same URL. `/payslips` shows the message once when the URL matches, then removes it. If the saved-month read then fails, the message stays visible and the page's retry reads the month again; the payroll is never submitted again.

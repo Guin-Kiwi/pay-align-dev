@@ -155,10 +155,12 @@ The `/login` page is view 0 of [UC-003 Amendment 3](specs/UC-003-Employer-Accoun
 
 `/employments` is the authenticated browser home. Its header selects the payroll month;
 the household strip shows the wage limit and selected-month costs. The left column
-hosts the employment, month-entry and saved-payslip workspace; the right column
+hosts the employment and month-entry workspace, which does not render payslips; the right column
 shows per-employment tasks. The Timesheets and Employees pages remain available
 from the shared navigation. [UC-004](specs/UC-004-UI-AND-USER-FLOW.md) owns the
-browser journey and presentation. The pages use shared JavaScript helpers and
+browser journey and presentation; the navigation decisions are in
+[proposed UC-003 Amendment 6](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-6--2026-10-27-minimum-browser-navigation)
+and [Amendment 11](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-11--2026-10-27-welcome-page-employer-setup-and-payslip-handoff). The pages use shared JavaScript helpers and
 rules supplied by `constants.py`; the employment workspace retains its own scoped
 handlers so its form controls do not conflict with Home.
 
@@ -171,17 +173,17 @@ on the right shows the year so far: pay, employer cost with its contributions, h
 leave, and the wage limit used and remaining for that person; the household's is on Home. It reads
 `GET /api/v1/employees`, which composes the existing month-history and saved-payslip reads and the
 gross-to-date sums that UC-002 uses for the limit check
-([UC-003 Amendment 9](specs/UC-003-Employer-Accounts-and-Secure-Access.md)); it adds no payroll
+([UC-003 Amendment 10](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-10--2026-10-27-employee-overview-and-details-reads)); it adds no payroll
 rule.
 
-The authenticated `/payslips` page is the saved-payslip view. It lets the employer select an
+The authenticated `/payslips` page is the saved-payslip view and the only payslip renderer. It lets the employer select an
 employment and completed month, read the saved payroll detail, and use the browser's print or
 save-as-PDF dialog. It uses the existing employer, employment, month-history and
 saved-month reads, including the employee AHV number from the account-scoped
 employment detail. It opens the latest saved month across employments by default, or the latest for a selected employment. When the selected employment has a next month to enter, an Enter timesheet button
 opens `/timesheets` for it. A direct link can preselect a saved month using
 `/payslips?employment_id=ID&year=YYYY&month=M`; the server still checks ownership.
-Home, Timesheets and the Employees page link to selected saved months there.
+Home, Timesheets and the Employees page link to selected saved months there. After a successful save, the Home workspace stores `{url, message}` in `sessionStorage` under `payalign-saved-confirmation` and opens that month's `/payslips` URL; `/payslips` shows the message once when `url` matches the page's address and then removes it. If the saved-month read then fails, the message stays visible and the page's retry reads the month again without submitting the payroll.
 
 The current HTTP endpoints are:
 
@@ -215,7 +217,7 @@ The current HTTP endpoints are:
 | `GET /api/v1/employments` | List the signed-in employer's employments. |
 | `GET /api/v1/employments/{employment_id}` | Read one owned employment's summary. |
 | `GET /api/v1/employments/{employment_id}/months` | List saved months and the next eligible 2026 month. |
-| `GET /api/v1/employments/{employment_id}/months/{year}/{month}` | Read an owned month's saved payslip, holiday balance, bonus and reimbursements, and the run's hourly rate and four hour-category totals for the payslip view ([UC-003 Amendment 6](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-6--2026-10-26-payslip-view-design)). |
+| `GET /api/v1/employments/{employment_id}/months/{year}/{month}` | Read an owned month's saved payslip, holiday balance, bonus and reimbursements, and the run's hourly rate and four hour-category totals for the payslip view ([UC-003 Amendment 7](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-7--2026-10-26-payslip-view-design)). |
 | `POST /api/v1/monthly-payroll` | Save the next monthly run and return its saved payslip detail and confirmation message. |
 
 Employment and month reads require a session and return 404 for absent or other-account records. `PayrollService.process_monthly_payroll` and the payroll port's `employment_terms` require an account ID; neither provides an unscoped fallback. Completed months have no update or delete endpoint; the scope decision is in [UC-003 Amendment 3](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views).

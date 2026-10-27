@@ -92,6 +92,7 @@ async function loadDetail() {
   element("payslip").hidden = true;
   element("employer-costs").hidden = true;
   element("print").hidden = true;
+  element("status").textContent = "";
   showError("");
   if (!employment.value || !month.value) return;
   const [year, number] = month.value.split("-").map(Number);

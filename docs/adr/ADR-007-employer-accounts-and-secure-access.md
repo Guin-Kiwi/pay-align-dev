@@ -84,4 +84,5 @@ its own employer profile before adding an employment. This amends the combined
 first-time setup described in Decision items 3 and 7; account ownership, session,
 CSRF and the one-employer-per-account constraint remain unchanged. Existing
 combined setup remains available to API clients. Historical payslip identity
-continues to use current employer details as described by UC-003 Amendment 6.
+continues to use current employer details as described by
+[UC-003 Amendment 7](../specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-7--2026-10-26-payslip-view-design).

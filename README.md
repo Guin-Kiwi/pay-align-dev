@@ -18,7 +18,7 @@ Run order, empty months, daily entries, public holidays and the known limitation
 specified in [UC-002](docs/specs/UC-002-Process-the-Monthly-Employment.md); rates and
 limits are in [calculations.md](docs/reference/calculations.md).
 The saved-payslip view and its limitations are described in
-[UC-003 Amendment 6](docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md#known-limitations).
+[UC-003 Amendment 7](docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md#known-limitations).
 
 ## Project documentation
 
