@@ -25,6 +25,8 @@ async function scenario(failure) {
   const el = id => { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); };
   const requests = [];
   let prints = 0;
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
   const fetch = async url => {
     requests.push(url);
     if (failure === 'session') return {status: 401, ok: false};
@@ -33,6 +35,7 @@ async function scenario(failure) {
     if (url === '/api/v1/employments/7') return {status: 200, ok: true, json: async () => ({id: 7, employee_name: '<Employee>', employee_ahv_number: '756.1234.5678.97'})};
     if (url === '/api/v1/employments/7/months') return {status: 200, ok: true, json: async () => ({months: [{year: 2026, month: 4}]})};
     if (failure === 'detail') return {status: 500, ok: false};
+    if (failure === 'superseded') await pending;
     return {status: 200, ok: true, json: async () => detail};
   };
   const context = {document: {getElementById: el, createElement: () => new Element()}, fetch,
@@ -42,6 +45,15 @@ async function scenario(failure) {
   for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
   if (failure === 'session') {
     assert.match(el('error').textContent, /session has expired/);
+    assert.equal(el('payslip').hidden, true);
+  } else if (failure === 'superseded') {
+    assert.equal(el('status').textContent, 'Loading payslip…');
+    el('month').value = '';
+    el('month').handlers.change();
+    assert.equal(el('status').textContent, '');
+    release();
+    for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.equal(el('status').textContent, '');
     assert.equal(el('payslip').hidden, true);
   } else if (failure === 'detail') {
     assert.equal(el('payslip').hidden, true);
@@ -68,4 +80,4 @@ async function scenario(failure) {
   }
 }
 
-(async () => { await scenario(); await scenario('detail'); await scenario('session'); })().catch(error => { console.error(error); process.exitCode = 1; });
+(async () => { await scenario(); await scenario('detail'); await scenario('session'); await scenario('superseded'); })().catch(error => { console.error(error); process.exitCode = 1; });
