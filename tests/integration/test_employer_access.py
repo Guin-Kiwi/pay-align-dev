@@ -314,6 +314,8 @@ def test_employment_list_is_scoped_to_the_signed_in_account(monkeypatch, tmp_pat
     assert anonymous_list.status_code == 401
     assert owned_detail.status_code == 200
     assert owned_detail.json()["id"] == first_id
+    assert owned_detail.json()["employee_ahv_number"] == SETUP["employee"]["ahv_number"]
+    assert "employee_ahv_number" not in first_list.json()[0]
     assert other_detail.status_code == missing_detail.status_code == 404
     app.state.engine.dispose()
 

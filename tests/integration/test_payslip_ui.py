@@ -16,7 +16,7 @@ def test_payslip_page_exposes_read_only_detail_and_assets():
     with AuthenticatedTestClient(create_app()) as client:
         response = client.get('/payslips')
         assert response.status_code == 200
-        for label in ('Employee deductions', 'Expense reimbursements',
+        for label in ('Employee AHV number', 'Employee deductions', 'Expense reimbursements',
                       'Net payout due', 'Employer costs', 'Holiday balance'):
             assert label in response.text
         assert client.get('/setup-assets/payslip.js').status_code == 200

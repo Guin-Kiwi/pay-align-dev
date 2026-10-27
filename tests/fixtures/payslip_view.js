@@ -28,8 +28,9 @@ async function scenario(failure) {
   const fetch = async url => {
     requests.push(url);
     if (failure === 'session') return {status: 401, ok: false};
-    if (url === '/api/v1/employer') return {status: 200, ok: true, json: async () => ({name: '<Employer>'})};
+    if (url === '/api/v1/employer') return {status: 200, ok: true, json: async () => ({name: '<Employer>', ahv_number: '756.9876.5432.17'})};
     if (url === '/api/v1/employments') return {status: 200, ok: true, json: async () => [{id: 7, employee_name: '<Employee>', start_date: '2026-04-01'}]};
+    if (url === '/api/v1/employments/7') return {status: 200, ok: true, json: async () => ({id: 7, employee_name: '<Employee>', employee_ahv_number: '756.1234.5678.97'})};
     if (url === '/api/v1/employments/7/months') return {status: 200, ok: true, json: async () => ({months: [{year: 2026, month: 4}]})};
     if (failure === 'detail') return {status: 500, ok: false};
     return {status: 200, ok: true, json: async () => detail};
@@ -50,6 +51,7 @@ async function scenario(failure) {
     assert.equal(el('payslip').hidden, false);
     assert.equal(el('employee-name').textContent, '<Employee>');
     assert.equal(el('employer-name').textContent, '<Employer>');
+    assert.equal(el('employee-ahv-number').textContent, '756.1234.5678.97');
     assert.equal(el('period').textContent, 'April 2026');
     assert.equal(el('hourly-pay').textContent, 'CHF 156.75');
     assert.equal(el('deductions').textContent, 'CHF 29.27');
