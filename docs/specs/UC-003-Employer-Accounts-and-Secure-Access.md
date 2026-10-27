@@ -300,3 +300,11 @@ uses the print-hiding class; the print layout still needs a real-browser check.
 Status: Proposed; human review pending.
 
 The owning account can create and update its employer profile independently of an employment. Authentication, CSRF and the one-employer-per-account boundary continue to apply. Combined setup remains available to existing API clients. Reopened payslips use current employer identity as described in Amendment 6.
+
+## Amendment 9 — 2026-10-27: Employee overview and details reads
+
+The employee overview, details and stored-value decisions were approved by Guin-Kiwi on 2026-10-27 and checked against code and tests that day. These consolidated read-only views use stored values and add no payroll rule.
+
+`GET /api/v1/employees` returns one entry per person belonging to the signed-in account's employer, with employments, terms, saved-month counts, next month, months due, saved annual totals, holiday balance and wage limit used and remaining. It also returns the household wage limit. Months due end at the current month, employment end or rules-year end, whichever comes first. The balance is from the latest saved month of the latest employment with saved months. Gross totals and limits use the existing payroll sums and constants. No averages or projections are calculated.
+
+`GET /api/v1/employees/{id}` returns address, AHV number, nationality and tax status only on request. An absent or another account's employee has the same not-found response.

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from src.app.application.ports.employment_read_repository import (
     CompletedMonth,
+    EmployeeDetails,
     EmploymentOverview,
     EmploymentReadRepository,
     SavedPayslip,
@@ -32,6 +33,9 @@ class EmploymentReadService:
         self, account_id: int, employment_id: int
     ) -> EmploymentOverview | None:
         return self.repository.get_employment(account_id, employment_id)
+
+    def get_employee(self, account_id: int, employee_id: int) -> EmployeeDetails | None:
+        return self.repository.get_employee(account_id, employee_id)
 
     def month_history(
         self, account_id: int, employment_id: int

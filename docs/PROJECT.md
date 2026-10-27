@@ -183,6 +183,8 @@ The current HTTP endpoints are:
 | `POST /api/v1/employer` | Create the signed-in account's employer profile. |
 | `PUT /api/v1/employer` | Update the signed-in account's employer profile. |
 | `POST /api/v1/setup` | Create an employer profile and first employment, or add an employment under the signed-in employer. |
+| `GET /api/v1/employees` | Read account-scoped employee and household overviews. |
+| `GET /api/v1/employees/{employee_id}` | Read one owned employee's details. |
 | `GET /api/v1/employments` | List the signed-in employer's employments. |
 | `GET /api/v1/employments/{employment_id}` | Read one owned employment's summary. |
 | `GET /api/v1/employments/{employment_id}/months` | List saved months and the next eligible 2026 month. |

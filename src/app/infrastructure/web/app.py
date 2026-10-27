@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 
 from src.app.application.account_service import AccountService
+from src.app.application.employee_overview_service import EmployeeOverviewService
 from src.app.application.employment_read_service import EmploymentReadService
 from src.app.application.payroll_service import PayrollService
 from src.app.application.ports.account_repository import AccountRepository
@@ -29,6 +30,7 @@ from src.app.interfaces.payroll import payroll_router
 from src.app.interfaces.setup import setup_router
 from src.app.interfaces.ui import ui_router
 from src.app.interfaces.auth import auth_router
+from src.app.interfaces.employee_reads import employee_reads_router
 from src.app.interfaces.employment_reads import employment_reads_router
 
 
@@ -90,10 +92,14 @@ def create_app(
         password_hasher if password_hasher is not None else PwdlibPasswordHasher(),
     )
     app.state.employment_read_service = EmploymentReadService(employment_read_repository)
+    app.state.employee_overview_service = EmployeeOverviewService(
+        app.state.employment_read_service, payroll_repository
+    )
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(setup_router, prefix="/api/v1")
     app.include_router(payroll_router, prefix="/api/v1")
     app.include_router(employment_reads_router, prefix="/api/v1")
+    app.include_router(employee_reads_router, prefix="/api/v1")
 
     @app.get("/health")
     def health() -> dict[str, str]:
