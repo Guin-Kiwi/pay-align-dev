@@ -143,8 +143,11 @@ def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
             },
         )
         assert registration.status_code == 201, registration.text
+        assert app.get("/setup", follow_redirects=False).status_code == 303
+        employer = app.post("/api/v1/employer", headers=_csrf_header(app), json=SETUP["employer"])
+        assert employer.status_code == 201, employer.text
         assert "Set up employment" in app.get("/setup").text
-        setup = app.post("/api/v1/setup", headers=_csrf_header(app), json=SETUP)
+        setup = app.post("/api/v1/setup", headers=_csrf_header(app), json={"employee": SETUP["employee"], "employment": SETUP["employment"]})
         assert setup.status_code == 201, setup.text
         employment_id = setup.json()["employment_id"]
         assert "Your employments" in app.get("/employments").text
