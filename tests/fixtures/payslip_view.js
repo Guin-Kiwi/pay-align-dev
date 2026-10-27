@@ -31,12 +31,14 @@ async function scenario(failure) {
   const requests = [];
   const assigned = [];
   let prints = 0;
+  let employmentListReads = 0;
   let release;
   const pending = new Promise(resolve => { release = resolve; });
   const fetch = async url => {
     requests.push(url);
     if (failure === 'session') return {status: 401, ok: false};
     if (url === '/api/v1/employer') return {status: 200, ok: true, json: async () => ({name: '<Employer>', ahv_number: '756.9876.5432.17'})};
+    if (failure === 'initial-failure' && url === '/api/v1/employments' && employmentListReads++ === 0) return {status: 500, ok: false};
     if (url === '/api/v1/employments') return {status: 200, ok: true, json: async () => [
       {id: 7, employee_name: '<Employee>', start_date: `${YEAR}-04-01`, end_date: `${YEAR}-09-30`},
       {id: 8, employee_name: '<Employee>', start_date: `${YEAR}-10-01`, end_date: null}]};
@@ -66,11 +68,32 @@ async function scenario(failure) {
     for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
     assert.equal(el('status').textContent, '');
     assert.equal(el('payslip').hidden, true);
+  } else if (failure === 'initial-failure') {
+    assert.equal(el('employment').options.length, 1);
+    assert.equal(el('employment').options[0].textContent, 'Select an employee');
+    assert.equal(el('employment').disabled, true);
+    assert.equal(el('month').options[0].textContent, 'Select an employee first');
+    assert.equal(el('month').disabled, true);
+    assert.equal(el('error').hidden, false);
+    assert.equal(el('retry').hidden, false);
+    assert.equal(el('payslip').hidden, true);
+    el('retry').handlers.click();
+    for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.equal(requests.filter(url => url === '/api/v1/employer').length, 2);
+    assert.equal(el('employment').options.length, 3);
+    assert.equal(el('employment').disabled, false);
+    assert.equal(el('error').hidden, true);
+    assert.equal(el('retry').hidden, true);
+    assert.equal(el('payslip').hidden, false);
   } else if (failure === 'detail') {
     assert.equal(el('payslip').hidden, true);
     assert.equal(el('employer-costs').hidden, true);
     assert.equal(el('retry').hidden, false);
     assert.match(el('error').textContent, /could not be loaded/);
+    el('retry').handlers.click();
+    for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.equal(requests.filter(url => url.endsWith(`/months/${YEAR}/4`)).length, 2);
+    assert.equal(requests.filter(url => url === '/api/v1/employer').length, 1);
   } else {
     assert.equal(el('payslip').hidden, false);
     assert.equal(el('employer-costs').hidden, false);
@@ -102,4 +125,4 @@ async function scenario(failure) {
   }
 }
 
-(async () => { await scenario(); await scenario('finished'); await scenario('detail'); await scenario('session'); await scenario('superseded'); })().catch(error => { console.error(error); process.exitCode = 1; });
+(async () => { await scenario(); await scenario('finished'); await scenario('detail'); await scenario('session'); await scenario('superseded'); await scenario('initial-failure'); })().catch(error => { console.error(error); process.exitCode = 1; });

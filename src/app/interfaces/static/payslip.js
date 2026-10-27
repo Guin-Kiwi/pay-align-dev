@@ -6,11 +6,13 @@ const TIMESHEETS_PAGE = "/timesheets";
 let requestVersion = 0;
 let employerName = "";
 let employments = [];
+let retryAction = loadDetail;
 
-function showError(message, retry = false) {
+function showError(message, retry = null) {
   element("error").textContent = message;
   element("error").hidden = !message;
   element("retry").hidden = !retry;
+  if (retry) retryAction = retry;
   element("login-link").hidden = true;
 }
 
@@ -22,7 +24,7 @@ async function readJSON(url) {
   return response.json();
 }
 
-function failure(error, retry = false) {
+function failure(error, retry = null) {
   element("status").textContent = "";
   if (error.message === "session") {
     showError("Your session has expired. Please sign in again.");
@@ -55,6 +57,13 @@ function option(value, label) {
   item.value = value;
   item.textContent = label;
   return item;
+}
+
+function resetSelects(label) {
+  employment.replaceChildren(option("", label));
+  employment.disabled = true;
+  month.replaceChildren(option("", "Select an employee first"));
+  month.disabled = true;
 }
 
 function periodName(year, number) {
@@ -108,7 +117,7 @@ async function loadDetail() {
     render(detail, employee, year, number);
     element("status").textContent = "";
   } catch (error) {
-    if (version === requestVersion) failure(error, true);
+    if (version === requestVersion) failure(error, loadDetail);
   }
 }
 
@@ -163,6 +172,8 @@ async function initialise() {
       window.sessionStorage.removeItem("payalign-saved-confirmation");
     }
   } catch (error) { /* Browsing without session storage still opens the saved payslip. */ }
+  showError("");
+  resetSelects("Loading employees…");
   try {
     const [employer, list] = await Promise.all([readJSON("/api/v1/employer"), readJSON("/api/v1/employments")]);
     employerName = employer.name;
@@ -207,14 +218,15 @@ async function initialise() {
       }
     }
   } catch (error) {
-    failure(error);
+    resetSelects("Select an employee");
+    failure(error, initialise);
   }
 }
 
 employment.addEventListener("change", () => loadMonths());
 element("enter-timesheet").addEventListener("click", () => window.location.assign(`${TIMESHEETS_PAGE}?employment_id=${employment.value}`));
 month.addEventListener("change", loadDetail);
-element("retry").addEventListener("click", loadDetail);
+element("retry").addEventListener("click", () => retryAction());
 element("print").addEventListener("click", () => window.print());
 element("sign-in").addEventListener("click", () => window.location.assign("/login"));
 initialise();
