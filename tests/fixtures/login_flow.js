@@ -25,6 +25,8 @@ const authCases = {
   'login-network': {action: 'login', message: /try again/i},
   'login-timeout': {action: 'login', message: /try again/i},
   'login-csrf-failure': {action: 'login', message: /Nothing was sent/, requests: CSRF},
+  'login-again-401': {action: 'login', message: /Invalid email or password\./,
+    requests: [...POST('login'), 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/login']},
   'login-malformed': {action: 'login', message: /try again/i},
   register: {action: 'register', result: 'success'},
   'register-lookup-error': {action: 'register', result: 'lookup'},
@@ -35,6 +37,8 @@ const authCases = {
   'register-network': {action: 'register', message: /account may already have been created/},
   'register-timeout': {action: 'register', message: /account may already have been created/},
   'register-csrf-failure': {action: 'register', message: /Nothing was sent/, requests: CSRF},
+  'register-again-409': {action: 'register', result: 'duplicate-account',
+    requests: [...POST('register'), 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/register']},
   'register-malformed': {action: 'register', message: /account may already have been created/}
 };
 
@@ -237,6 +241,7 @@ async function run({scenario, elements: attributes, javascript, credentials, sig
 
   if (authCases[scenario]) {
     await authenticate(authCases[scenario].action);
+    if (scenario.includes('-again-')) await authenticate(authCases[scenario].action);
     inspectAuth(authCases[scenario]);
   } else if (scenario === 'login-duplicate' || scenario === 'register-duplicate') {
     await duplicateSubmit(scenario.startsWith('register') ? 'register' : 'login');

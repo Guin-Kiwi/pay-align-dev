@@ -260,13 +260,14 @@ def test_login_css_only_uses_colours_that_setup_css_already_defines():
 @pytest.mark.parametrize('scenario', [
     'signed-out', 'signed-in', 'loading', 'me-network', 'me-500', 'me-malformed', 'me-timeout',
     'login', 'login-empty', 'login-401', 'login-403', 'login-422', 'login-500',
-    'login-network', 'login-timeout', 'login-csrf-failure', 'login-malformed', 'login-duplicate',
+    'login-network', 'login-timeout', 'login-csrf-failure', 'login-malformed', 'login-duplicate', 'login-again-401',
     'link-signup', 'link-signed-in', 'link-signed-in-with-employer', 'link-me-500',
     'signed-in-with-employer', 'signed-in-lookup-error', 'signed-in-lookup-network',
     'signed-in-lookup-malformed', 'signed-in-lookup-other-404', 'login-with-employer', 'login-lookup-error',
     'login-invalid-email', 'blur-validation', 'signup-open', 'signup-cancel', 'signup-empty', 'signup-invalid', 'signup-password-rules',
     'register', 'register-lookup-error', 'register-409', 'register-422', 'register-403', 'register-500', 'register-network',
     'register-timeout', 'register-csrf-failure', 'register-malformed', 'register-duplicate',
+    'register-again-409',
 ])
 def test_login_javascript(scenario):
     run_flow(scenario)

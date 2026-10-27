@@ -158,7 +158,7 @@ async function authenticate(request) {
   try {
     let token;
     try {
-      token = await fetchCsrfToken();
+      token = await fetchCsrfToken({fresh: true});
     } catch (failure) {
       showMessage(request.errorId, "Could not reach PayAlign. Nothing was sent; please try again.");
       return;
