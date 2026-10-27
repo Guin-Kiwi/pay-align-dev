@@ -245,6 +245,41 @@ Tests are split into [unit](tests/unit/) (domain and application, no database),
 [end-to-end](tests/e2e/) (the demo flow against a running server, and the Docker image).
 PostgreSQL tests run when `TEST_POSTGRES_URL` is set; CI always runs them.
 
+## Delivery
+
+```mermaid
+%%{init: {"flowchart": {"wrappingWidth": 280}}}%%
+flowchart LR
+    branch["Feature<br/>branch"] -->|pull request| ci
+
+    subgraph ciWorkflow["CI · ci.yml"]
+        ci["lifecycle and whitespace checks<br/>unit, integration and E2E tests<br/>on SQLite and PostgreSQL<br/>PR advisory"]
+    end
+
+    ci -->|green + review| main["main"]
+    main -->|tag v*| verify
+
+    subgraph release["Release · release.yml"]
+        verify["verify<br/>tests<br/>Docker image<br/>container: /health"] --> publish["publish<br/>GitHub Release<br/>image archive"]
+    end
+
+    publish -->|calls| deploy
+
+    subgraph cdWorkflow["CD · cd.yml"]
+        deploy["deploy.sh<br/>Render deploy hook"] --> smoke["smoke-test.sh<br/>waits for /health"]
+    end
+
+    deploy -.->|starts build| render["Render<br/>builds the Dockerfile<br/>at the tagged commit"]
+    smoke -.->|checks| render
+```
+
+A merged pull request does not go live; a `v*` tag does. The release verifies the
+tagged commit and its Docker image, publishes a GitHub Release and calls
+[CD](.github/workflows/cd.yml), which asks Render to build that same commit and then
+waits for `/health`. CD deploys only while the repository variable `CD_ENABLED` is
+`true`. A deploy by hand (Actions → CD → Run workflow) builds the current `main`.
+The app runs at <https://pay-align-dev.onrender.com>.
+
 ## Known limitations and deferred decisions
 
 - **Simplified procedure only:** a month that would exceed an annual limit is rejected; the ordinary procedure is not supported.
