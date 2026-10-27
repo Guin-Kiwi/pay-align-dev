@@ -1,6 +1,6 @@
 # TASKS.md
 
-PHASE: 3
+PHASE: 4
 STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
@@ -12,8 +12,8 @@ STATUS: in-progress
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 Amendment 2 specifies session and CSRF behaviour; ADR-007 Amendment 1 selects Starlette `SessionMiddleware` and links to the owning requirements. |
 | 2 — Design | Done | UC-003 Amendment 3 defines the five view boundaries for application logic. Presentation and navigation stay with the UI owner. ADR-007 sets the account-scoped read boundary; no new domain rule or ADR is needed. |
-| 3 — Develop | In progress | UC-003's backend is implemented and the use case was accepted on 25 October 2026. The login and registration page, logout API and first-employment setup are built; the logout control, views 2 to 4 and the home page remain open. |
-| 4 — Validate | In progress alongside development | UC-002 was re-validated after the account backend merged. The partly covered criteria (database error text, showing the confirmation message) are in the [UC-002 Validation plan](specs/UC-002-Process-the-Monthly-Employment.md). |
+| 3 — Develop | Done | PR #50 review changes implement a reviewed whole-month submission, expose the backend-owned 2026 public-holiday dates through a narrow authenticated read endpoint, and simplify setup success navigation. Focused tests, the full suite and a local Chrome journey pass. |
+| 4 — Validate | In progress alongside development | UC-002 was re-validated after the account backend merged. The remaining partly covered database-error criterion is in the [UC-002 Validation plan](specs/UC-002-Process-the-Monthly-Employment.md). |
 | 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
 ## Active objective
@@ -26,9 +26,7 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Build the employment list (view 2). Login currently sends an account with an employer to `/setup`; when the list exists, change `EMPLOYER_DESTINATION` in `login.js` to its route.
-
-The remaining views follow UC-003 Amendment 3 and are under `uc003-ui`. Completed months are view-only. The owning use cases exclude employment changes or endings and completed-month corrections, so no update or delete work is implied by these views.
+Obtain Ayla's review of the narrow holiday-calendar endpoint and the whole-month browser revision recorded in proposed UC-003 Amendment 8, then exercise the flow on the demo environment under `demo-path`. Completed months remain view-only. The owning use cases exclude employment changes or endings and completed-month corrections, so no persisted update or delete work is implied by these views.
 
 ## Tasks
 
@@ -68,7 +66,7 @@ yours, hand it to a named teammate rather than moving it to Unassigned.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `uc003-ui` | todo | Plan, specify and build the browser views of UC-003 Amendment 3 after login: the home page, setup for later employments, the employment list (view 2), employment months (view 3), month entry with the payslip (view 4), and a logout button using the existing logout API. Write the presentation and navigation decisions down first, in a UC-003 amendment or a UI spec, before building. Open decision for Assvinth: how later employments reuse a saved employee, e.g. a separate page with a picker for saved employees, or prefill on `/setup`. Completed months are view-only. End-to-end tests cover later setup, employment selection, month entry, completed-month and payslip viewing, and two-account isolation. | UC-003 Amendment 3, UC-001, UC-002 | | Tue 27 Oct, 19:00 |
+| `uc003-ui` | doing | Address PR #50 review with a whole-month browser form: generate staged entries from one interval per selected weekday, handle public and annual holidays, allow edits/removal/manual and split-shift additions, review totals, and confirm one CSRF-protected monthly submission. Expose 2026 public-holiday dates from the backend constant through a narrow authenticated read endpoint. Keep completed months view-only and simplify setup success navigation. | UC-003 Amendments 3 and 6, UC-001, UC-002 | | Tue 27 Oct, 19:00 |
 | `readme-final` | todo | Finish the README for the capstone, with a diagram of the four layers and the main components (the grading criteria ask for a clear architecture presentation; PROJECT.md describes the layers only in text). | Capstone brief | | Tue 27 Oct |
 | `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `readme-final` | Wed 28 Oct |
 | `arch-test` | todo | Make the layer check in `tests/unit/test_architecture.py` recognise `src.app` imports; it must fail on a deliberate inner-to-outer import and pass on `main`. An extended check exists separately and is not on `main`; it was validated against an earlier payroll router, so re-validate it against the current wiring before reporting it passing. | ADR-001 | | |

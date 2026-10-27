@@ -179,6 +179,7 @@ async function submitSetup(event) {
   form.setAttribute("aria-busy", "true");
   element("setup-error").hidden = true;
   element("setup-success").hidden = true;
+  element("setup-complete-actions").hidden = true;
   element("setup-status").textContent = "Saving setup …";
   validateFields();
   const controller = new AbortController();
@@ -195,8 +196,9 @@ async function submitSetup(event) {
         throw new Error("response");
       }
       submissionLocked = true;
-      element("setup-success").textContent = "Employment set up successfully. Setup records are saved in the configured database. Whether they remain available after a server restart depends on the database configuration. Reload the page to set up another employment.";
+      element("setup-success").textContent = "Employment set up successfully.";
       element("setup-success").hidden = false;
+      element("setup-complete-actions").hidden = false;
       await loadEmployer();
     } else if ([401, 403].includes(response.status)) {
       showLoginMessage(

@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from src.app.application.payroll_service import PayrollService
 from src.app.application.ports.payroll_repository import PayrollRepositoryPort
-from src.app.domain.constants import RULES_YEAR
+from src.app.domain.constants import PUBLIC_HOLIDAYS, RULES_YEAR
 from src.app.domain.errors import (
     AnnualLimitExceededError,
     DuplicateMonthError,
@@ -50,6 +50,11 @@ class PayslipResponse(SavedPayslipResponse):
     message: str
 
 
+class PublicHolidayCalendarResponse(BaseModel):
+    year: int
+    dates: list[date]
+
+
 def get_payroll_service(request: Request) -> PayrollService:
     return request.app.state.payroll_service
 
@@ -90,6 +95,20 @@ def _to_work_entry(entry: WorkEntryRequest) -> WorkEntry:
         end_time=entry.end_time,
         unpaid_break_minutes=entry.unpaid_break_minutes,
     )
+
+
+@payroll_router.get(
+    "/public-holidays/{year}", response_model=PublicHolidayCalendarResponse
+)
+def public_holiday_calendar(
+    year: int,
+    _: int = Depends(require_account_id),
+):
+    if year != RULES_YEAR:
+        raise HTTPException(
+            status_code=422, detail="Payroll rules are not available for this year."
+        )
+    return {"year": year, "dates": sorted(PUBLIC_HOLIDAYS)}
 
 
 @payroll_router.post("/monthly-payroll", response_model=PayslipResponse, status_code=201)
