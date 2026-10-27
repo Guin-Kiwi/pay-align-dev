@@ -1,8 +1,6 @@
-from html.parser import HTMLParser
 import json
 from pathlib import Path
 import re
-import shutil
 import subprocess
 
 import pytest
@@ -10,30 +8,13 @@ from fastapi.testclient import TestClient
 
 from src.app.domain.constants import MIN_PASSWORD_LENGTH
 from src.app.infrastructure.web.app import create_app
+from tests.integration.page_scripts import Page, node_binary, page_javascript
 from tests.integration.authenticated_client import TEST_PASSWORD, AuthenticatedTestClient
 
 STATIC = Path(__file__).resolve().parents[2] / 'src' / 'app' / 'interfaces' / 'static'
 FLOW = Path(__file__).resolve().parents[1] / 'fixtures' / 'login_flow.js'
 
 
-class Page(HTMLParser):
-    def __init__(self, html):
-        super().__init__()
-        self.tags = []
-        self.feed(html)
-
-    def handle_starttag(self, tag, attrs):
-        self.tags.append((tag, dict(attrs)))
-
-    def by_id(self):
-        return {attrs['id']: attrs for _, attrs in self.tags if 'id' in attrs}
-
-
-def node_binary():
-    node = shutil.which('node')
-    if node is None:
-        pytest.fail('The login UI tests require Node.js 22 on PATH.')
-    return node
 
 
 def run_flow(scenario, email='anna@example.ch', password=TEST_PASSWORD, signup=None, samples=None):
@@ -46,7 +27,7 @@ def run_flow(scenario, email='anna@example.ch', password=TEST_PASSWORD, signup=N
         [node_binary(), str(FLOW)],
         input=json.dumps({
             'scenario': scenario, 'elements': page.by_id(),
-            'javascript': client.get('/setup-assets/login.js').text,
+            'javascript': page_javascript(client, 'login', rules=True),
             'credentials': {'email': email, 'password': password},
             'signup': signup, 'samples': samples,
         }),
@@ -82,9 +63,9 @@ def test_login_page_is_served_with_the_setup_page_styles():
     assert ('html', {'lang': 'en'}) in page.tags
     assert 'Log in' in response.text
     stylesheets = [attrs['href'] for tag, attrs in page.tags if tag == 'link' and attrs.get('rel') == 'stylesheet']
-    assert stylesheets == ['/setup-assets/setup.css', '/setup-assets/login.css']
+    assert [href.split('?')[0] for href in stylesheets] == ['/setup-assets/setup.css', '/setup-assets/login.css']
     scripts = [attrs for tag, attrs in page.tags if tag == 'script']
-    assert scripts == [{'src': '/setup-assets/login.js', 'defer': None}]
+    assert scripts == [{'src': '/setup-assets/constants.js', 'defer': None}, {'src': '/setup-assets/common.js', 'defer': None}, {'src': '/setup-assets/login.js', 'defer': None}]
     assert any(tag == 'noscript' for tag, _ in page.tags)
 
 
@@ -148,9 +129,10 @@ def test_sign_up_dialog_always_lists_the_password_requirements_under_the_passwor
     assert fields['signup-password']['aria-describedby'].split() == ['password-requirements', 'signup-password-error']
 
 
-def test_the_page_script_uses_the_configured_minimum_password_length():
+def test_the_page_script_takes_the_minimum_password_length_from_the_rules_script():
     script = (STATIC / 'login.js').read_text()
-    assert re.search(r'const MIN_PASSWORD_LENGTH = (\d+);', script).group(1) == str(MIN_PASSWORD_LENGTH)
+    assert 'MIN_PASSWORD_LENGTH' in script
+    assert not re.search(r'const MIN_PASSWORD_LENGTH\b', script)
 
 
 def test_sign_up_form_is_accessible_and_cannot_be_submitted_before_the_account_check():
@@ -278,13 +260,14 @@ def test_login_css_only_uses_colours_that_setup_css_already_defines():
 @pytest.mark.parametrize('scenario', [
     'signed-out', 'signed-in', 'loading', 'me-network', 'me-500', 'me-malformed', 'me-timeout',
     'login', 'login-empty', 'login-401', 'login-403', 'login-422', 'login-500',
-    'login-network', 'login-timeout', 'login-csrf-failure', 'login-malformed', 'login-duplicate',
+    'login-network', 'login-timeout', 'login-csrf-failure', 'login-malformed', 'login-duplicate', 'login-again-401',
     'link-signup', 'link-signed-in', 'link-signed-in-with-employer', 'link-me-500',
     'signed-in-with-employer', 'signed-in-lookup-error', 'signed-in-lookup-network',
     'signed-in-lookup-malformed', 'signed-in-lookup-other-404', 'login-with-employer', 'login-lookup-error',
     'login-invalid-email', 'blur-validation', 'signup-open', 'signup-cancel', 'signup-empty', 'signup-invalid', 'signup-password-rules',
     'register', 'register-lookup-error', 'register-409', 'register-422', 'register-403', 'register-500', 'register-network',
     'register-timeout', 'register-csrf-failure', 'register-malformed', 'register-duplicate',
+    'register-again-409',
 ])
 def test_login_javascript(scenario):
     run_flow(scenario)

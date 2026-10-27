@@ -4,101 +4,140 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Employments | PayAlign</title>
-  <link rel="stylesheet" href="/setup-assets/setup.css">
+  <link rel="stylesheet" href="/setup-assets/setup.css?v=20261027-back">
   <link rel="stylesheet" href="/setup-assets/employments.css">
+  <script src="/setup-assets/navigation.js" defer></script>
+  <script src="/setup-assets/constants.js" defer></script>
+  <script src="/setup-assets/common.js" defer></script>
   <script src="/setup-assets/employments.js" defer></script>
+  <script src="/setup-assets/workspace.js" defer></script>
 </head>
 <body>
+<!-- SHARED_NAVIGATION -->
 <main>
   <header class="workspace-header">
-    <div><p class="brand">PayAlign</p><h1>Employments</h1></div>
-    <button id="logout-button" type="button" disabled>Log out</button>
+    <div><h1>Payroll overview</h1><p>Manage household payroll and view saved payslips.</p></div>
+    <div class="month-picker">
+      <label for="overview-month">Payroll month</label>
+    <select id="overview-month">
+      <option value="1">January {{RULES_YEAR}}</option><option value="2">February {{RULES_YEAR}}</option><option value="3">March {{RULES_YEAR}}</option><option value="4">April {{RULES_YEAR}}</option><option value="5">May {{RULES_YEAR}}</option><option value="6">June {{RULES_YEAR}}</option><option value="7">July {{RULES_YEAR}}</option><option value="8">August {{RULES_YEAR}}</option><option value="9">September {{RULES_YEAR}}</option><option value="10">October {{RULES_YEAR}}</option><option value="11">November {{RULES_YEAR}}</option><option value="12">December {{RULES_YEAR}}</option>
+    </select>
+    </div>
   </header>
   <noscript><p>Please enable JavaScript to manage monthly payroll.</p></noscript>
   <p id="page-status" role="status" aria-live="polite">Loading employments …</p>
   <p id="page-error" role="alert" hidden></p>
-
-  <section aria-labelledby="employment-list-heading">
-    <div class="section-heading">
-      <h2 id="employment-list-heading">Your employments</h2>
-      <a id="add-employment" href="/setup">Add employment</a>
+  <section class="household-strip" aria-labelledby="household-heading">
+    <div class="strip-head">
+      <h2 id="household-heading">Household wage limit</h2>
+      <button id="employer-details-button" type="button">Account details</button>
     </div>
-    <p id="employment-empty" hidden>No employments are set up yet. Add an employment to continue.</p>
-    <ul id="employment-list" class="selection-list"></ul>
+    <p id="employer-status">Checking your account details…</p>
+    <p id="household-status" role="status" aria-live="polite">Loading the household …</p>
+    <div id="household-rows"></div>
+    <p id="household-note" class="note" hidden></p>
+  <section class="costs-in-strip" aria-labelledby="overview-heading">
+    <h2 id="overview-heading">Your costs</h2>
+    <p id="overview-completeness" role="status">Loading payroll overview…</p>
+    <dl class="overview-metrics">
+      <div><dt>Pay employees</dt><dd id="overview-payout">—</dd><small>Calculated payout due</small></div>
+      <div><dt>Estimated set-aside</dt><dd id="overview-reserve">—</dd><small>Employee deductions and employer contributions</small></div>
+      <div><dt>Total employer cost</dt><dd id="overview-cost">—</dd><small>Based on saved payrolls</small></div>
+    </dl>
+  </section>
   </section>
 
-  <section id="months-section" aria-labelledby="months-heading" hidden>
-    <h2 id="months-heading">Employment months</h2>
-    <p id="selected-employment"></p>
+  <div class="overview-grid">
+  <section class="overview-panel legacy-workspace" aria-label="Employment workspace">
+  <p id="workspace-page-status" role="status" aria-live="polite">Loading employments …</p>
+  <p id="workspace-page-error" role="alert" hidden></p>
+
+  <section aria-labelledby="workspace-employment-list-heading">
+    <div class="section-heading">
+      <h2 id="workspace-employment-list-heading">Your employments</h2>
+
+    </div>
+    <p id="workspace-employment-empty" hidden>No employments are set up yet. Add an employment to continue.</p>
+    <ul id="workspace-employment-list" class="selection-list"></ul>
+  </section>
+
+  <section id="workspace-months-section" aria-labelledby="workspace-months-heading" hidden>
+    <h2 id="workspace-months-heading">Employment months</h2>
+    <p id="workspace-selected-employment"></p>
     <h3>Completed months</h3>
-    <p id="month-empty" hidden>No completed months yet.</p>
-    <ul id="month-list" class="selection-list"></ul>
-    <p id="next-month"></p>
-    <button id="open-month-entry" type="button" disabled>Enter next month</button>
+    <p id="workspace-month-empty" hidden>No completed months yet.</p>
+    <ul id="workspace-month-list" class="selection-list"></ul>
+    <p id="workspace-next-month"></p>
+    <button id="workspace-open-month-entry" type="button" disabled>Enter next month</button>
   </section>
 
-  <section id="entry-section" aria-labelledby="entry-heading" hidden>
-    <h2 id="entry-heading">Month entry</h2>
-    <p id="entry-month"></p>
-    <form id="payroll-form" novalidate>
+  <section id="workspace-entry-section" aria-labelledby="workspace-entry-heading" hidden>
+    <h2 id="workspace-entry-heading">Month entry</h2>
+    <p id="workspace-entry-month"></p>
+    <form id="workspace-payroll-form" novalidate>
       <fieldset>
         <legend>Weekly work pattern</legend>
         <p>Select each regular weekday and enter its single time interval.</p>
         <div class="table-scroll"><table class="entry-table"><thead><tr><th>Day</th><th>Start</th><th>End</th><th>Unpaid break</th></tr></thead><tbody>
-          <tr><td><label class="inline-label"><input id="pattern-monday" type="checkbox"> Monday</label></td><td><input id="pattern-monday-start" type="time" aria-label="Monday start time"></td><td><input id="pattern-monday-end" type="time" aria-label="Monday end time"></td><td><input id="pattern-monday-break" type="number" min="0" step="1" value="0" aria-label="Monday unpaid break in minutes"></td></tr>
-          <tr><td><label class="inline-label"><input id="pattern-tuesday" type="checkbox"> Tuesday</label></td><td><input id="pattern-tuesday-start" type="time" aria-label="Tuesday start time"></td><td><input id="pattern-tuesday-end" type="time" aria-label="Tuesday end time"></td><td><input id="pattern-tuesday-break" type="number" min="0" step="1" value="0" aria-label="Tuesday unpaid break in minutes"></td></tr>
-          <tr><td><label class="inline-label"><input id="pattern-wednesday" type="checkbox"> Wednesday</label></td><td><input id="pattern-wednesday-start" type="time" aria-label="Wednesday start time"></td><td><input id="pattern-wednesday-end" type="time" aria-label="Wednesday end time"></td><td><input id="pattern-wednesday-break" type="number" min="0" step="1" value="0" aria-label="Wednesday unpaid break in minutes"></td></tr>
-          <tr><td><label class="inline-label"><input id="pattern-thursday" type="checkbox"> Thursday</label></td><td><input id="pattern-thursday-start" type="time" aria-label="Thursday start time"></td><td><input id="pattern-thursday-end" type="time" aria-label="Thursday end time"></td><td><input id="pattern-thursday-break" type="number" min="0" step="1" value="0" aria-label="Thursday unpaid break in minutes"></td></tr>
-          <tr><td><label class="inline-label"><input id="pattern-friday" type="checkbox"> Friday</label></td><td><input id="pattern-friday-start" type="time" aria-label="Friday start time"></td><td><input id="pattern-friday-end" type="time" aria-label="Friday end time"></td><td><input id="pattern-friday-break" type="number" min="0" step="1" value="0" aria-label="Friday unpaid break in minutes"></td></tr>
-          <tr><td><label class="inline-label"><input id="pattern-saturday" type="checkbox"> Saturday</label></td><td><input id="pattern-saturday-start" type="time" aria-label="Saturday start time"></td><td><input id="pattern-saturday-end" type="time" aria-label="Saturday end time"></td><td><input id="pattern-saturday-break" type="number" min="0" step="1" value="0" aria-label="Saturday unpaid break in minutes"></td></tr>
-          <tr><td><label class="inline-label"><input id="pattern-sunday" type="checkbox"> Sunday</label></td><td><input id="pattern-sunday-start" type="time" aria-label="Sunday start time"></td><td><input id="pattern-sunday-end" type="time" aria-label="Sunday end time"></td><td><input id="pattern-sunday-break" type="number" min="0" step="1" value="0" aria-label="Sunday unpaid break in minutes"></td></tr>
+          <tr><td><label class="inline-label"><input id="workspace-pattern-monday" type="checkbox"> Monday</label></td><td><input id="workspace-pattern-monday-start" type="time" aria-label="Monday start time"></td><td><input id="workspace-pattern-monday-end" type="time" aria-label="Monday end time"></td><td><input id="workspace-pattern-monday-break" type="number" min="0" step="1" value="0" aria-label="Monday unpaid break in minutes"></td></tr>
+          <tr><td><label class="inline-label"><input id="workspace-pattern-tuesday" type="checkbox"> Tuesday</label></td><td><input id="workspace-pattern-tuesday-start" type="time" aria-label="Tuesday start time"></td><td><input id="workspace-pattern-tuesday-end" type="time" aria-label="Tuesday end time"></td><td><input id="workspace-pattern-tuesday-break" type="number" min="0" step="1" value="0" aria-label="Tuesday unpaid break in minutes"></td></tr>
+          <tr><td><label class="inline-label"><input id="workspace-pattern-wednesday" type="checkbox"> Wednesday</label></td><td><input id="workspace-pattern-wednesday-start" type="time" aria-label="Wednesday start time"></td><td><input id="workspace-pattern-wednesday-end" type="time" aria-label="Wednesday end time"></td><td><input id="workspace-pattern-wednesday-break" type="number" min="0" step="1" value="0" aria-label="Wednesday unpaid break in minutes"></td></tr>
+          <tr><td><label class="inline-label"><input id="workspace-pattern-thursday" type="checkbox"> Thursday</label></td><td><input id="workspace-pattern-thursday-start" type="time" aria-label="Thursday start time"></td><td><input id="workspace-pattern-thursday-end" type="time" aria-label="Thursday end time"></td><td><input id="workspace-pattern-thursday-break" type="number" min="0" step="1" value="0" aria-label="Thursday unpaid break in minutes"></td></tr>
+          <tr><td><label class="inline-label"><input id="workspace-pattern-friday" type="checkbox"> Friday</label></td><td><input id="workspace-pattern-friday-start" type="time" aria-label="Friday start time"></td><td><input id="workspace-pattern-friday-end" type="time" aria-label="Friday end time"></td><td><input id="workspace-pattern-friday-break" type="number" min="0" step="1" value="0" aria-label="Friday unpaid break in minutes"></td></tr>
+          <tr><td><label class="inline-label"><input id="workspace-pattern-saturday" type="checkbox"> Saturday</label></td><td><input id="workspace-pattern-saturday-start" type="time" aria-label="Saturday start time"></td><td><input id="workspace-pattern-saturday-end" type="time" aria-label="Saturday end time"></td><td><input id="workspace-pattern-saturday-break" type="number" min="0" step="1" value="0" aria-label="Saturday unpaid break in minutes"></td></tr>
+          <tr><td><label class="inline-label"><input id="workspace-pattern-sunday" type="checkbox"> Sunday</label></td><td><input id="workspace-pattern-sunday-start" type="time" aria-label="Sunday start time"></td><td><input id="workspace-pattern-sunday-end" type="time" aria-label="Sunday end time"></td><td><input id="workspace-pattern-sunday-break" type="number" min="0" step="1" value="0" aria-label="Sunday unpaid break in minutes"></td></tr>
         </tbody></table></div>
-        <button id="fill-month" type="button">Fill month</button>
-        <p id="pattern-error" role="alert" hidden></p>
+        <button id="workspace-fill-month" type="button">Fill month</button>
+        <p id="workspace-pattern-error" role="alert" hidden></p>
       </fieldset>
 
-      <section aria-labelledby="worked-entries-heading">
-        <h3 id="worked-entries-heading">Worked and public-holiday entries</h3>
-        <div class="inline-controls"><div><label for="work-entry-date">Additional workday</label><input id="work-entry-date" type="date"></div><button id="add-workday" type="button">Add workday</button></div>
-        <div class="table-scroll"><table class="entry-table"><thead><tr><th>Date</th><th>Category</th><th>Start</th><th>End</th><th>Break / paid minutes</th><th>Action</th></tr></thead><tbody id="work-entries-body"></tbody></table></div>
+      <section aria-labelledby="workspace-worked-entries-heading">
+        <h3 id="workspace-worked-entries-heading">Worked and public-holiday entries</h3>
+        <div class="inline-controls"><div><label for="workspace-work-entry-date">Additional workday</label><input id="workspace-work-entry-date" type="date"></div><button id="workspace-add-workday" type="button">Add workday</button></div>
+        <div class="table-scroll"><table class="entry-table"><thead><tr><th>Date</th><th>Category</th><th>Start</th><th>End</th><th>Break / paid minutes</th><th>Action</th></tr></thead><tbody id="workspace-work-entries-body"></tbody></table></div>
       </section>
 
-      <section aria-labelledby="annual-holiday-heading">
-        <h3 id="annual-holiday-heading">Annual holiday</h3>
+      <section aria-labelledby="workspace-annual-holiday-heading">
+        <h3 id="workspace-annual-holiday-heading">Annual holiday</h3>
         <div class="inline-controls">
-          <div><label for="annual-holiday-date">Holiday date</label><input id="annual-holiday-date" type="date"></div>
-          <div><label for="annual-holiday-minutes">Paid minutes</label><input id="annual-holiday-minutes" type="number" min="0" step="1"></div>
-          <button id="add-annual-holiday" type="button">Add holiday day</button>
+          <div><label for="workspace-annual-holiday-date">Holiday date</label><input id="workspace-annual-holiday-date" type="date"></div>
+          <div><label for="workspace-annual-holiday-minutes">Paid minutes</label><input id="workspace-annual-holiday-minutes" type="number" min="0" step="1"></div>
+          <button id="workspace-add-annual-holiday" type="button">Add holiday day</button>
         </div>
-        <p id="entry-error" role="alert" hidden></p>
-        <div class="table-scroll"><table class="entry-table"><thead><tr><th>Date</th><th>Paid minutes</th><th>Action</th></tr></thead><tbody id="holiday-entries-body"></tbody></table></div>
+        <p id="workspace-entry-error" role="alert" hidden></p>
+        <div class="table-scroll"><table class="entry-table"><thead><tr><th>Date</th><th>Paid minutes</th><th>Action</th></tr></thead><tbody id="workspace-holiday-entries-body"></tbody></table></div>
       </section>
 
-      <template id="entry-category-options"><option value="worked" data-entry-category>Worked</option><option value="public_holiday_taken" data-entry-category>Day off (paid)</option><option value="annual_holiday_taken" data-entry-category>Annual holiday</option></template>
+      <template id="workspace-entry-category-options"><option value="worked" data-entry-category>Worked</option><option value="public_holiday_taken" data-entry-category>Day off (paid)</option><option value="annual_holiday_taken" data-entry-category>Annual holiday</option></template>
 
-      <section aria-labelledby="totals-heading"><h3 id="totals-heading">Totals</h3><dl id="entry-totals" class="payslip"></dl></section>
+      <section aria-labelledby="workspace-totals-heading"><h3 id="workspace-totals-heading">Totals</h3><dl id="workspace-entry-totals" class="payslip"></dl></section>
 
       <div class="field-grid">
-        <div><label for="cash-bonus">Cash bonus in CHF</label><input id="cash-bonus" type="number" min="0" step="0.01" value="0.00"></div>
-        <div><label for="expense-reimbursements">Expense reimbursements in CHF</label><input id="expense-reimbursements" type="number" min="0" step="0.01" value="0.00"></div>
+        <div><label for="workspace-cash-bonus">Cash bonus in CHF</label><input id="workspace-cash-bonus" type="number" min="0" step="0.01" value="0.00"></div>
+        <div><label for="workspace-expense-reimbursements">Expense reimbursements in CHF</label><input id="workspace-expense-reimbursements" type="number" min="0" step="0.01" value="0.00"></div>
       </div>
-      <button id="save-payroll" type="submit" disabled>Review month</button>
+      <button id="workspace-save-payroll" type="submit" disabled>Review month</button>
 
-      <section id="review-section" aria-labelledby="review-heading" hidden>
-        <h3 id="review-heading">Review before saving</h3>
+      <section id="workspace-review-section" aria-labelledby="workspace-review-heading" hidden>
+        <h3 id="workspace-review-heading">Review before saving</h3>
         <p>This month cannot be edited after it is saved.</p>
-        <ul id="review-entries"></ul>
-        <button id="confirm-payroll" type="button">Confirm and save month</button>
-        <button id="cancel-review" type="button">Back to entries</button>
+        <ul id="workspace-review-entries"></ul>
+        <button id="workspace-confirm-payroll" type="button">Confirm and save month</button>
+        <button id="workspace-cancel-review" type="button">Back to entries</button>
       </section>
     </form>
   </section>
-
-  <section id="payslip-section" aria-labelledby="payslip-heading" hidden>
-    <h2 id="payslip-heading">Saved payslip</h2>
-    <p id="payslip-month"></p>
-    <dl id="payslip-details" class="payslip"></dl>
   </section>
+  <section class="overview-panel" aria-labelledby="employment-list-heading">
+    <div class="section-heading">
+      <h2 id="employment-list-heading">Your tasks</h2>
+      <button id="add-employment" type="button" disabled>Add employment</button>
+    </div>
+    <p id="employment-empty" hidden>No employments are set up yet. Add an employment to continue.</p>
+    <ul id="employment-list" class="employee-list"></ul>
+    <button id="show-employments" type="button" aria-expanded="false" hidden>View all employments</button>
+  </section>
+  </div>
 </main>
 </body>
 </html>

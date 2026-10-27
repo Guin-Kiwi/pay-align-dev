@@ -1,6 +1,6 @@
 # TASKS.md
 
-PHASE: 4
+PHASE: 3
 STATUS: in-progress
 
 (0=Bootstrap | 1=Specify | 2=Design | 3=Develop | 4=Validate | 5=Deploy)
@@ -12,7 +12,7 @@ STATUS: in-progress
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 Amendment 2 specifies session and CSRF behaviour; ADR-007 Amendment 1 selects Starlette `SessionMiddleware` and links to the owning requirements. |
 | 2 — Design | Done | UC-003 Amendment 3 defines the five view boundaries for application logic. Presentation and navigation stay with the UI owner. ADR-007 sets the account-scoped read boundary; no new domain rule or ADR is needed. |
-| 3 — Develop | Done | PR #50 review changes implement a reviewed whole-month submission, expose the backend-owned 2026 public-holiday dates through a narrow authenticated read endpoint, and simplify setup success navigation. Focused tests, the full suite and a local Chrome journey pass. |
+| 3 — Develop | In progress | Integrate the Home workspace and the separate Timesheets, Employees and Payslip views; verify the proposed layout and its behavior. |
 | 4 — Validate | In progress alongside development | UC-002 was re-validated after the account backend merged. The remaining partly covered database-error criterion is in the [UC-002 Validation plan](specs/UC-002-Process-the-Monthly-Employment.md). |
 | 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
@@ -26,7 +26,7 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Obtain Ayla's review of the narrow holiday-calendar endpoint and the whole-month browser revision recorded in proposed UC-003 Amendment 6, then exercise the flow on the demo environment under `demo-path`. Completed months remain view-only. The owning use cases exclude employment changes or endings and completed-month corrections, so no persisted update or delete work is implied by these views.
+Verify the Home layout and its embedded employment workspace, the separate Timesheets and Employees pages, and the saved-payslip handoff. Human review of the proposed Home layout and supporting decisions remains open; the demo environment check remains under `demo-path`.
 
 ## Tasks
 

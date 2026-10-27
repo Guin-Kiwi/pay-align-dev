@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from src.app.application.ports.employment_read_repository import (
     CompletedMonth,
+    EmployeeDetails,
     EmploymentOverview,
     EmploymentReadRepository,
     SavedPayslip,
@@ -26,7 +27,7 @@ class SqlAlchemyEmploymentReadRepository(EmploymentReadRepository):
 
     def _employment_query(self, account_id: int):
         return (
-            select(EmploymentRow, EmployeeRow.name)
+            select(EmploymentRow, EmployeeRow.name, EmployeeRow.ahv_number)
             .join(EmployerRow, EmployerRow.id == EmploymentRow.employer_id)
             .join(EmployeeRow, EmployeeRow.id == EmploymentRow.employee_id)
             .where(EmployerRow.account_id == account_id)
@@ -34,10 +35,11 @@ class SqlAlchemyEmploymentReadRepository(EmploymentReadRepository):
 
     @staticmethod
     def _overview(row) -> EmploymentOverview:
-        employment, employee_name = row
+        employment, employee_name, employee_ahv_number = row
         return EmploymentOverview(
             id=employment.id,
             employee_name=employee_name,
+            employee_ahv_number=employee_ahv_number,
             start_date=employment.start_date,
             end_date=employment.end_date,
         )
@@ -59,6 +61,24 @@ class SqlAlchemyEmploymentReadRepository(EmploymentReadRepository):
                 )
             ).first()
             return self._overview(row) if row else None
+
+    def get_employee(self, account_id: int, employee_id: int) -> EmployeeDetails | None:
+        with Session(self.engine) as session:
+            row = session.scalars(
+                select(EmployeeRow)
+                .join(EmployerRow, EmployerRow.id == EmployeeRow.employer_id)
+                .where(EmployerRow.account_id == account_id, EmployeeRow.id == employee_id)
+            ).first()
+            if row is None:
+                return None
+            return EmployeeDetails(
+                id=row.id,
+                name=row.name,
+                address=row.address,
+                ahv_number=row.ahv_number,
+                nationality=row.nationality,
+                tax_status=row.tax_status,
+            )
 
     def list_months(self, account_id: int, employment_id: int) -> list[CompletedMonth]:
         with Session(self.engine) as session:
@@ -111,4 +131,11 @@ class SqlAlchemyEmploymentReadRepository(EmploymentReadRepository):
                     **amounts,
                 ),
                 holiday_balance_minutes=snapshot.holiday_balance_minutes,
+                hourly_wage=Decimal(snapshot.hourly_wage_cents).scaleb(-2),
+                cash_bonus=Decimal(record.cash_bonus_cents).scaleb(-2),
+                expense_reimbursements=Decimal(record.expense_reimbursements_cents).scaleb(-2),
+                worked_minutes=snapshot.worked_minutes,
+                public_holiday_worked_minutes=snapshot.public_holiday_worked_minutes,
+                annual_holiday_taken_minutes=snapshot.annual_holiday_taken_minutes,
+                public_holiday_taken_minutes=snapshot.public_holiday_taken_minutes,
             )

@@ -1,7 +1,11 @@
 from dataclasses import dataclass
+from calendar import monthrange
+from datetime import date
+from decimal import Decimal
 
 from src.app.application.ports.employment_read_repository import (
     CompletedMonth,
+    EmployeeDetails,
     EmploymentOverview,
     EmploymentReadRepository,
     SavedPayslip,
@@ -21,6 +25,23 @@ class MonthHistory:
     next_month: YearMonth | None
 
 
+@dataclass(frozen=True)
+class OverviewEmployment:
+    employment: EmploymentOverview
+    next_month: YearMonth | None
+    payslip: SavedPayslip | None
+
+
+@dataclass(frozen=True)
+class PayrollOverview:
+    employments: list[OverviewEmployment]
+    eligible_count: int
+    saved_count: int
+    payout_due: Decimal
+    estimated_set_aside: Decimal
+    employer_cost: Decimal
+
+
 class EmploymentReadService:
     def __init__(self, repository: EmploymentReadRepository):
         self.repository = repository
@@ -32,6 +53,9 @@ class EmploymentReadService:
         self, account_id: int, employment_id: int
     ) -> EmploymentOverview | None:
         return self.repository.get_employment(account_id, employment_id)
+
+    def get_employee(self, account_id: int, employee_id: int) -> EmployeeDetails | None:
+        return self.repository.get_employee(account_id, employee_id)
 
     def month_history(
         self, account_id: int, employment_id: int
@@ -61,3 +85,20 @@ class EmploymentReadService:
         self, account_id: int, employment_id: int, year: int, month: int
     ) -> SavedPayslip | None:
         return self.repository.get_payslip(account_id, employment_id, year, month)
+
+    def payroll_overview(self, account_id: int, year: int, month: int) -> PayrollOverview:
+        first = date(year, month, 1)
+        last = date(year, month, monthrange(year, month)[1])
+        items = []
+        for employment in self.repository.list_employments(account_id):
+            if employment.start_date > last or (employment.end_date and employment.end_date < first):
+                continue
+            history = self.month_history(account_id, employment.id)
+            if history is None:
+                continue
+            saved = self.repository.get_payslip(account_id, employment.id, year, month)
+            items.append(OverviewEmployment(employment, history.next_month, saved))
+        saved_payslips = [item.payslip.payslip for item in items if item.payslip is not None]
+        payout = sum((slip.net_payout for slip in saved_payslips), Decimal('0.00'))
+        cost = sum((slip.total_employer_cost for slip in saved_payslips), Decimal('0.00'))
+        return PayrollOverview(items, len(items), len(saved_payslips), payout, cost - payout, cost)

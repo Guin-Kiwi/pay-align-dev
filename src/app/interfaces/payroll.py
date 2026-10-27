@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from datetime import date, time
 from decimal import Decimal
 
@@ -6,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from src.app.application.payroll_service import PayrollService
+from src.app.application.ports.employment_read_repository import SavedPayslip
 from src.app.application.ports.payroll_repository import PayrollRepositoryPort
 from src.app.domain.constants import PUBLIC_HOLIDAYS, RULES_YEAR
 from src.app.domain.errors import (
@@ -19,7 +19,7 @@ from src.app.domain.errors import (
 from src.app.domain.hour_categories import HourCategory
 from src.app.domain.work_entry import WorkEntry, calculate_paid_minutes
 from src.app.interfaces.auth import require_account_id, require_csrf_token
-from src.app.interfaces.employment_reads import SavedPayslipResponse
+from src.app.interfaces.employment_reads import SavedPayslipResponse, saved_payslip_fields
 
 payroll_router = APIRouter()
 PAYROLL_SAVED_CONFIRMATION_UNAVAILABLE_MESSAGE = (
@@ -152,10 +152,18 @@ def process_monthly_payroll(
             status_code=500,
             detail=PAYROLL_SAVED_CONFIRMATION_UNAVAILABLE_MESSAGE,
         )
-    values = asdict(payslip)
-    values.pop("id")
-    return PayslipResponse(
-        **values,
+    saved = SavedPayslip(
+        payslip=payslip,
         holiday_balance_minutes=snapshot.holiday_balance_minutes,
+        hourly_wage=Decimal(snapshot.employment.hourly_wage_cents).scaleb(-2),
+        cash_bonus=record.cash_bonus,
+        expense_reimbursements=record.expense_reimbursements,
+        worked_minutes=snapshot.hours.worked,
+        public_holiday_worked_minutes=snapshot.hours.public_holiday_worked,
+        annual_holiday_taken_minutes=snapshot.hours.annual_holiday_taken,
+        public_holiday_taken_minutes=snapshot.hours.public_holiday_taken,
+    )
+    return PayslipResponse(
+        **saved_payslip_fields(saved),
         message="Payroll processed successfully.",
     )

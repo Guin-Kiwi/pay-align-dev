@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your account details | PayAlign</title>
+  <link rel="stylesheet" href="/setup-assets/setup.css?v=20261027-back">
+  <script src="/setup-assets/navigation.js" defer></script>
+  <script src="/setup-assets/common.js" defer></script>
+  <script src="/setup-assets/employer-setup.js" defer></script>
+</head>
+<body>
+<!-- SHARED_NAVIGATION -->
+<main>
+  <h1>Your account details</h1>
+  <p>These are the payroll details of the household employer: your name, address, AHV number and contact details. They are not your login details.</p>
+  <noscript><p>Please enable JavaScript to save your account details.</p></noscript>
+  <form id="employer-form">
+    <label for="name">Name</label><input id="name" autocomplete="name" required>
+    <label for="address">Address</label><input id="address" autocomplete="street-address" required>
+    <label for="ahv-number">AHV number (756.XXXX.XXXX.XX)</label><input id="ahv-number" pattern="756\.[0-9]{4}\.[0-9]{4}\.[0-9]{2}" required>
+    <label for="contact-info">Contact details</label><input id="contact-info" required>
+    <p id="status" role="status" aria-live="polite">Preparing setup…</p>
+    <p id="error" role="alert" hidden></p>
+    <button id="save" type="submit" disabled>Save your account details</button>
+    <button id="login" type="button" hidden>Sign in</button>
+  </form>
+</main>
+</body>
+</html>

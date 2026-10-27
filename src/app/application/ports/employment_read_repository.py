@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 
 from src.app.domain.payslip import Payslip
 
@@ -9,8 +10,19 @@ from src.app.domain.payslip import Payslip
 class EmploymentOverview:
     id: int
     employee_name: str
+    employee_ahv_number: str
     start_date: date
     end_date: date | None
+
+
+@dataclass(frozen=True)
+class EmployeeDetails:
+    id: int
+    name: str
+    address: str
+    ahv_number: str
+    nationality: str
+    tax_status: str
 
 
 @dataclass(frozen=True)
@@ -24,6 +36,13 @@ class CompletedMonth:
 class SavedPayslip:
     payslip: Payslip
     holiday_balance_minutes: int
+    hourly_wage: Decimal
+    cash_bonus: Decimal
+    expense_reimbursements: Decimal
+    worked_minutes: int
+    public_holiday_worked_minutes: int
+    annual_holiday_taken_minutes: int
+    public_holiday_taken_minutes: int
 
 
 class EmploymentReadRepository(ABC):
@@ -45,4 +64,8 @@ class EmploymentReadRepository(ABC):
     def get_payslip(
         self, account_id: int, employment_id: int, year: int, month: int
     ) -> SavedPayslip | None:
+        ...
+
+    @abstractmethod
+    def get_employee(self, account_id: int, employee_id: int) -> EmployeeDetails | None:
         ...

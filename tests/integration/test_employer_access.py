@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from decimal import Decimal
 import pytest
 from sqlalchemy import text
 
@@ -40,6 +41,32 @@ PAYROLL = {
         }
     ],
 }
+
+
+def test_monthly_overview_includes_only_owned_saved_payroll_and_flags_missing(monkeypatch, tmp_path):
+    monkeypatch.setenv('DATABASE_URL', f"sqlite:///{tmp_path / 'overview.db'}")
+    app = create_app()
+    from tests.integration.authenticated_client import AuthenticatedTestClient
+    owner = AuthenticatedTestClient(app, email='overview-owner@example.ch')
+    other = AuthenticatedTestClient(app, email='overview-other@example.ch')
+    assert owner.post('/api/v1/setup', json=SETUP).status_code == 201
+    assert owner.post('/api/v1/setup', json={**SETUP, 'employer': None, 'employee': {**SETUP['employee'], 'ahv_number': '756.1111.2222.33'}}).status_code == 201
+    assert other.post('/api/v1/setup', json=SETUP).status_code == 201
+    assert owner.post('/api/v1/monthly-payroll', json={**PAYROLL, 'cash_bonus': '50.00', 'expense_reimbursements': '12.40'}).status_code == 201
+    response = owner.get('/api/v1/payroll-overview?year=2026&month=1')
+    assert response.status_code == 200
+    result = response.json()
+    assert result['eligible_count'] == 2
+    assert result['saved_count'] == 1
+    assert len(result['employments']) == 2
+    assert sum(item['payslip'] is None for item in result['employments']) == 1
+    saved = next(item['payslip'] for item in result['employments'] if item['payslip'] is not None)
+    assert Decimal(result['payout_due']) == Decimal(saved['net_payout'])
+    assert Decimal(result['employer_cost']) == Decimal(saved['total_employer_cost'])
+    assert Decimal(result['estimated_set_aside']) == Decimal(saved['total_employer_cost']) - Decimal(saved['net_payout'])
+    assert other.get('/api/v1/payroll-overview?year=2026&month=1').json()['saved_count'] == 0
+    assert owner.get('/api/v1/payroll-overview?year=2026&month=13').status_code == 422
+    assert TestClient(app).get('/api/v1/payroll-overview?year=2026&month=1').status_code == 401
 
 
 def _csrf(client: TestClient) -> str:
@@ -313,6 +340,8 @@ def test_employment_list_is_scoped_to_the_signed_in_account(monkeypatch, tmp_pat
     assert anonymous_list.status_code == 401
     assert owned_detail.status_code == 200
     assert owned_detail.json()["id"] == first_id
+    assert owned_detail.json()["employee_ahv_number"] == SETUP["employee"]["ahv_number"]
+    assert "employee_ahv_number" not in first_list.json()[0]
     assert other_detail.status_code == missing_detail.status_code == 404
     app.state.engine.dispose()
 
@@ -361,4 +390,60 @@ def test_completed_months_and_payslip_are_owned_and_view_only(monkeypatch, tmp_p
     assert change.status_code == deletion.status_code == 405
     with app.state.engine.connect() as connection:
         assert connection.execute(text("SELECT COUNT(*) FROM monthly_records")).scalar_one() == 1
+    app.state.engine.dispose()
+
+
+def test_saved_payslip_detail_uses_snapshot_and_is_account_scoped(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'detail.db'}")
+    monkeypatch.setenv("SESSION_SECRET_KEY", "test-secret-key-that-is-long-enough-for-session-signing")
+    app = create_app()
+    with TestClient(app, base_url="https://testserver") as owner, TestClient(
+        app, base_url="https://testserver"
+    ) as other:
+        _register(owner, "owner-detail@example.ch")
+        setup = owner.post(
+            "/api/v1/setup", headers={"X-CSRF-Token": _csrf(owner)},
+            json={**SETUP, "employment": {**SETUP["employment"], "start_date": "2026-04-01"}},
+        )
+        assert setup.status_code == 201, setup.text
+        employment_id = setup.json()["employment_id"]
+        saved = owner.post(
+            "/api/v1/monthly-payroll", headers={"X-CSRF-Token": _csrf(owner)},
+            json={
+                "employment_id": employment_id, "year": 2026, "month": 4,
+                "cash_bonus": "100.00", "expense_reimbursements": "50.00",
+                "work_entries": [
+                    {"work_date": "2026-04-03", "category": "worked", "start_time": "09:00", "end_time": "10:00"},
+                    {"work_date": "2026-04-06", "category": "public_holiday_taken", "paid_minutes": 90},
+                    {"work_date": "2026-04-07", "category": "worked", "start_time": "09:00", "end_time": "11:00"},
+                    {"work_date": "2026-04-08", "category": "annual_holiday_taken", "paid_minutes": 30},
+                ],
+            },
+        )
+        assert saved.status_code == 201, saved.text
+        url = f"/api/v1/employments/{employment_id}/months/2026/4"
+        detail = owner.get(url)
+        _register(other, "other-detail@example.ch")
+        forbidden = other.get(url)
+        missing = other.get("/api/v1/employments/999/months/2026/4")
+
+    assert detail.status_code == 200
+    values = detail.json()
+    assert {key: values[key] for key in (
+        "hourly_wage", "cash_bonus", "expense_reimbursements", "worked_minutes",
+        "public_holiday_worked_minutes", "annual_holiday_taken_minutes",
+        "public_holiday_taken_minutes",
+    )} == {
+        "hourly_wage": "28.50", "cash_bonus": "100.00", "expense_reimbursements": "50.00",
+        "worked_minutes": 120, "public_holiday_worked_minutes": 60,
+        "annual_holiday_taken_minutes": 30, "public_holiday_taken_minutes": 90,
+    }
+    assert all(values[key] == value for key, value in saved.json().items() if key != "message")
+    gross = Decimal(values["gross_wage"])
+    deductions = sum(Decimal(values[key]) for key in (
+        "ahv_deduction", "alv_deduction", "tax_deduction", "nbu_deduction"
+    ))
+    assert gross - Decimal(values["cash_bonus"]) == Decimal("156.75")
+    assert gross - deductions + Decimal(values["expense_reimbursements"]) == Decimal(values["net_payout"])
+    assert forbidden.status_code == missing.status_code == 404
     app.state.engine.dispose()
