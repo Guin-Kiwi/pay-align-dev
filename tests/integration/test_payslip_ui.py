@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from html.parser import HTMLParser
 from pathlib import Path
 import subprocess
 
@@ -19,6 +20,21 @@ def test_payslip_page_exposes_read_only_detail_and_assets():
         for label in ('Employee AHV number', 'Employee deductions', 'Expense reimbursements',
                       'Net payout due', 'Employer costs', 'Holiday balance'):
             assert label in response.text
+        class PrintSections(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.sections = {}
+
+            def handle_starttag(self, tag, attrs):
+                attrs = dict(attrs)
+                if tag == 'section' and 'id' in attrs:
+                    self.sections[attrs['id']] = attrs.get('class', '').split()
+
+        sections = PrintSections()
+        sections.feed(response.text)
+        assert 'no-print' in sections.sections['employer-costs']
+        assert '@media print' in client.get('/setup-assets/payslip.css').text
+        assert '.no-print { display: none !important; }' in client.get('/setup-assets/payslip.css').text
         assert client.get('/setup-assets/payslip.js').status_code == 200
         assert client.get('/setup-assets/payslip.css').status_code == 200
 
