@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from src.app.application.employment_read_service import EmploymentReadService
+from src.app.application.ports.employment_read_repository import SavedPayslip
 from src.app.domain.constants import PUBLIC_HOLIDAYS, RULES_YEAR
 from src.app.interfaces.auth import require_account_id
 
@@ -70,6 +71,14 @@ class SavedPayslipResponse(BaseModel):
     public_holiday_taken_minutes: int
 
 
+def saved_payslip_fields(saved: SavedPayslip) -> dict:
+    values = asdict(saved.payslip)
+    values.pop('id')
+    details = asdict(saved)
+    details.pop('payslip')
+    return {**values, **details}
+
+
 class OverviewEmploymentResponse(BaseModel):
     employment: EmploymentOverviewResponse
     next_month: YearMonthResponse | None
@@ -101,11 +110,7 @@ def payroll_overview(
     for item in overview.employments:
         saved = None
         if item.payslip is not None:
-            values = asdict(item.payslip.payslip)
-            values.pop('id')
-            details = asdict(item.payslip)
-            details.pop('payslip')
-            saved = SavedPayslipResponse(**values, **details)
+            saved = SavedPayslipResponse(**saved_payslip_fields(item.payslip))
         items.append(OverviewEmploymentResponse(employment=asdict(item.employment), next_month=asdict(item.next_month) if item.next_month else None, payslip=saved))
     return PayrollOverviewResponse(employments=items, eligible_count=overview.eligible_count, saved_count=overview.saved_count, payout_due=overview.payout_due, estimated_set_aside=overview.estimated_set_aside, employer_cost=overview.employer_cost)
 
@@ -162,8 +167,4 @@ def get_saved_payslip(
     saved = service.saved_payslip(account_id, employment_id, year, month)
     if saved is None:
         raise HTTPException(status_code=404, detail="Employment or month not found.")
-    values = asdict(saved.payslip)
-    values.pop("id")
-    details = asdict(saved)
-    details.pop("payslip")
-    return SavedPayslipResponse(**values, **details)
+    return SavedPayslipResponse(**saved_payslip_fields(saved))
