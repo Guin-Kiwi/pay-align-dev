@@ -1,4 +1,4 @@
-main { max-width: 58rem; padding: 2.5rem; }
+main { max-width: 90rem; padding: 2.5rem; }
 .page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .page-header a { color: #116257; }
 .eyebrow { color: #52736e; font-size: .7rem; font-weight: 750; letter-spacing: .12em; margin: 0 0 .45rem; }
@@ -7,8 +7,11 @@ h1 { font-size: clamp(2rem, 5vw, 2.8rem); margin: .2rem 0 .5rem; letter-spacing:
 .selectors { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0 .5rem; }
 .selectors label { margin-top: 0; font-size: .85rem; }
 button { background: #116257; color: white; border: 0; border-radius: .35rem; cursor: pointer; font-weight: 650; }
-#print { margin: .5rem 0 1.5rem; }
-#payslip { border: 1px solid #dbe4e5; border-radius: .6rem; padding: 2rem; margin-top: 1.5rem; }
+.payslip-workspace { display: grid; grid-template-columns: minmax(16rem, 1fr) minmax(0, 2fr); gap: 2rem; align-items: start; margin-top: 1.5rem; }
+.employer-panel { background: #f0f5f4; border: 1px solid #dbe4e5; border-radius: .6rem; padding: 1.5rem; }
+.employer-panel h2 { font-size: 1.15rem; margin: .2rem 0; }
+#print { margin: 0 0 1rem; }
+#payslip { border: 1px solid #dbe4e5; border-radius: .6rem; padding: 2rem; background: white; }
 .slip-header { display: flex; justify-content: space-between; gap: 2rem; flex-wrap: wrap; }
 .slip-header h2 { margin: .2rem 0; font-size: 2rem; letter-spacing: -.03em; }
 .period { margin: .3rem 0; color: #526674; }
@@ -34,5 +37,6 @@ button { background: #116257; color: white; border: 0; border-radius: .35rem; cu
 .payout dl { margin: 0; }
 .payout .payout-total { border-top: 1px solid #bad2c8; margin-top: .4rem; padding-top: .6rem; }
 .payout-total dt, .payout-total dd { font-weight: 750; }
+@media (max-width: 800px) { .payslip-workspace { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { main { padding: 1.25rem; } .selectors, .payout { grid-template-columns: 1fr; } #payslip { padding: 1.1rem; } .parties { gap: 1rem; } }
-@media print { :root, body { background: white; } main { max-width: none; margin: 0; padding: 0; } .no-print { display: none !important; } #payslip { border: 0; margin: 0; padding: 0; } .slip-section, .payout { break-inside: avoid; } .payout { border: 1px solid #bad2c8; } }
+@media print { :root, body { background: white; } main { max-width: none; margin: 0; padding: 0; } .no-print { display: none !important; } .payslip-workspace { display: block; margin: 0; } #payslip { border: 0; margin: 0; padding: 0; } .slip-section, .payout { break-inside: avoid; } .payout { border: 1px solid #bad2c8; } }

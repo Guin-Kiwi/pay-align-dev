@@ -83,12 +83,14 @@ function render(detail, employee, year, number) {
   el("employee-ahv-number").textContent = employee.employee_ahv_number;
   el("period").textContent = periodName(year, number);
   el("payslip").hidden = false;
+  el("employer-costs").hidden = false;
   el("print").hidden = false;
 }
 
 async function loadDetail() {
   const version = ++requestVersion;
   el("payslip").hidden = true;
+  el("employer-costs").hidden = true;
   el("print").hidden = true;
   showError("");
   if (!employment.value || !month.value) return;
@@ -112,6 +114,7 @@ async function loadDetail() {
 async function loadMonths(preselected = "") {
   const version = ++requestVersion;
   el("payslip").hidden = true;
+  el("employer-costs").hidden = true;
   el("print").hidden = true;
   showError("");
   month.disabled = true;

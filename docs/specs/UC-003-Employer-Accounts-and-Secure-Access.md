@@ -285,3 +285,12 @@ app does not record or determine either for the employment. While this project
 uses AKBS payroll rules, the responsible fund depends on the employer's
 circumstances; see the [AHV/IV simplified-procedure guidance, item 9](https://www.ahv-iv.ch/p/2.07.d).
 The employer's personal AHV number is not a substitute for the fund account number.
+
+## Amendment 7 — 2026-10-27: Employer costs in print
+
+The employer-cost breakdown in Amendment 6 remains visible in a separate
+on-screen employer panel beside the payslip, but is omitted when printing or
+saving the employee's payslip as a PDF. On smaller screens the panels stack.
+The employee deductions, payout and holiday balance remain in the printed
+view. `tests/integration/test_payslip_ui.py` checks that the employer-cost section
+uses the print-hiding class; the print layout still needs a real-browser check.
