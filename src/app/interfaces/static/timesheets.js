@@ -384,7 +384,7 @@ function buildPayrollPayload() {
       return null;
     }
   }
-  const overlap = overlappingDate();
+  const overlap = overlappingDate() || repeatedDayOff();
   if (overlap) {
     setMessage("save-error", `Entries on ${overlap} overlap.`);
     return null;
