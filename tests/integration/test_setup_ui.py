@@ -84,6 +84,8 @@ def test_setup_page_is_accessible_and_initially_cannot_submit():
     assert all(attrs['id'] in labels for attrs in inputs)
     assert any(attrs.get('role') == 'status' for _, attrs in page.tags)
     assert any(attrs.get('role') == 'alert' for _, attrs in page.tags)
+    assert fields['setup-complete-actions']['hidden'] is None
+    assert fields['view-employments']['href'] == '/employments'
 
 
 @pytest.mark.parametrize('asset,content_type', [('setup.css', 'text/css'), ('setup.js', 'javascript')])

@@ -394,6 +394,7 @@ def test_the_pages_employer_check_matches_the_real_api_for_an_account_with_an_em
     employer = responses[3].json()
     assert isinstance(employer['id'], int) and employer['id'] > 0
     assert employer['name'] == 'Anna Muster'
+    assert run_flow('login-with-employer')['assigned'] == ['/employments']
 
 
 def test_an_employer_that_belongs_to_another_account_does_not_count_for_the_page():

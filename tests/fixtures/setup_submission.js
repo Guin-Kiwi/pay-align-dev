@@ -158,6 +158,7 @@ process.stdin.on('end', async () => {
           await submit(); assert.equal(posts.length, 1);
         } else {
           assert.equal(elements['setup-success'].hidden, false);
+          assert.equal(elements['setup-complete-actions'].hidden, false);
           assert.match(elements['setup-success'].textContent, /Employment set up successfully/);
           assert.equal(gets, 2);
           assert.equal(elements['save-setup'].disabled, true);

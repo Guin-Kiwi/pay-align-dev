@@ -128,6 +128,10 @@ def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
     log_file = tmp_path / "server.log"
 
     with running_app(database_url, log_file) as app:
+        entry = app.get("/", follow_redirects=False)
+        assert entry.status_code == 303
+        assert entry.headers["location"] == "/login"
+        assert "Log in" in app.get("/login").text
         registration = app.post(
             "/api/v1/auth/register",
             headers=_csrf_header(app),
@@ -139,9 +143,18 @@ def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
             },
         )
         assert registration.status_code == 201, registration.text
+        assert "Set up employment" in app.get("/setup").text
         setup = app.post("/api/v1/setup", headers=_csrf_header(app), json=SETUP)
         assert setup.status_code == 201, setup.text
         employment_id = setup.json()["employment_id"]
+        assert "Your employments" in app.get("/employments").text
+        employments = app.get("/api/v1/employments")
+        assert employments.status_code == 200
+        assert [employment["id"] for employment in employments.json()] == [employment_id]
+        months_url = f"/api/v1/employments/{employment_id}/months"
+        assert app.get(months_url).json() == {
+            "months": [], "next_month": {"year": 2026, "month": 1}
+        }
 
         january = app.post(
             "/api/v1/monthly-payroll",
@@ -151,6 +164,22 @@ def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
         assert january.status_code == 201, january.text
         assert january.json()["gross_wage"] == "741.00"
         assert january.json()["net_payout"] == "656.53"
+        history = app.get(months_url)
+        assert history.json()["months"] == [{
+            "monthly_record_id": january.json()["monthly_record_id"],
+            "year": 2026,
+            "month": 1,
+        }]
+        saved = app.get(f"{months_url}/2026/1")
+        assert saved.status_code == 200
+        assert saved.json()["net_payout"] == "656.53"
+        assert {"ahv_deduction", "total_employer_cost", "holiday_balance_minutes"} <= saved.json().keys()
+
+        logout = app.post("/api/v1/auth/logout", headers=_csrf_header(app))
+        assert logout.status_code == 204
+        protected = app.get("/employments", follow_redirects=False)
+        assert protected.status_code == 303
+        assert protected.headers["location"] == "/login"
 
     with running_app(database_url, log_file) as app:
         login = app.post(
@@ -159,6 +188,7 @@ def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
             json={"email": "demo@example.ch", "password": "A-long-test-password-123!"},
         )
         assert login.status_code == 200, login.text
+        assert "Your employments" in app.get("/employments").text
         february = app.post(
             "/api/v1/monthly-payroll",
             headers=_csrf_header(app),
@@ -167,6 +197,7 @@ def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
         assert february.status_code == 201, february.text
         assert february.json()["gross_wage"] == "791.00"
         assert february.json()["net_payout"] == "713.23"
+        assert app.get(f"/api/v1/employments/{employment_id}/months/2026/2").json()["net_payout"] == "713.23"
 
         again = app.post(
             "/api/v1/monthly-payroll",

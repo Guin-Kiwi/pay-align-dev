@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Employments | PayAlign</title>
+  <link rel="stylesheet" href="/setup-assets/setup.css">
+  <link rel="stylesheet" href="/setup-assets/employments.css">
+  <script src="/setup-assets/employments.js" defer></script>
+</head>
+<body>
+<main>
+  <header class="workspace-header">
+    <div><p class="brand">PayAlign</p><h1>Employments</h1></div>
+    <button id="logout-button" type="button" disabled>Log out</button>
+  </header>
+  <noscript><p>Please enable JavaScript to manage monthly payroll.</p></noscript>
+  <p id="page-status" role="status" aria-live="polite">Loading employments …</p>
+  <p id="page-error" role="alert" hidden></p>
+
+  <section aria-labelledby="employment-list-heading">
+    <div class="section-heading">
+      <h2 id="employment-list-heading">Your employments</h2>
+      <a id="add-employment" href="/setup">Add employment</a>
+    </div>
+    <p id="employment-empty" hidden>No employments are set up yet. Add an employment to continue.</p>
+    <ul id="employment-list" class="selection-list"></ul>
+  </section>
+
+  <section id="months-section" aria-labelledby="months-heading" hidden>
+    <h2 id="months-heading">Employment months</h2>
+    <p id="selected-employment"></p>
+    <h3>Completed months</h3>
+    <p id="month-empty" hidden>No completed months yet.</p>
+    <ul id="month-list" class="selection-list"></ul>
+    <p id="next-month"></p>
+    <button id="open-month-entry" type="button" disabled>Enter next month</button>
+  </section>
+
+  <section id="entry-section" aria-labelledby="entry-heading" hidden>
+    <h2 id="entry-heading">Month entry</h2>
+    <p id="entry-month"></p>
+    <form id="payroll-form" novalidate>
+      <label for="work-date">Work date</label>
+      <input id="work-date" type="date" required aria-describedby="work-date-error">
+      <p id="work-date-error" role="alert" hidden></p>
+
+      <label for="work-category">Entry category</label>
+      <select id="work-category" required>
+        <option value="worked">Worked</option>
+        <option value="annual_holiday_taken">Annual holiday taken</option>
+        <option value="public_holiday_not_worked">Public holiday not worked</option>
+        <option value="public_holiday_worked">Public holiday worked</option>
+      </select>
+
+      <div id="time-fields" class="field-grid">
+        <div><label for="start-time">Start time</label><input id="start-time" type="time"></div>
+        <div><label for="end-time">End time</label><input id="end-time" type="time"></div>
+        <div><label for="unpaid-break-minutes">Unpaid break in minutes</label><input id="unpaid-break-minutes" type="number" min="0" step="1" value="0"></div>
+      </div>
+      <div id="paid-minutes-field" hidden>
+        <label for="paid-minutes">Paid minutes</label><input id="paid-minutes" type="number" min="0" step="1">
+      </div>
+      <p id="work-entry-error" role="alert" hidden></p>
+
+      <div class="field-grid">
+        <div><label for="cash-bonus">Cash bonus in CHF</label><input id="cash-bonus" type="number" min="0" step="0.01" value="0.00"></div>
+        <div><label for="expense-reimbursements">Expense reimbursements in CHF</label><input id="expense-reimbursements" type="number" min="0" step="0.01" value="0.00"></div>
+      </div>
+      <button id="save-payroll" type="submit" disabled>Save month</button>
+    </form>
+  </section>
+
+  <section id="payslip-section" aria-labelledby="payslip-heading" hidden>
+    <h2 id="payslip-heading">Saved payslip</h2>
+    <p id="payslip-month"></p>
+    <dl id="payslip-details" class="payslip"></dl>
+  </section>
+</main>
+</body>
+</html>
