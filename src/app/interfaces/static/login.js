@@ -67,6 +67,7 @@ function updateControls() {
   const idle = accountState === "signed-out" && !submitting && !navigating;
   element("login-submit").disabled = !idle;
   element("open-signup").disabled = !idle;
+  element("header-signup").disabled = !idle;
   element("signup-submit").disabled = !idle;
   element("signup-cancel").disabled = submitting || navigating;
 }
@@ -241,6 +242,7 @@ for (const id of [...Object.values(loginFields), ...Object.values(signupFields)]
 element("login-form").addEventListener("submit", submitLogin);
 element("signup-form").addEventListener("submit", submitSignup);
 element("open-signup").addEventListener("click", () => element("signup-dialog").showModal());
+element("header-signup").addEventListener("click", () => element("signup-dialog").showModal());
 element("signup-cancel").addEventListener("click", () => element("signup-dialog").close());
 element("signup-dialog").addEventListener("close", resetSignup);
 element("signup-dialog").addEventListener("cancel", event => { if (submitting || navigating) event.preventDefault(); });

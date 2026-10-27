@@ -11,8 +11,16 @@
   <script src="/setup-assets/login.js" defer></script>
 </head>
 <body>
+<header class="app-header">
+  <div class="app-header-inner">
+    <p class="brand"><img src="/setup-assets/house.svg" alt="" width="28" height="28">PayAlign</p>
+    <nav class="app-navigation public-nav" aria-label="Account">
+      <a href="/login">Log in</a>
+      <button id="header-signup" class="signup" type="button" disabled>Sign up</button>
+    </nav>
+  </div>
+</header>
 <main>
-  <p class="brand">PayAlign</p>
   <h1>Log in</h1>
   <noscript><p>Please enable JavaScript to log in.</p></noscript>
   <p id="account-status" role="status" aria-live="polite"></p>

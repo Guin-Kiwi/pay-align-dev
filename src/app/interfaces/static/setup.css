@@ -1,7 +1,8 @@
 :root { font-family: system-ui, sans-serif; color: #172b3a; background: #f3f6f8; }
 body { margin: 0; }
 main { max-width: 48rem; margin: 2rem auto; padding: 1.5rem; background: white; border-radius: .75rem; }
-.brand { color: #116257; font-weight: 700; }
+.brand { display: flex; align-items: center; gap: .4rem; color: #116257; font-weight: 700; }
+.brand img { display: block; flex: none; }
 h1 { line-height: 1.2; }
 section { border-top: 1px solid #c7d1d8; margin-top: 2rem; }
 label { display: block; margin-top: 1rem; font-weight: 600; }
@@ -17,6 +18,11 @@ input:disabled, select:disabled, button:disabled { background: #e5e9ed; color: #
 .app-navigation { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; margin-left: auto; }
 .app-navigation button { padding: .55rem .8rem; border: 1px solid transparent; border-radius: .35rem; background: transparent; color: #172b3a; cursor: pointer; }
 .app-navigation button:hover { background: #e8efee; }
+.public-nav a, .public-nav button { padding: .55rem .8rem; border: 1px solid #c7d1d8; border-radius: .35rem; color: #172b3a; text-decoration: none; }
+.public-nav a:hover, .public-nav button:hover:enabled { background: #e8efee; }
+.public-nav .signup { background: #116257; border-color: #116257; color: white; }
+.public-nav .signup:hover:enabled, .public-nav a.signup:hover { background: #0c4b43; }
+.public-nav button:disabled { background: #e5e9ed; color: #4b5963; cursor: not-allowed; }
 .app-navigation button[aria-current="page"] { border-color: #b4ccc6; background: #e8efee; color: #116257; font-weight: 700; }
 .app-navigation #logout-button { border-color: #c7d1d8; }
 .app-header .back-button { padding: .55rem .8rem; border: 1px solid #c7d1d8; border-radius: .35rem; background: transparent; color: #172b3a; cursor: pointer; }
