@@ -58,6 +58,7 @@ Run all commands from the project directory. Docker must be available for Docker
 | Prepare SQLite bind-mount ownership (first run or upgrade from root) | `docker compose run --rm --no-deps --user root --entrypoint chown api -R 10001:10001 /app/data` |
 | Start application | Set `SESSION_SECRET_KEY` in `.env` to a random value from `python -c "import secrets; print(secrets.token_urlsafe(32))"`, then run `docker compose up api` |
 | Health check | `curl --fail --include http://localhost:8000/health` |
+| Demo data (running app, empty local database; refuses non-local URLs) | `python3 scripts/seed_demo.py`, then log in as `demo@example.com` / `demo-pass1`: one employment up to date, one with months due |
 | Unit tests | `.venv/bin/python -m pytest tests/unit/` |
 | Integration tests | `.venv/bin/python -m pytest tests/integration/` |
 | End-to-end tests (start the app as a server) | `.venv/bin/python -m pytest tests/e2e/` |
