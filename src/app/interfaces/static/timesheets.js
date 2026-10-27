@@ -338,6 +338,7 @@ function addAnnualHoliday() {
   let problem = dateProblem(date);
   if (!problem && holidays.has(date)) problem = `${date} is a public holiday and cannot be taken as annual holiday.`;
   if (!problem && entries.some(entry => entry.work_date === date && entry.kind === "worked")) problem = "Remove the work entry for this date before adding annual holiday.";
+  if (!problem && entries.some(entry => entry.work_date === date && entry.kind === "annual")) problem = "This date already has an annual holiday row.";
   let minutes = NaN;
   if (!problem) {
     const text = element("holiday-hours").value.trim();
