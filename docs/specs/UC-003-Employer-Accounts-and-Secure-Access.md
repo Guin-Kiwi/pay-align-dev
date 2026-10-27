@@ -1,6 +1,6 @@
 # UC-003: Employer Accounts and Secure Access
 
-Last updated: 2026-10-24
+Last updated: 2026-10-27
 
 ## Goal
 Let multiple household employers use one PayAlign deployment with separate accounts and isolated payroll data.
@@ -83,6 +83,17 @@ The employer registers or logs in to manage employment and payroll data.
 - Unit: account validation, password verification and authorization for employer-scoped operations.
 - Integration: registration, login, logout, protected endpoints and employer-scoped queries against the newly created database schema.
 - End-to-end: two independent browser clients remain isolated through setup and payroll, including attempts to use each other's record IDs.
+- Browser acceptance: `tests/integration/test_login_ui.py`,
+  `tests/integration/test_setup_ui.py` and
+  `tests/integration/test_employments_ui.py` cover navigation, accessible form
+  behavior, session and CSRF rejection, duplicate-submission safety,
+  employment/month selection, saved-payslip display and logout.
+- Account isolation and view-only completed months:
+  `tests/integration/test_employer_access.py` exercises two independent
+  sessions against the scoped APIs used by the browser.
+- Real-server journey: `tests/e2e/test_demo_flow.py` covers the HTTP path from
+  registration and setup through employment discovery, month creation, saved
+  payslip retrieval and logout, including persistence across a restart.
 
 ### Evidence
 At VALIDATE, record the actual test results in the commit message.
@@ -178,3 +189,55 @@ employer setup and record isolation on SQLite and, when configured, PostgreSQL.
 `tests/integration/test_sqlalchemy_payroll_repository.py` cover required ownership
 context. `tests/unit/test_setup_service.py` covers in-memory isolation and rejected
 foreign saves without partial changes.
+
+## Amendment 6 — 2026-10-27: Minimum browser navigation
+
+Status: **Proposed — requires human review and is not yet accepted.**
+
+The authenticated employment list is the browser home after setup. The login
+page sends an account without an employer profile to `/setup` and an account
+with an employer profile to `/employments`. The setup page continues to create
+both first and later employments and links to `/employments` after a successful
+save; the employment list links back to `/setup` to add another employment.
+
+`/employments` presents Amendment 3 views 2 to 4 as states of one small browser
+workspace: employment selection, the selected employment's completed months and
+next eligible month, month entry, and a saved payslip. Selecting a completed
+month only reads its saved payslip. Saving the next month uses the existing
+monthly-payroll operation, then reads the saved payslip through the existing
+month endpoint so every persisted payslip field can be shown. No view adds an
+update or delete action.
+
+The workspace obtains a CSRF token for payroll creation and logout. It never
+automatically retries a state-changing request. An explicit authentication or
+CSRF rejection directs the employer to log in again; an uncertain payroll
+outcome prevents a duplicate submission until the employment's month history is
+reloaded. Logout ends the session and returns to `/login`.
+
+The next-month state stages the whole month before saving. The employer may
+define one start time, end time and unpaid break for each selected weekday and
+fill the actual dates within the employment boundaries. Staged entries remain
+editable and removable, and extra workdays may be added; non-overlapping split
+shifts on one date are allowed. Regenerating a pattern after manual changes
+requires confirmation because it replaces the staged work rows.
+
+The browser reads the authenticated 2026 public-holiday calendar from the
+interfaces layer; the domain constant remains its only source. A scheduled
+public holiday offers worked time or paid time off. Worked time is submitted as
+`worked` for server classification, while paid time off is submitted as
+`public_holiday_taken` with the scheduled duration. No holiday entry is created
+for a weekday outside the selected pattern. An individually added annual
+holiday is `annual_holiday_taken`, defaults to that weekday's scheduled minutes,
+and replaces conflicting regular work entries. Public holidays cannot be added
+as annual holiday.
+
+Before the immutable monthly run is created, the workspace shows totals for
+each category and overall paid minutes, presents all staged entries for review,
+and requires explicit confirmation. It then sends every entry in one request to
+the existing monthly-payroll operation. Patterns and staged rows are not
+persisted as drafts.
+
+Later employment setup reuses the existing `/setup` form and UC-001 setup
+operation. This slice does not add an employee picker or an employee-editing
+operation; persisted employee details remain governed by UC-001 and its
+employer-scoped setup behavior.

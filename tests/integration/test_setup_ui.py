@@ -41,8 +41,8 @@ def test_setup_page_is_accessible_and_initially_cannot_submit():
     response = client.get('/setup')
     assert response.status_code == 200
     assert response.headers['content-type'].startswith('text/html')
-    assert 'Setup records are saved in the configured database.' in response.text
-    assert 'Whether they remain available after a server restart depends on the database configuration.' in response.text
+    assert 'Setup records are saved in the configured database.' not in response.text
+    assert 'Whether they remain available after a server restart depends on the database configuration.' not in response.text
     assert 'lost after a server restart' not in response.text
     page = Page(response.text)
     assert ('html', {'lang': 'en'}) in page.tags
@@ -84,6 +84,9 @@ def test_setup_page_is_accessible_and_initially_cannot_submit():
     assert all(attrs['id'] in labels for attrs in inputs)
     assert any(attrs.get('role') == 'status' for _, attrs in page.tags)
     assert any(attrs.get('role') == 'alert' for _, attrs in page.tags)
+    assert fields['setup-complete-actions']['hidden'] is None
+    assert fields['view-employments']['href'] == '/employments'
+    assert fields['view-employments']['class'] == 'primary-action'
 
 
 @pytest.mark.parametrize('asset,content_type', [('setup.css', 'text/css'), ('setup.js', 'javascript')])
@@ -92,8 +95,8 @@ def test_setup_assets_are_available(asset, content_type):
     assert response.status_code == 200
     assert content_type in response.headers['content-type']
     if asset == 'setup.js':
-        assert 'Setup records are saved in the configured database.' in response.text
-        assert 'Whether they remain available after a server restart depends on the database configuration.' in response.text
+        assert 'Setup records are saved in the configured database.' not in response.text
+        assert 'Whether they remain available after a server restart depends on the database configuration.' not in response.text
         assert 'lost after a server restart' not in response.text
 
 

@@ -57,10 +57,10 @@ The employer selects **"Process Monthly Payroll"** in the application.
    - Employee limit ([`EMPLOYEE_GROSS_LIMIT`](../../src/app/domain/constants.py), gross wage): only wages from this employer count, across all of the employee's employments with this employer. Wages from other employers do not.
    - Employer limit ([`EMPLOYER_GROSS_LIMIT`](../../src/app/domain/constants.py), gross wage): all of this employer's employees count.
 6. The system saves the staged entries, run snapshot (ADR-004 Amendment 2), `MonthlyRecord`, and `Payslip` in one transaction.
-7. The system displays a **confirmation message** (e.g., "Payroll processed successfully").
+7. The system displays a **confirmation message** (e.g., "Payroll processed successfully"). The response contains the saved payslip, with every payslip line and the holiday balance after the run, and the confirmation message.
 
 ## Alternate / edge flows
-- If the monthly run would take the calendar-year total above the employee or the employer limit, the system warns the employer and rejects the submission.
+- If the monthly run would take the calendar-year total above the employee or the employer limit, the system warns the employer and rejects the submission. [Amendment 2](#amendment-2--2026-10-26-annual-limit-warning) specifies what the warning says.
 - If the requested month is after the month in which the employment ends, the system rejects the submission. The end month itself is still processed.
 - If an entry is dated before the employment's start date or after its end date, the system rejects the submission. Both dates are inclusive: the start date is the first and the end date the last possible working day.
 - If the database refuses the save because of a constraint other than the duplicate month, the system rejects the submission with a fixed message. Text from the database is never shown to the employer.
@@ -101,6 +101,8 @@ The employer selects **"Process Monthly Payroll"** in the application.
 - Sick-pay and other exception-management workflows must not be implemented by this use case.
 - The system must not provide corrections or reversals for completed runs.
 - The system must display a confirmation message upon success.
+- The system must return the saved payslip in the response to a successful run: `monthly_record_id`, `gross_wage`, `ahv_deduction`, `alv_deduction`, `tax_deduction`, `nbu_deduction`, `net_payout`, `employer_ahv`, `employer_alv`, `employer_fak`, `employer_bu`, `admin_charge`, `total_employer_cost` and `holiday_balance_minutes` (the holiday balance after the run, in minutes).
+- The system must return the confirmation message in the same response as `message` ("Payroll processed successfully."), for the interface to display.
 
 ## Security / trust-boundary notes
 Superseded by [Amendment 1](#amendment-1--2026-10-26-payroll-access-and-storage).
@@ -118,6 +120,7 @@ Superseded by [Amendment 1](#amendment-1--2026-10-26-payroll-access-and-storage)
 - **Unit test: expense reimbursements do not inflate the AHV-liable gross wage [unit (no database)]**: `tests/unit/test_payroll_calculation.py::TestPayrollCalculation::test_generate_payslip` (it uses a CHF 50 expense reimbursement; gross wage and the AHV deduction are calculated without it, and it is added to the net payout).
 - **Acceptance: employee annual gross limit is enforced for this employer [unit (no database); SQLite]**: `tests/unit/test_payroll_service.py::TestPayrollService::test_rejects_a_run_that_exceeds_the_employee_limit`; `tests/integration/test_payroll_api.py::test_wages_from_another_employer_do_not_count_towards_the_employee_limit`; `tests/integration/test_payroll_api.py::test_a_second_employments_later_months_count_towards_the_employee_limit`.
 - **Acceptance: employer annual gross limit is enforced [unit (no database); SQLite]**: `tests/unit/test_payroll_service.py::TestPayrollService::test_rejects_a_run_that_exceeds_the_employer_limit`; `tests/integration/test_sqlalchemy_payroll_repository.py::test_employer_limit_sums_all_of_its_employees`.
+- **Acceptance: both annual-limit warnings explain the next step [unit (no database)]**: `tests/unit/test_payroll_calculation.py::TestPayrollCalculation::test_employee_annual_limit_message_explains_next_step`; `tests/unit/test_payroll_calculation.py::TestPayrollCalculation::test_employer_annual_limit_message_explains_next_step` ([Amendment 2](#amendment-2--2026-10-26-annual-limit-warning)).
 - **Acceptance: both limits count the whole calendar year [SQLite]**: `tests/integration/test_sqlalchemy_payroll_repository.py::test_gross_to_date_counts_every_month_of_the_year`; `tests/integration/test_sqlalchemy_payroll_repository.py::test_gross_to_date_ignores_other_years`.
 - **Acceptance: duplicate months and skipped months are rejected [SQLite; unit (no database)]**: `tests/integration/test_payroll_api.py::test_posting_the_same_month_again_is_a_4xx_and_duplicates_nothing`; `tests/integration/test_payroll_api.py::test_months_must_follow_one_another`; `tests/unit/test_payroll_service.py::TestPayrollService::test_a_skipped_month_is_rejected`.
 - **Acceptance: a run after the employment end month is rejected [SQLite; unit (no database)]**: `tests/integration/test_payroll_api.py::test_a_run_after_the_end_month_is_a_4xx_and_saves_nothing`; `tests/unit/test_payroll_service.py::TestPayrollService::test_a_run_after_the_end_month_is_rejected_and_nothing_is_saved`.
@@ -128,7 +131,7 @@ Superseded by [Amendment 1](#amendment-1--2026-10-26-payroll-access-and-storage)
 - **Acceptance: rejected runs persist nothing [SQLite]**: `tests/integration/test_payroll_api.py::test_annual_limit_breach_is_a_4xx_and_saves_nothing`; `tests/integration/test_payroll_api.py::test_overlapping_entries_are_a_4xx_and_save_nothing`; `tests/integration/test_sqlalchemy_payroll_repository.py::test_invalid_holiday_balance_rolls_back_everything`.
 - **Acceptance: sick-pay and other exception-management workflows are not implemented**: scope statement, not testable. No runtime test is claimed.
 - **Acceptance: corrections and reversals are not provided**: scope statement, not testable. No runtime test is claimed.
-- **Acceptance: a confirmation message is displayed upon success**: not covered. The endpoint currently returns `monthly_record_id`, `gross_wage` and `net_payout` only. This is an open gap tracked by the `payslip-response` task.
+- **Acceptance: the saved payslip and the confirmation message are returned [SQLite]**: `tests/integration/test_payroll_api.py::test_posting_a_month_returns_the_saved_payslip_and_a_confirmation_message`. The test checks the full set of response fields, the message, and that the fields equal what is read back from the saved month. Showing the message to the employer is the interface's job and is not covered by this test.
 
 ## Open questions / assumptions
 - Assumption: The employer has all required details (e.g., daily hours) at hand.
@@ -153,6 +156,9 @@ Superseded by [Amendment 1](#amendment-1--2026-10-26-payroll-access-and-storage)
 - **Immutability:** it is enforced in the application. Direct SQL can still edit stored rows.
 - **Period snapshots:** there are none. Each run starts from the previous run's closing holiday balance.
 
+## Amendment 2 — 2026-10-26: Annual-limit warning
+
+When a monthly run exceeds either annual gross wage limit, the rejection warning identifies the employee or employer limit and its CHF value. It tells the employer that the simplified procedure no longer applies and to contact AKBS about the ordinary procedure, which PayAlign does not support. The warning includes the URL of [AKBS's household employment page](https://ak-bs.ch/themen/beitraege/haushaltshilfen). The [household-help guide](../reference/Employing_Household_Help_Basel.md#background-how-it-all-works) gives the simplified-procedure eligibility limits and its [contact section](../reference/Employing_Household_Help_Basel.md#official-links-and-contacts) identifies AKBS; [PROJECT.md](../PROJECT.md#purpose) excludes the ordinary procedure.
 ## Amendment 1 — 2026-10-26: Payroll access and storage
 
 Payroll data is stored in the app's own database and is not shared with external systems. The employer must be signed in to run or view payroll and can reach only their own employments and months, as specified by [UC-003](UC-003-Employer-Accounts-and-Secure-Access.md). This supersedes the earlier local-storage and future-authentication notes.

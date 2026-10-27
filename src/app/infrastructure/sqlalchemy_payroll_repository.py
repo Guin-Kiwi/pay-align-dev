@@ -1,5 +1,5 @@
 from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from src.app.application.ports.payroll_repository import (
@@ -18,6 +18,7 @@ from src.app.domain.errors import (
     DuplicateMonthError,
     InvalidHolidayBalanceError,
     InvalidPayrollInputError,
+    PayrollSnapshotReadError,
 )
 from src.app.infrastructure.orm_models import (
     EmploymentRow,
@@ -104,31 +105,36 @@ class SqlAlchemyPayrollRepository(PayrollRepositoryPort):
             ) from error
 
     def run_snapshot(self, monthly_record_id: int) -> RunSnapshot | None:
-        with Session(self.engine) as session:
-            row = session.scalar(
-                select(PayrollSnapshotRow).where(
-                    PayrollSnapshotRow.monthly_record_id == monthly_record_id
+        try:
+            with Session(self.engine) as session:
+                row = session.scalar(
+                    select(PayrollSnapshotRow).where(
+                        PayrollSnapshotRow.monthly_record_id == monthly_record_id
+                    )
                 )
-            )
-            if row is None:
-                return None
-            return RunSnapshot(
-                employment=EmploymentTerms(
-                    hourly_wage_cents=row.hourly_wage_cents,
-                    weekly_minutes=row.weekly_minutes,
-                    holiday_weeks=row.holiday_weeks,
-                    employment_start_date=row.employment_start_date,
-                    employment_end_date=row.employment_end_date,
-                ),
-                ruleset_version=row.ruleset_version,
-                hours=MinuteTotals(
-                    worked=row.worked_minutes,
-                    public_holiday_worked=row.public_holiday_worked_minutes,
-                    annual_holiday_taken=row.annual_holiday_taken_minutes,
-                    public_holiday_taken=row.public_holiday_taken_minutes,
-                ),
-                holiday_balance_minutes=row.holiday_balance_minutes,
-            )
+                if row is None:
+                    return None
+                return RunSnapshot(
+                    employment=EmploymentTerms(
+                        hourly_wage_cents=row.hourly_wage_cents,
+                        weekly_minutes=row.weekly_minutes,
+                        holiday_weeks=row.holiday_weeks,
+                        employment_start_date=row.employment_start_date,
+                        employment_end_date=row.employment_end_date,
+                    ),
+                    ruleset_version=row.ruleset_version,
+                    hours=MinuteTotals(
+                        worked=row.worked_minutes,
+                        public_holiday_worked=row.public_holiday_worked_minutes,
+                        annual_holiday_taken=row.annual_holiday_taken_minutes,
+                        public_holiday_taken=row.public_holiday_taken_minutes,
+                    ),
+                    holiday_balance_minutes=row.holiday_balance_minutes,
+                )
+        except SQLAlchemyError as error:
+            raise PayrollSnapshotReadError(
+                "The saved payroll snapshot could not be read."
+            ) from error
 
     def _gross_of_year(self, year: int, *conditions) -> int:
         with Session(self.engine) as session:

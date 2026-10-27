@@ -3,6 +3,7 @@ from datetime import date, time
 
 import pytest
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from src.app.application.ports.payroll_repository import (
@@ -16,6 +17,7 @@ from src.app.domain.errors import (
     ImmutableRecordError,
     InvalidHolidayBalanceError,
     InvalidPayrollInputError,
+    PayrollSnapshotReadError,
 )
 from src.app.infrastructure.database import create_database_engine, create_schema
 from src.app.infrastructure.orm_models import PayrollSnapshotRow, WorkEntryRow
@@ -334,6 +336,20 @@ def test_run_snapshot_round_trips_without_an_end_date(repository):
 
 def test_run_snapshot_is_none_for_an_unknown_record(repository):
     assert repository.run_snapshot(99) is None
+
+
+def test_run_snapshot_translates_database_read_error(repository, monkeypatch):
+    def raise_database_error(*args, **kwargs):
+        raise OperationalError(
+            "snapshot query failed", {}, Exception("secret database detail")
+        )
+
+    monkeypatch.setattr(Session, "scalar", raise_database_error)
+
+    with pytest.raises(PayrollSnapshotReadError) as error:
+        repository.run_snapshot(1)
+
+    assert "secret database detail" not in str(error.value)
 
 
 def test_run_snapshot_and_its_parts_are_frozen():
