@@ -6,6 +6,7 @@ const TIMESHEETS_PAGE = "/timesheets";
 let requestVersion = 0;
 let employerName = "";
 let employments = [];
+let employeeDetails = null;
 let retryAction = loadDetail;
 
 function showError(message, retry = null) {
@@ -112,15 +113,12 @@ async function loadDetail() {
   if (!employment.value || !month.value) return;
   const [year, number] = month.value.split("-").map(Number);
   const selected = employments.find(item => String(item.id) === employment.value);
-  if (!selected || !Number.isInteger(year) || number < 1 || number > 12) return;
+  if (!selected || !employeeDetails || !Number.isInteger(year) || number < 1 || number > 12) return;
   element("status").textContent = "Loading payslip…";
   try {
-    const [detail, employee] = await Promise.all([
-      read(`/api/v1/employments/${selected.id}/months/${year}/${number}`),
-      read(`/api/v1/employments/${selected.id}`)
-    ]);
+    const detail = await read(`/api/v1/employments/${selected.id}/months/${year}/${number}`);
     if (version !== requestVersion) return;
-    render(detail, employee, year, number);
+    render(detail, employeeDetails, year, number);
     element("status").textContent = "";
   } catch (error) {
     if (version === requestVersion) failure(error, loadDetail);
@@ -129,6 +127,7 @@ async function loadDetail() {
 
 async function loadMonths(preselected = "", loadedHistory = null) {
   const version = ++requestVersion;
+  employeeDetails = null;
   element("enter-timesheet").hidden = true;
   element("payslip").hidden = true;
   element("employer-costs").hidden = true;
@@ -143,8 +142,12 @@ async function loadMonths(preselected = "", loadedHistory = null) {
   }
   element("status").textContent = "Loading months…";
   try {
-    const history = loadedHistory ?? await read(`/api/v1/employments/${employment.value}/months`);
+    const [history, details] = await Promise.all([
+      loadedHistory ?? read(`/api/v1/employments/${employment.value}/months`),
+      read(`/api/v1/employments/${employment.value}`)
+    ]);
     if (version !== requestVersion) return;
+    employeeDetails = details;
     month.replaceChildren(option("", history.months.length ? "Select a month" : "No completed months"));
     history.months.forEach(item => month.append(option(`${item.year}-${item.month}`, periodName(item.year, item.month))));
     month.disabled = !history.months.length;

@@ -49,7 +49,7 @@ async function scenario(failure) {
       {id: 7, employee_name: '<Employee>', start_date: `${YEAR}-04-01`, end_date: `${YEAR}-09-30`},
       {id: 8, employee_name: '<Employee>', start_date: `${YEAR}-10-01`, end_date: null}]};
     if (url === '/api/v1/employments/7') return {status: 200, ok: true, json: async () => ({id: 7, employee_name: '<Employee>', employee_ahv_number: '756.1234.5678.97'})};
-    if (url === '/api/v1/employments/7/months') return {status: 200, ok: true, json: async () => ({months: [{year: YEAR, month: 4}], next_month: failure === 'finished' ? null : {year: YEAR, month: 5}})};
+    if (url === '/api/v1/employments/7/months') return {status: 200, ok: true, json: async () => ({months: failure === 'reuse-details' ? [{year: YEAR, month: 4}, {year: YEAR, month: 5}] : [{year: YEAR, month: 4}], next_month: failure === 'finished' ? null : {year: YEAR, month: 5}})};
     if (failure === 'detail') return rejected(500);
     if (failure === 'superseded') await pending;
     return {status: 200, ok: true, json: async () => detail};
@@ -76,6 +76,19 @@ async function scenario(failure) {
     for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
     assert.equal(el('status').textContent, '');
     assert.equal(el('payslip').hidden, true);
+  } else if (failure === 'reuse-details') {
+    const detailReads = () => requests.filter(url => url === '/api/v1/employments/7').length;
+    assert.equal(detailReads(), 1);
+    el('month').value = `${YEAR}-5`;
+    el('month').handlers.change();
+    for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.ok(requests.includes(`/api/v1/employments/7/months/${YEAR}/5`));
+    assert.equal(detailReads(), 1);
+    assert.equal(el('period').textContent, `May ${YEAR}`);
+    assert.equal(el('employee-ahv-number').textContent, '756.1234.5678.97');
+    el('employment').handlers.change();
+    for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.equal(detailReads(), 2);
   } else if (failure === 'timeout') {
     const timer = timers.find(item => item.delay === 10000 && !item.cleared);
     assert.ok(timer, 'the employments read must use the shared request helper and its timeout');
@@ -149,4 +162,4 @@ async function scenario(failure) {
   }
 }
 
-(async () => { await scenario(); await scenario('finished'); await scenario('detail'); await scenario('session'); await scenario('superseded'); await scenario('initial-failure'); await scenario('no-employer'); await scenario('timeout'); })().catch(error => { console.error(error); process.exitCode = 1; });
+(async () => { await scenario(); await scenario('finished'); await scenario('detail'); await scenario('session'); await scenario('superseded'); await scenario('initial-failure'); await scenario('no-employer'); await scenario('timeout'); await scenario('reuse-details'); })().catch(error => { console.error(error); process.exitCode = 1; });
