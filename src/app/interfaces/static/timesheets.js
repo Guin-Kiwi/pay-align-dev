@@ -361,6 +361,15 @@ function overlappingDate() {
   return "";
 }
 
+function repeatedDayOff() {
+  const seen = new Set();
+  for (const entry of entries.filter(entry => !hasTimes(entry))) {
+    if (seen.has(entry.work_date)) return entry.work_date;
+    seen.add(entry.work_date);
+  }
+  return "";
+}
+
 function buildPayrollPayload() {
   if (["extra-date", "holiday-date"].some(id => element(id).value)) {
     setMessage("save-error", "Add or clear the unfinished entry before saving.");
