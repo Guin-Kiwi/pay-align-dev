@@ -81,6 +81,36 @@ def get_employer(service: SetupService = Depends(get_setup_service)):
     return EmployerResponse(**asdict(employer))
 
 
+@setup_router.post("/employer", response_model=EmployerResponse, status_code=201)
+def set_up_employer(
+    payload: EmployerDetails,
+    _: None = Depends(require_csrf_token),
+    service: SetupService = Depends(get_setup_service),
+):
+    try:
+        employer = service.set_up_employer(payload.model_dump())
+    except EmployerAlreadyExistsError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return EmployerResponse(**asdict(employer))
+
+
+@setup_router.put("/employer", response_model=EmployerResponse)
+def update_employer(
+    payload: EmployerDetails,
+    _: None = Depends(require_csrf_token),
+    service: SetupService = Depends(get_setup_service),
+):
+    try:
+        employer = service.update_employer(payload.model_dump())
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    if employer is None:
+        raise HTTPException(status_code=404, detail="No employer is set up yet.")
+    return EmployerResponse(**asdict(employer))
+
+
 @setup_router.post("/setup", response_model=SetupResponse, status_code=201)
 def set_up_employment(
     payload: SetupRequest,

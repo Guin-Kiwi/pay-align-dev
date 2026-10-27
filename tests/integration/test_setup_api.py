@@ -22,6 +22,58 @@ EMPLOYEE = {
 EMPLOYMENT = {"start_date": "2026-01-01", "hourly_wage": 28.50, "weekly_hours": "6:00"}
 
 
+def test_employer_can_be_saved_before_an_employment(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'employer.db'}")
+    with AuthenticatedTestClient(create_app()) as client:
+        token = client.get('/api/v1/auth/csrf').json()['csrf_token']
+        headers = {'X-CSRF-Token': token}
+        response = client.post('/api/v1/employer', json=EMPLOYER, headers=headers)
+        assert response.status_code == 201
+        assert client.get('/api/v1/employer').json() == {"id": response.json()['id'], **EMPLOYER}
+        assert client.get('/api/v1/employments').json() == []
+        assert client.post('/api/v1/employer', json=EMPLOYER, headers=headers).status_code == 409
+        employment = client.post('/api/v1/setup', json={'employee': EMPLOYEE, 'employment': EMPLOYMENT})
+        assert employment.status_code == 201
+        assert employment.json()['employer_id'] == response.json()['id']
+
+
+def test_separate_employer_save_validates_before_persisting():
+    repository = InMemorySetupRepository()
+    client = AuthenticatedTestClient(create_app(setup_repository=repository))
+    token = client.get('/api/v1/auth/csrf').json()['csrf_token']
+    response = client.post('/api/v1/employer', json={**EMPLOYER, 'ahv_number': 'bad'}, headers={'X-CSRF-Token': token})
+    assert response.status_code == 400
+    assert client.get('/api/v1/employer').status_code == 404
+
+
+def test_separate_employer_save_requires_session_and_csrf():
+    from fastapi.testclient import TestClient
+    assert TestClient(create_app()).post('/api/v1/employer', json=EMPLOYER).status_code in (401, 403)
+    client = AuthenticatedTestClient(create_app())
+    assert client.post('/api/v1/employer', json=EMPLOYER).status_code == 403
+    assert client.get('/api/v1/employer').status_code == 404
+
+
+def test_employer_profile_can_be_updated_only_by_its_owner(monkeypatch, tmp_path):
+    monkeypatch.setenv('DATABASE_URL', f"sqlite:///{tmp_path / 'profile.db'}")
+    app = create_app()
+    owner = AuthenticatedTestClient(app, email='owner@example.ch')
+    other = AuthenticatedTestClient(app, email='other@example.ch')
+    owner_token = owner.get('/api/v1/auth/csrf').json()['csrf_token']
+    owner_headers = {'X-CSRF-Token': owner_token}
+    assert owner.post('/api/v1/employer', json=EMPLOYER, headers=owner_headers).status_code == 201
+    changed = {**EMPLOYER, 'name': 'Anna Updated'}
+    assert owner.put('/api/v1/employer', json=changed).status_code == 403
+    response = owner.put('/api/v1/employer', json=changed, headers=owner_headers)
+    assert response.status_code == 200
+    assert owner.get('/api/v1/employer').json()['name'] == 'Anna Updated'
+    other_token = other.get('/api/v1/auth/csrf').json()['csrf_token']
+    assert other.put('/api/v1/employer', json=EMPLOYER, headers={'X-CSRF-Token': other_token}).status_code == 404
+    invalid = owner.put('/api/v1/employer', json={**changed, 'ahv_number': 'bad'}, headers=owner_headers)
+    assert invalid.status_code == 400
+    assert owner.get('/api/v1/employer').json()['name'] == 'Anna Updated'
+
+
 def set_up_fresh(**employment):
     repository = InMemorySetupRepository()
     client = AuthenticatedTestClient(create_app(setup_repository=repository))

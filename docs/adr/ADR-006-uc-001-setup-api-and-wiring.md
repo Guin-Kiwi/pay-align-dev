@@ -35,3 +35,13 @@ none
 Approval: Proposed by Nano; accepted by a non-author reviewer's approval of the pull request that records this approval.
 
 Decision: `SetupRepository` keeps `get_employment(employment_id)`, which returns the saved employment or `None`. Only tests use it, to check what setup saved; the application does not. Payroll reads the employment terms through its own port (`employment_terms`). Not chosen: removing it, which would change the port and its tests after the feature freeze without a gain for the user.
+
+## Amendment 2 — 2026-10-27: Separate employer profile operations
+
+Status: Proposed; human review pending. The user requested the separate profile
+flow in UC-004. The account-scoped employer profile can be created and updated
+independently using the setup service and repository; validate the existing
+employer fields and retain the one-employer-per-account constraint. These writes
+require session and CSRF checks. The existing combined `POST /api/v1/setup`
+remains available to its existing clients. This amends the combined-only
+decision while preserving atomic employment setup.

@@ -75,3 +75,13 @@ none identified for this design draft
 This amendment clarifies document ownership for the accepted session and CSRF decisions; it does not change the account ownership model. UC-003 Amendments 1 and 2 own the required session behavior and CSRF protocol. This amendment supersedes Decision item 4 and repeated session behavior elsewhere in this ADR; refer to UC-003 for the current requirements.
 
 - Implement browser sessions with Starlette's built-in `SessionMiddleware`, configured to satisfy UC-003 Amendments 1 and 2. Do not implement session-cookie signing or session middleware in application code. See the [Starlette session middleware guide](https://www.starlette.io/middleware/#sessionmiddleware) for middleware behavior and options.
+
+## Amendment 2 — 2026-10-27: Separate employer profile onboarding
+
+Status: Proposed; human review pending. As requested for
+[UC-004](../specs/UC-004-UI-AND-USER-FLOW.md), an account may create and edit
+its own employer profile before adding an employment. This amends the combined
+first-time setup described in Decision items 3 and 7; account ownership, session,
+CSRF and the one-employer-per-account constraint remain unchanged. Existing
+combined setup remains available to API clients. Historical payslip identity
+continues to use current employer details as described by UC-003 Amendment 6.

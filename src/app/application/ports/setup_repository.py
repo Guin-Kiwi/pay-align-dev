@@ -13,7 +13,19 @@ class SetupResult:
     employment_id: int
 
 
+class EmployerAlreadyExistsError(Exception):
+    """The account already has an employer profile."""
+
+
 class SetupRepository(ABC):
+    @abstractmethod
+    def save_employer(self, account_id: int, employer: Employer) -> Employer:
+        """Create one employer profile for an account, or reject a duplicate."""
+
+    @abstractmethod
+    def update_employer(self, account_id: int, employer: Employer) -> Employer | None:
+        """Update the account's employer, or return None if it has no profile."""
+
     @abstractmethod
     def get_employer(self, account_id: int) -> Employer | None:
         """Return this account's employer, or None before onboarding."""

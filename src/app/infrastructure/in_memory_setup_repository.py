@@ -1,4 +1,4 @@
-from src.app.application.ports.setup_repository import SetupRepository, SetupResult
+from src.app.application.ports.setup_repository import EmployerAlreadyExistsError, SetupRepository, SetupResult
 from src.app.domain.employee import Employee
 from src.app.domain.employer import Employer
 from src.app.domain.employment import Employment
@@ -15,6 +15,21 @@ class InMemorySetupRepository(SetupRepository):
 
     def get_employer(self, account_id: int) -> Employer | None:
         return self.employers.get(account_id)
+
+    def save_employer(self, account_id: int, employer: Employer) -> Employer:
+        if self.get_employer(account_id) is not None:
+            raise EmployerAlreadyExistsError("An employer already exists.")
+        employer.id = max((e.id for e in self.employers.values()), default=0) + 1
+        self.employers[account_id] = employer
+        return employer
+
+    def update_employer(self, account_id: int, employer: Employer) -> Employer | None:
+        current = self.get_employer(account_id)
+        if current is None:
+            return None
+        employer.id = current.id
+        self.employers[account_id] = employer
+        return employer
 
     def get_employee(self, ahv_number: str, account_id: int) -> Employee | None:
         employer = self.get_employer(account_id)
