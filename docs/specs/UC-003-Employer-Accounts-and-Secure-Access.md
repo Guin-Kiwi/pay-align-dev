@@ -1,6 +1,6 @@
 # UC-003: Employer Accounts and Secure Access
 
-Last updated: 2026-10-24
+Last updated: 2026-10-27
 
 ## Goal
 Let multiple household employers use one PayAlign deployment with separate accounts and isolated payroll data.
@@ -213,6 +213,29 @@ automatically retries a state-changing request. An explicit authentication or
 CSRF rejection directs the employer to log in again; an uncertain payroll
 outcome prevents a duplicate submission until the employment's month history is
 reloaded. Logout ends the session and returns to `/login`.
+
+The next-month state stages the whole month before saving. The employer may
+define one start time, end time and unpaid break for each selected weekday and
+fill the actual dates within the employment boundaries. Staged entries remain
+editable and removable, and extra workdays may be added; non-overlapping split
+shifts on one date are allowed. Regenerating a pattern after manual changes
+requires confirmation because it replaces the staged work rows.
+
+The browser reads the authenticated 2026 public-holiday calendar from the
+interfaces layer; the domain constant remains its only source. A scheduled
+public holiday offers worked time or paid time off. Worked time is submitted as
+`worked` for server classification, while paid time off is submitted as
+`public_holiday_taken` with the scheduled duration. No holiday entry is created
+for a weekday outside the selected pattern. An individually added annual
+holiday is `annual_holiday_taken`, defaults to that weekday's scheduled minutes,
+and replaces conflicting regular work entries. Public holidays cannot be added
+as annual holiday.
+
+Before the immutable monthly run is created, the workspace shows totals for
+each category and overall paid minutes, presents all staged entries for review,
+and requires explicit confirmation. It then sends every entry in one request to
+the existing monthly-payroll operation. Patterns and staged rows are not
+persisted as drafts.
 
 Later employment setup reuses the existing `/setup` form and UC-001 setup
 operation. This slice does not add an employee picker or an employee-editing

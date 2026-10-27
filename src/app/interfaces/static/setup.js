@@ -196,7 +196,7 @@ async function submitSetup(event) {
         throw new Error("response");
       }
       submissionLocked = true;
-      element("setup-success").textContent = "Employment set up successfully. Setup records are saved in the configured database. Whether they remain available after a server restart depends on the database configuration.";
+      element("setup-success").textContent = "Employment set up successfully.";
       element("setup-success").hidden = false;
       element("setup-complete-actions").hidden = false;
       await loadEmployer();

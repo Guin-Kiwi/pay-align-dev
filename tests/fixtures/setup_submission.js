@@ -159,7 +159,7 @@ process.stdin.on('end', async () => {
         } else {
           assert.equal(elements['setup-success'].hidden, false);
           assert.equal(elements['setup-complete-actions'].hidden, false);
-          assert.match(elements['setup-success'].textContent, /Employment set up successfully/);
+          assert.equal(elements['setup-success'].textContent, 'Employment set up successfully.');
           assert.equal(gets, 2);
           assert.equal(elements['save-setup'].disabled, true);
           await submit(); assert.equal(posts.length, 1);

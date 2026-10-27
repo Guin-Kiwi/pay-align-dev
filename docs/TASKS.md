@@ -12,7 +12,7 @@ STATUS: in-progress
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 Amendment 2 specifies session and CSRF behaviour; ADR-007 Amendment 1 selects Starlette `SessionMiddleware` and links to the owning requirements. |
 | 2 — Design | Done | UC-003 Amendment 3 defines the five view boundaries for application logic. Presentation and navigation stay with the UI owner. ADR-007 sets the account-scoped read boundary; no new domain rule or ADR is needed. |
-| 3 — Develop | Done | UC-003's backend is implemented and the use case was accepted on 25 October 2026. The minimum browser flow through login, setup, employment selection, month entry, saved payslip viewing and logout is implemented on `uc003-ui`; the separate full payroll POST response remains open. |
+| 3 — Develop | Done | PR #50 review changes implement a reviewed whole-month submission, expose the backend-owned 2026 public-holiday dates through a narrow authenticated read endpoint, and simplify setup success navigation. Focused tests, the full suite and a local Chrome journey pass. |
 | 4 — Validate | In progress alongside development | UC-002 was re-validated after the account backend merged. The open gap and the partly covered criterion are in the [UC-002 Validation plan](specs/UC-002-Process-the-Monthly-Employment.md). |
 | 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
@@ -26,7 +26,7 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Review the `uc003-ui` browser flow defined by UC-003 Amendment 6, then exercise it on the demo environment under `demo-path`. Completed months remain view-only. The owning use cases exclude employment changes or endings and completed-month corrections, so no update or delete work is implied by these views.
+Obtain Ayla's review of the narrow holiday-calendar endpoint and the whole-month browser revision recorded in proposed UC-003 Amendment 6, then exercise the flow on the demo environment under `demo-path`. Completed months remain view-only. The owning use cases exclude employment changes or endings and completed-month corrections, so no persisted update or delete work is implied by these views.
 
 ## Tasks
 
@@ -67,7 +67,7 @@ yours, hand it to a named teammate rather than moving it to Unassigned.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `uc003-ui` | doing | Review the minimum browser workspace implemented under UC-003 Amendment 6: login routes to setup or the employment home; existing setup handles later employments; the home lists employments, loads completed months as view-only payslips, creates the next month, shows its saved payslip and logs out through the existing CSRF-protected API. Focused UI tests and the real-server demo flow cover its navigation and submissions; existing account integration tests cover later setup and two-account isolation. | UC-003 Amendments 3 and 6, UC-001, UC-002 | | Tue 27 Oct, 19:00 |
+| `uc003-ui` | doing | Address PR #50 review with a whole-month browser form: generate staged entries from one interval per selected weekday, handle public and annual holidays, allow edits/removal/manual and split-shift additions, review totals, and confirm one CSRF-protected monthly submission. Expose 2026 public-holiday dates from the backend constant through a narrow authenticated read endpoint. Keep completed months view-only and simplify setup success navigation. | UC-003 Amendments 3 and 6, UC-001, UC-002 | | Tue 27 Oct, 19:00 |
 | `readme-final` | todo | Finish the README for the capstone, with a diagram of the four layers and the main components (the grading criteria ask for a clear architecture presentation; PROJECT.md describes the layers only in text). | Capstone brief | | Tue 27 Oct |
 | `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `readme-final` | Wed 28 Oct |
 | `arch-test` | todo | Make the layer check in `tests/unit/test_architecture.py` recognise `src.app` imports; it must fail on a deliberate inner-to-outer import and pass on `main`. An extended check exists separately and is not on `main`; it was validated against an earlier payroll router, so re-validate it against the current wiring before reporting it passing. | ADR-001 | | |

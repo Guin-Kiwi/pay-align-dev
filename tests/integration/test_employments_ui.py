@@ -8,6 +8,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.app.infrastructure.web.app import create_app
+from src.app.domain.constants import PUBLIC_HOLIDAYS
+from src.app.domain.hour_categories import HourCategory
 from tests.integration.authenticated_client import AuthenticatedTestClient
 
 
@@ -87,15 +89,26 @@ def test_employments_page_exposes_the_minimum_accessible_workspace():
         "month-list",
         "open-month-entry",
         "payroll-form",
-        "work-date",
-        "work-category",
-        "start-time",
-        "end-time",
-        "unpaid-break-minutes",
-        "paid-minutes",
+        "pattern-monday",
+        "pattern-monday-start",
+        "pattern-monday-end",
+        "pattern-monday-break",
+        "fill-month",
+        "work-entry-date",
+        "add-workday",
+        "work-entries-body",
+        "annual-holiday-date",
+        "annual-holiday-minutes",
+        "add-annual-holiday",
+        "holiday-entries-body",
+        "entry-totals",
         "cash-bonus",
         "expense-reimbursements",
         "save-payroll",
+        "review-section",
+        "review-entries",
+        "confirm-payroll",
+        "cancel-review",
         "payslip-section",
         "payslip-details",
         "page-status",
@@ -107,23 +120,45 @@ def test_employments_page_exposes_the_minimum_accessible_workspace():
     assert fields["page-error"]["role"] == "alert"
     assert fields["payroll-form"]["novalidate"] is None
     assert fields["save-payroll"]["type"] == "submit"
-    assert fields["work-date"]["type"] == "date"
-    assert fields["start-time"]["type"] == "time"
-    assert fields["end-time"]["type"] == "time"
+    assert fields["work-entry-date"]["type"] == "date"
+    assert fields["annual-holiday-date"]["type"] == "date"
+    assert fields["confirm-payroll"]["type"] == "button"
     assert fields["add-employment"]["href"] == "/setup"
     assert all(
         field in {attrs.get("for") for tag, attrs in page.tags if tag == "label"}
-        for field in (
-            "work-date",
-            "work-category",
-            "start-time",
-            "end-time",
-            "unpaid-break-minutes",
-            "paid-minutes",
-            "cash-bonus",
-            "expense-reimbursements",
-        )
+        for field in ("work-entry-date", "annual-holiday-date", "cash-bonus", "expense-reimbursements")
     )
+
+
+def test_month_entry_only_offers_categories_accepted_by_the_backend():
+    response = AuthenticatedTestClient(create_app()).get("/employments")
+    page = Page(response.text)
+    offered = {
+        attrs["value"]
+        for tag, attrs in page.tags
+        if tag == "option" and "data-entry-category" in attrs
+    }
+    assert offered == {
+        HourCategory.WORKED.value,
+        HourCategory.ANNUAL_HOLIDAY_TAKEN.value,
+        HourCategory.PUBLIC_HOLIDAY_TAKEN.value,
+    }
+
+
+def test_public_holiday_calendar_is_authenticated_and_comes_from_domain_constants():
+    app = create_app()
+    assert TestClient(app).get("/api/v1/public-holidays/2026").status_code == 401
+    response = AuthenticatedTestClient(app).get("/api/v1/public-holidays/2026")
+    assert response.status_code == 200
+    assert response.json() == {
+        "year": 2026,
+        "dates": sorted(day.isoformat() for day in PUBLIC_HOLIDAYS),
+    }
+
+
+def test_public_holiday_calendar_rejects_an_unsupported_year():
+    response = AuthenticatedTestClient(create_app()).get("/api/v1/public-holidays/2027")
+    assert response.status_code == 422
 
 
 @pytest.mark.parametrize(
@@ -144,6 +179,13 @@ def test_employment_assets_are_available(asset, content_type):
         "completed-month",
         "months-401",
         "payslip-401",
+        "holidays-401",
+        "fill-month",
+        "fill-boundaries",
+        "public-holiday",
+        "annual-holiday",
+        "split-shift",
+        "regenerate-warning",
         "submit-month",
         "duplicate-submit",
         "payroll-401",

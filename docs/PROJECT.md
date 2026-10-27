@@ -175,9 +175,10 @@ The current HTTP endpoints are:
 | `GET /api/v1/employments/{employment_id}` | Read one owned employment's summary. |
 | `GET /api/v1/employments/{employment_id}/months` | List saved months and the next eligible 2026 month. |
 | `GET /api/v1/employments/{employment_id}/months/{year}/{month}` | Read an owned month's saved payslip and holiday balance. |
+| `GET /api/v1/public-holidays/2026` | Read the authenticated 2026 Basel-Stadt public-holiday dates from the domain ruleset. |
 | `POST /api/v1/monthly-payroll` | Save the next monthly run. |
 
-Employment and month reads require a session and return 404 for absent or other-account records. `PayrollService.process_monthly_payroll` and the payroll port's `employment_terms` require an account ID; neither provides an unscoped fallback. Completed months have no update or delete endpoint; the scope decision is in [UC-003 Amendment 3](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views).
+Employment, month and public-holiday-calendar reads require a session; employment data returns 404 for absent or other-account records. `PayrollService.process_monthly_payroll` and the payroll port's `employment_terms` require an account ID; neither provides an unscoped fallback. Completed months have no update or delete endpoint; the scope decision is in [UC-003 Amendment 3](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views).
 
 FastAPI also provides Swagger UI at `/docs`, ReDoc at `/redoc` and the OpenAPI
 schema at `/openapi.json`. Setup behavior is defined in [ADR-006](adr/ADR-006-uc-001-setup-api-and-wiring.md#decision);
