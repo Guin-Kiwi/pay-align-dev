@@ -52,7 +52,8 @@ For each month, PayAlign:
 - **Checks the annual limits:** a month is rejected if it would take the employee's or the
   employer's total gross wage for the year above the simplified procedure's limits.
 
-At setup, the hourly wage is checked against the Basel-Stadt minimum wage. Rates, limits
+At setup, the hourly wage is checked against a minimum of CHF 22.20 (see
+[Known limitations](#known-limitations-and-deferred-decisions)). Rates, limits
 and thresholds are defined once in [`constants.py`](src/app/domain/constants.py), and the
 formulas are in [calculations.md](docs/reference/calculations.md). The golden test cases
 come from the AKBS payslip workbook.
@@ -61,23 +62,37 @@ come from the AKBS payslip workbook.
 
 | Use case | What it does | Service |
 |---|---|---|
-| [UC-001 Set up an employment](docs/specs/UC-001-Set-Up-an-Employment.md) | Saves the employer, the employee and the employment terms, validated against the Basel minimum wage | [`SetupService`](src/app/application/setup_service.py) |
+| [UC-001 Set up an employment](docs/specs/UC-001-Set-Up-an-Employment.md) | Saves the employer, the employee and the employment terms, with a minimum hourly wage of CHF 22.20 | [`SetupService`](src/app/application/setup_service.py) |
 | [UC-002 Process the monthly employment](docs/specs/UC-002-Process-the-Monthly-Employment.md) | Calculates one month from the daily work entries and saves the entries, a run snapshot, the monthly record and the payslip in one transaction | [`PayrollService`](src/app/application/payroll_service.py) |
-| [UC-003 Employer accounts and secure access](docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md) | Registration, login and logout, signed session cookies, CSRF protection, and reads scoped to the signed-in account | [`AccountService`](src/app/application/account_service.py), [`EmploymentReadService`](src/app/application/employment_read_service.py) |
+| [UC-003 Employer accounts and secure access](docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md) | Registration, login and logout, signed session cookies, CSRF protection, and reads scoped to the signed-in account | [`AccountService`](src/app/application/account_service.py), [`EmploymentReadService`](src/app/application/employment_read_service.py), [`EmployeeOverviewService`](src/app/application/employee_overview_service.py) |
+| [UC-004 UI and user flow](docs/specs/UC-004-UI-AND-USER-FLOW.md) | The browser journey from sign-in through setup and monthly payroll to a printable payslip; it uses the services above and adds no payroll rules | — |
 
-The browser views are defined in
-[UC-003 Amendment 3](docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views).
+The run order, empty months, daily entries and public holidays are specified in
+[UC-002](docs/specs/UC-002-Process-the-Monthly-Employment.md). The browser views are defined in
+[UC-003 Amendment 3](docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views)
+and [UC-004](docs/specs/UC-004-UI-AND-USER-FLOW.md):
+
+| Page | What the employer does there |
+|---|---|
+| `/` | Welcome page with sign-in and registration |
+| `/login` | Sign in, or create an account |
+| `/employer-setup` | Enter or change the employer's own details |
+| `/employments` (Home) | See the household wage limit, this month's costs and what is due |
+| `/setup` | Add an employment |
+| `/timesheets` | Enter a month: fill a weekly pattern, add extra days and holidays, review and save |
+| `/employees` | See each person's employments, totals, holiday balance and wage limit |
+| `/payslips` | Open a saved payslip and print it or save it as a PDF; employer costs are shown on screen only |
 
 ### Screenshots
 
 **Login and registration**
 
-![PayAlign login page](docs/screenshots/login.png)
-![PayAlign signup page](docs/screenshots/signup.png)
+![PayAlign login page](docs/screenshots/pay-align-login.png)
+![PayAlign signup page](docs/screenshots/pay-align-signup.png)
 
 **Employment setup**
 
-![PayAlign employment setup page](docs/screenshots/setup.png)
+![PayAlign employment setup page](docs/screenshots/pay-align-employment-setup.png)
 
 **Payslip**
 
@@ -106,7 +121,7 @@ The browser views are defined in
 
 ```mermaid
 flowchart LR
-    Browser["Browser<br/>/login, /setup"] --> Interfaces
+    Browser["Browser<br/>/login, /employments, /timesheets, /payslips"] --> Interfaces
     subgraph Infrastructure["Infrastructure: FastAPI app, SQLAlchemy, Argon2, sessions"]
         subgraph Interfaces["Interfaces: routes, request/response models, auth, CSRF"]
             subgraph Application["Application: services and ports"]
@@ -178,11 +193,14 @@ tables are defined in [`orm_models.py`](src/app/infrastructure/orm_models.py).
 |---|---|---|
 | `POST` | `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/logout` | Account and session ([UC-003](docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md)) |
 | `GET` | `/api/v1/auth/me`, `/api/v1/auth/csrf` | Current account and CSRF token |
-| `GET` | `/api/v1/employer` | The signed-in account's employer |
+| `GET`, `POST`, `PUT` | `/api/v1/employer` | Read, create or update the signed-in account's employer |
 | `POST` | `/api/v1/setup` | Set up an employment ([UC-001](docs/specs/UC-001-Set-Up-an-Employment.md)) |
 | `POST` | `/api/v1/monthly-payroll` | Calculate and save a month ([UC-002](docs/specs/UC-002-Process-the-Monthly-Employment.md)) |
 | `GET` | `/api/v1/employments`, `/api/v1/employments/{id}` | The account's employments |
 | `GET` | `/api/v1/employments/{id}/months`, `/api/v1/employments/{id}/months/{year}/{month}` | Saved months and payslips |
+| `GET` | `/api/v1/employees`, `/api/v1/employees/{id}` | Overview per person (totals, holiday balance, wage limit) and one person's details |
+| `GET` | `/api/v1/payroll-overview?year=&month=` | The household's saved payroll for one month |
+| `GET` | `/api/v1/public-holidays?year=`, `/api/v1/public-holidays/{year}` | The configured 2026 public holidays |
 
 State-changing requests need a signed-in session and an `X-CSRF-Token` header. The
 full schema is at `/docs` on a running instance.
@@ -207,11 +225,17 @@ the tests outside the container. The dev container installs Python and Node.js.
 1. Clone the repository: `git clone https://github.com/Guin-Kiwi/pay-align-dev.git`
 2. Set `SESSION_SECRET_KEY` in `.env` to a random value:
    `python -c "import secrets; print(secrets.token_urlsafe(32))"`
-3. Start the app with `docker compose up api` and open <http://localhost:8000/login>.
+3. Build the image with `docker compose build api`. On the first run, give the app's
+   user the local data folder:
+   `mkdir -p data && docker compose run --rm --no-deps --user root --entrypoint chown api -R 10001:10001 /app/data`
+4. Start the app with `docker compose up api` and open <http://localhost:8000>.
    `curl http://localhost:8000/health` should return `{"status":"ok"}`.
-4. For the tests, create a virtual environment and install the locked dependencies:
+5. Optional demo data (empty local database, app running): `python3 scripts/seed_demo.py`,
+   then log in as `demo@example.com` / `demo-pass1`. One employment is up to date, one has
+   months due.
+6. For the tests, create a virtual environment and install the locked dependencies:
    `python3.12 -m venv .venv && .venv/bin/python -m pip install --require-hashes --only-binary=:all: -r requirements-dev.txt`
-5. Run every check with `bash scripts/test.sh`.
+7. Run every check with `bash scripts/test.sh`.
 
 Environment variables, the PostgreSQL test setup and the release image are described in
 [PROJECT.md: Commands](docs/PROJECT.md#commands).
@@ -228,7 +252,11 @@ PostgreSQL tests run when `TEST_POSTGRES_URL` is set; CI always runs them.
 - **Out of scope:** sick pay, accidents, property damage, disputes, terminations and account closure ([PROJECT.md: Purpose](docs/PROJECT.md#purpose)).
 - **Payroll rules not applied:** the Sunday supplement, age-dependent AHV rules and the CHF 1,890 monthly limit ([UC-002: Known limitations](docs/specs/UC-002-Process-the-Monthly-Employment.md#known-limitations)).
 - **Saved months are final:** corrections and reversals are not supported.
-- **Architecture check:** `test_architecture.py` does not yet recognise imports written as `src.app…`, so an inner-to-outer import in that form would not fail it.
+- **Minimum wage:** setup uses CHF 22.20 as a single wage floor. From 5 hours a week the NAV Hauswirtschaft minimums apply instead, so setup rejects some lawful wages from CHF 20.35 to 22.19 and does not check the higher minimums for trained or experienced staff ([UC-001](docs/specs/UC-001-Set-Up-an-Employment.md)).
+- **Setup checks:** the employee's AHV number is not compared with the employer's, and the simplified procedure's exclusion of the employer's spouse and children is not checked ([UC-001](docs/specs/UC-001-Set-Up-an-Employment.md)).
+- **Days off on one date:** the Timesheets page refuses two annual-holiday rows, or annual holiday and work, on the same date; the API itself accepts them, because UC-002 does not define them as invalid.
+- **Holiday balance:** the remaining balance appears once the first month is saved; before that, the yearly entitlement is not shown.
+- **Saved payslips:** a reopened payslip shows the current employer name and the current employee name and AHV number, not a copy from the day it was saved ([UC-003 Amendment 7](docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md#known-limitations)).
 - **No migrations:** `create_all` creates missing tables only, so the account-enabled schema needed a fresh database ([PROJECT.md: Architecture](docs/PROJECT.md#architecture)).
 <!-- Add the browser views that are cut for v0.1.0 here once decided. -->
 
@@ -240,9 +268,9 @@ human approval for decisions. The work follows the template's six phases (Bootst
 Specify, Design, Develop, Validate, Deploy), each with a [phase skill](skills/), and
 [TASKS.md](docs/TASKS.md) records where the project stands.
 
-Every agent-written commit names its model in an `Agent-Model` trailer, and a human
-review commit (`review: human review of …`) precedes each pull request. Every pull
-request needs approval from someone other than its author. Models used include Claude
+Agent-written commits name their model in an `Agent-Model` trailer, and human review
+commits (`review: human review of …`) record what a person checked before approving.
+Every pull request needs approval from someone other than its author. Models used include Claude
 Sonnet 5.5, Claude Opus 5.5, GPT-6, GPT-5.6 Luna, Mistral Large 3 and GitHub Copilot.
 
 ## Team

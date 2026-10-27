@@ -67,9 +67,7 @@ yours, hand it to a named teammate rather than moving it to Unassigned.
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
 | `uc003-ui` | doing | Address PR #50 review with a whole-month browser form: generate staged entries from one interval per selected weekday, handle public and annual holidays, allow edits/removal/manual and split-shift additions, review totals, and confirm one CSRF-protected monthly submission. Expose 2026 public-holiday dates from the backend constant through a narrow authenticated read endpoint. Keep completed months view-only and simplify setup success navigation. | UC-003 Amendments 3 and 6, UC-001, UC-002 | | Tue 27 Oct, 19:00 |
-| `readme-final` | todo | Finish the README for the capstone, with a diagram of the four layers and the main components (the grading criteria ask for a clear architecture presentation; PROJECT.md describes the layers only in text). | Capstone brief | | Tue 27 Oct |
-| `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `readme-final` | Wed 28 Oct |
-| `arch-test` | todo | Make the layer check in `tests/unit/test_architecture.py` recognise `src.app` imports; it must fail on a deliberate inner-to-outer import and pass on `main`. An extended check exists separately and is not on `main`; it was validated against an earlier payroll router, so re-validate it against the current wiring before reporting it passing. | ADR-001 | | |
+| `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | | Wed 28 Oct |
 | `align-gating` | todo | Align `docs/INDEX.json` and `.github/CODEOWNERS` on which files are review-gated. | INDEX.json | | |
 
 ## Acceptance / validation cues
