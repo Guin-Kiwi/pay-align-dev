@@ -22,7 +22,8 @@ published in the [AKBS guide](docs/reference/Employing_Household_Help_Basel.pdf)
 [payslip workbook](docs/reference/Payslip_2026.xlsm), but applying them by hand is
 error-prone, and HR software is built for companies.
 
-**Target users:** private households who want to employ individuals directly for household help directly in Basel-Stadt.
+**Target users:** private households in Basel-Stadt that employ individuals directly
+for household help.
 
 **Scenario:** an employer registers, sets up an employment for their cleaner (hourly
 wage, weekly hours, holiday weeks), and at the end of each month enters the days
@@ -90,18 +91,21 @@ and [UC-004](docs/specs/UC-004-UI-AND-USER-FLOW.md):
 ![PayAlign login page](docs/screenshots/pay-align-login.png)
 ![PayAlign signup page](docs/screenshots/pay-align-signup.png)
 
+**Home**
+
+![PayAlign Home payroll overview](docs/screenshots/pay-align-home.png)
+
 **Employment setup**
 
 ![PayAlign employment setup page](docs/screenshots/pay-align-employment-setup.png)
 
-**Payslip**
+**Timesheets**
 
-<!-- add monthlyentry.png and payslip.png,  then uncomment.
-![Employements screen](docs/screenshots/setup.png)
-![Employer setup](docs/screenshots/setup.png)
-![Monthly entry](docs/screenshots/monthlyentry.png)
-![Payslip](docs/screenshots/payslip.png)
--->
+![PayAlign whole-month timesheet entry](docs/screenshots/pay-align-timesheets.png)
+
+**Saved payslip**
+
+![PayAlign saved payslip](docs/screenshots/pay-align-payslip.png)
 
 ## Course requirements
 
@@ -139,8 +143,8 @@ Each layer may depend only on the layers inside it:
   rules: gross-to-net calculation, holiday balance and annual-limit checks. It imports no
   framework or database code.
 - **Application** holds the use-case services (`SetupService`, `PayrollService`,
-  `AccountService`, `EmploymentReadService`) and the ports they need: repository
-  interfaces and a password-hasher interface.
+  `AccountService`, `EmploymentReadService`, `EmployeeOverviewService`) and the ports
+  they need: repository interfaces and a password-hasher interface.
 - **Interfaces** holds the FastAPI routes, request and response models, the session
   check and CSRF validation, and the browser pages.
 - **Infrastructure** implements the ports with SQLAlchemy repositories and an Argon2
@@ -293,7 +297,6 @@ The app runs at <https://pay-align-dev.onrender.com>.
 - **Holiday balance:** the remaining balance appears once the first month is saved; before that, the yearly entitlement is not shown.
 - **Saved payslips:** a reopened payslip shows the current employer name and the current employee name and AHV number, not a copy from the day it was saved ([UC-003 Amendment 7](docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md#known-limitations)).
 - **No migrations:** `create_all` creates missing tables only, so the account-enabled schema needed a fresh database ([PROJECT.md: Architecture](docs/PROJECT.md#architecture)).
-<!-- Add the browser views that are cut for v0.1.0 here once decided. -->
 
 ## AI assistance
 
