@@ -199,6 +199,27 @@ def test_posted_detail_matches_saved_rounded_inputs(client):
     assert {key: value for key, value in response.json().items() if key != "message"} == saved.json()
 
 
+def test_post_get_and_overview_build_the_saved_payslip_through_one_mapping(client, monkeypatch):
+    from src.app.interfaces import employment_reads, payroll
+
+    mapped = []
+    original = employment_reads.saved_payslip_fields
+
+    def spy(saved):
+        mapped.append(saved.payslip.monthly_record_id)
+        return original(saved)
+
+    monkeypatch.setattr(employment_reads, "saved_payslip_fields", spy)
+    monkeypatch.setattr(payroll, "saved_payslip_fields", spy)
+    test_client, _ = client
+
+    assert test_client.post("/api/v1/monthly-payroll", json=PAYLOAD).status_code == 201
+    assert test_client.get("/api/v1/employments/7/months/2026/10").status_code == 200
+    assert test_client.get("/api/v1/payroll-overview?year=2026&month=10").status_code == 200
+
+    assert len(mapped) == 3
+
+
 def test_saved_snapshot_holds_the_minute_totals_and_balance(client):
     test_client, engine = client
 

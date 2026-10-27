@@ -1,7 +1,4 @@
 main { max-width: 90rem; padding: 2.5rem; }
-.page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-.page-header a { color: #116257; }
-#confirmation { padding: .5rem .75rem; border-left: 4px solid #116257; background: #eef6f4; }
 .eyebrow { color: #52736e; font-size: .7rem; font-weight: 750; letter-spacing: .12em; margin: 0 0 .45rem; }
 h1 { font-size: clamp(2rem, 5vw, 2.8rem); margin: .2rem 0 .5rem; letter-spacing: -.035em; }
 .intro, .section-note { color: #526674; }

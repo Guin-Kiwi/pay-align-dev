@@ -2,8 +2,9 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
-from src.app.application.ports.setup_repository import SetupRepository, SetupResult
+from src.app.application.ports.setup_repository import EmployerAlreadyExistsError, SetupRepository, SetupResult
 from src.app.domain.employee import Employee
 from src.app.domain.employer import Employer
 from src.app.domain.employment import Employment
@@ -22,6 +23,30 @@ class SqlAlchemySetupRepository(SetupRepository):
                 select(EmployerRow).where(EmployerRow.account_id == account_id)
             )
             return _to_employer(row) if row else None
+
+    def save_employer(self, account_id: int, employer: Employer) -> Employer:
+        try:
+            with Session(self.engine) as session, session.begin():
+                employer_id = _insert(session, EmployerRow(
+                    account_id=account_id, name=employer.name, address=employer.address,
+                    ahv_number=employer.ahv_number, contact_info=employer.contact_info,
+                ))
+        except IntegrityError as error:
+            if self.get_employer(account_id) is not None:
+                raise EmployerAlreadyExistsError("An employer already exists.") from error
+            raise
+        employer.id = employer_id
+        return employer
+
+    def update_employer(self, account_id: int, employer: Employer) -> Employer | None:
+        with Session(self.engine) as session, session.begin():
+            row = session.scalar(select(EmployerRow).where(EmployerRow.account_id == account_id))
+            if row is None:
+                return None
+            row.name, row.address = employer.name, employer.address
+            row.ahv_number, row.contact_info = employer.ahv_number, employer.contact_info
+            employer.id = row.id
+        return employer
 
     def get_employee(self, ahv_number: str, account_id: int) -> Employee | None:
         with Session(self.engine) as session:

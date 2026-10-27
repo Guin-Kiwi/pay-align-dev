@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Timesheets | PayAlign</title>
+  <link rel="stylesheet" href="/setup-assets/setup.css?v=20261027-back">
+  <link rel="stylesheet" href="/setup-assets/employments.css">
+  <script src="/setup-assets/navigation.js" defer></script>
+  <script src="/setup-assets/common.js" defer></script>
+  <script src="/setup-assets/timesheets.js" defer></script>
+</head>
+<body>
+<!-- SHARED_NAVIGATION -->
+<main class="wide">
+  <header class="workspace-header">
+    <div><h1>Timesheets</h1><p>See where each employee's timesheets stand and enter the next month. Months are entered in order, a month with no work is entered empty, and a saved month cannot be changed.</p></div>
+  </header>
+  <noscript><p>Please enable JavaScript to enter a timesheet.</p></noscript>
+  <p id="page-status" role="status" aria-live="polite">Loading employments …</p>
+  <p id="page-error" role="alert" hidden></p>
+
+  <section id="landing-section" aria-labelledby="landing-heading" hidden>
+    <h2 id="landing-heading">Your employees</h2>
+    <p id="no-employments" hidden>No employments are set up yet. Add one from Home.</p>
+    <p id="no-month" role="status" hidden></p>
+    <ul id="timesheet-list" class="employee-list"></ul>
+  </section>
+
+  <section id="entry-section" aria-labelledby="entry-heading" hidden>
+    <h2 id="entry-heading">Month entry</h2>
+    <p id="entry-month"></p>
+    <form id="payroll-form" novalidate>
+      <div class="entry-grid">
+        <div class="entry-inputs">
+          <fieldset class="box">
+            <legend>Regular work schedule</legend>
+            <p>Select the weekdays and enter the usual hours, then fill the month. Dates that already have an entry are left unchanged.</p>
+        <div class="weekday-picker">
+          <label><input type="checkbox" id="weekday-1"> Mon</label><label><input type="checkbox" id="weekday-2"> Tue</label><label><input type="checkbox" id="weekday-3"> Wed</label><label><input type="checkbox" id="weekday-4"> Thu</label><label><input type="checkbox" id="weekday-5"> Fri</label><label><input type="checkbox" id="weekday-6"> Sat</label><label><input type="checkbox" id="weekday-0"> Sun</label>
+        </div>
+        <div class="field-grid"><div><label for="pattern-start">Start time</label><input id="pattern-start" type="time"></div><div><label for="pattern-end">End time</label><input id="pattern-end" type="time"></div><div><label for="pattern-break">Unpaid break in minutes</label><input id="pattern-break" type="number" min="0" step="1" value="0"></div></div>
+            <button id="fill-month" type="button">Fill month</button>
+            <p id="pattern-message" role="status" aria-live="polite" hidden></p>
+          </fieldset>
+          <fieldset class="box">
+            <legend>Add extra day</legend>
+            <label for="extra-date">Date</label>
+            <input id="extra-date" type="date">
+            <button id="add-day" type="button">Add</button>
+            <p id="extra-error" role="alert" hidden></p>
+          </fieldset>
+          <fieldset class="box">
+            <legend>Annual holidays</legend>
+            <p id="holiday-balance">Remaining balance: —</p>
+            <label for="holiday-date">Date</label>
+            <input id="holiday-date" type="date">
+            <label for="holiday-hours">Hours (H:MM)</label>
+            <input id="holiday-hours" type="text" inputmode="numeric" placeholder="6:00">
+            <button id="add-holiday" type="button">Add</button>
+            <p id="holiday-error" role="alert" hidden></p>
+          </fieldset>
+          <fieldset class="box">
+            <legend>Bonus and expenses</legend>
+            <div class="field-grid">
+              <div><label for="cash-bonus">Cash bonus in CHF</label><input id="cash-bonus" type="number" min="0" step="0.01" value="0.00"></div>
+              <div><label for="expense-reimbursements">Expense reimbursements in CHF</label><input id="expense-reimbursements" type="number" min="0" step="0.01" value="0.00"></div>
+            </div>
+            <button id="add-bonus" type="button">Add</button>
+            <p id="bonus-error" role="alert" hidden></p>
+          </fieldset>
+        </div>
+        <div class="entry-results">
+          <h3>Month table</h3>
+          <p id="table-message" role="alert" hidden></p>
+          <div class="table-scroll" role="region" aria-label="Entries for this month" tabindex="0">
+            <table id="entry-table" class="entries">
+              <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Start</th><th scope="col">End</th><th scope="col">Unpaid break (min)</th><th scope="col">Paid minutes</th><th scope="col">Public holiday</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+              <tbody id="entry-empty" class="empty"><tr><td colspan="8">No entries yet. Fill the month from the weekly pattern or add an extra day.</td></tr></tbody>
+              <tbody id="entry-list"></tbody>
+            </table>
+          </div>
+          <p id="entry-totals" aria-live="polite"></p>
+          <p id="entry-extras"></p>
+          <p id="save-error" role="alert" hidden></p>
+          <div class="actions">
+            <button id="save-payroll" type="submit" disabled>Save</button>
+            <button id="cancel-entry" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section id="save-confirmation" role="status" hidden>
+    <p id="save-message"></p>
+    <button id="view-saved-payslip" type="button">View saved payslip</button>
+    <button id="back-to-timesheets" type="button">Back to timesheets</button>
+  </section>
+
+  <dialog id="timesheet-dialog" class="warning" aria-labelledby="timesheet-dialog-heading">
+    <h2 id="timesheet-dialog-heading">Are you sure?</h2>
+    <p>This will save the work for this month. Once saved, it <strong>cannot be changed</strong>.</p>
+    <p id="timesheet-summary"></p>
+    <div class="actions">
+      <button id="timesheet-confirm" class="primary" type="button">Yes, confirm and save this month</button>
+      <button id="timesheet-cancel" class="secondary" type="button">No, keep editing</button>
+    </div>
+    <p id="timesheet-status" role="status" aria-live="polite"></p>
+  </dialog>
+</main>
+</body>
+</html>

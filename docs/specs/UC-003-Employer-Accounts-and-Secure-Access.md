@@ -1,6 +1,6 @@
 # UC-003: Employer Accounts and Secure Access
 
-Last updated: 2026-10-27
+Last updated: 2026-10-24
 
 ## Goal
 Let multiple household employers use one PayAlign deployment with separate accounts and isolated payroll data.
@@ -83,17 +83,6 @@ The employer registers or logs in to manage employment and payroll data.
 - Unit: account validation, password verification and authorization for employer-scoped operations.
 - Integration: registration, login, logout, protected endpoints and employer-scoped queries against the newly created database schema.
 - End-to-end: two independent browser clients remain isolated through setup and payroll, including attempts to use each other's record IDs.
-- Browser acceptance: `tests/integration/test_login_ui.py`,
-  `tests/integration/test_setup_ui.py` and
-  `tests/integration/test_employments_ui.py` cover navigation, accessible form
-  behavior, session and CSRF rejection, duplicate-submission safety,
-  employment/month selection, saved-payslip display and logout.
-- Account isolation and view-only completed months:
-  `tests/integration/test_employer_access.py` exercises two independent
-  sessions against the scoped APIs used by the browser.
-- Real-server journey: `tests/e2e/test_demo_flow.py` covers the HTTP path from
-  registration and setup through employment discovery, month creation, saved
-  payslip retrieval and logout, including persistence across a restart.
 
 ### Evidence
 At VALIDATE, record the actual test results in the commit message.
@@ -192,7 +181,7 @@ foreign saves without partial changes.
 
 ## Amendment 6 — 2026-10-27: Minimum browser navigation
 
-Status: **Proposed — requires human review and is not yet accepted.**
+Approval: Proposed by Assvinth; accepted by a non-author reviewer's approval of the pull request that records this approval.
 
 The authenticated employment list is the browser home after setup. The login
 page sends an account without an employer profile to `/setup` and an account
@@ -241,6 +230,8 @@ Later employment setup reuses the existing `/setup` form and UC-001 setup
 operation. This slice does not add an employee picker or an employee-editing
 operation; persisted employee details remain governed by UC-001 and its
 employer-scoped setup behavior.
+
+[Amendment 11](#amendment-11--2026-10-27-welcome-page-employer-setup-and-payslip-handoff) changes this navigation.
 
 ## Amendment 7 — 2026-10-26: Payslip view design
 
@@ -359,3 +350,29 @@ saving the employee's payslip as a PDF. On smaller screens the panels stack.
 The employee deductions, payout and holiday balance remain in the printed
 view. `tests/integration/test_payslip_ui.py` checks that the employer-cost section
 uses the print-hiding class; the print layout still needs a real-browser check.
+
+## Amendment 9 — 2026-10-27: Employer profile operations
+
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
+
+The owning account can create and update its employer profile independently of an employment. Authentication, CSRF and the one-employer-per-account boundary continue to apply. Combined setup remains available to existing API clients. Reopened payslips use current employer identity as described in [Amendment 7](#amendment-7--2026-10-26-payslip-view-design).
+
+## Amendment 10 — 2026-10-27: Employee overview and details reads
+
+The employee overview, details and stored-value decisions were approved by Guin-Kiwi on 2026-10-27 and checked against code and tests that day. These consolidated read-only views use stored values and add no payroll rule.
+
+`GET /api/v1/employees` returns one entry per person belonging to the signed-in account's employer, with employments, terms, saved-month counts, next month, months due, saved annual totals, holiday balance and wage limit used and remaining. It also returns the household wage limit. Months due end at the current month, employment end or rules-year end, whichever comes first. The balance is from the latest saved month of the latest employment with saved months. Gross totals and limits use the existing payroll sums and constants. No averages or projections are calculated.
+
+`GET /api/v1/employees/{id}` returns address, AHV number, nationality and tax status only on request. An absent or another account's employee has the same not-found response.
+
+## Amendment 11 — 2026-10-27: Welcome page, employer setup and payslip handoff
+
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
+
+This amendment changes the browser navigation of [Amendment 6](#amendment-6--2026-10-27-minimum-browser-navigation). The journey and presentation are owned by [UC-004](UC-004-UI-AND-USER-FLOW.md); no payroll rule, endpoint or stored data changes.
+
+- `/` serves a public welcome page with Log in and Sign up links, instead of redirecting to `/login`.
+- After login or registration the browser opens `/employments` (Home), with or without an employer profile. Without one, Home stays available and asks for the account details before an employment is added.
+- The employer profile has its own page, `/employer-setup`, opened from Home's account-details button; saving it returns to `/employments`. Until a profile exists, `/setup` redirects to `/employments`. The profile operations are in [Amendment 9](#amendment-9--2026-10-27-employer-profile-operations).
+- Signed-in pages share one navigation: Home, Timesheets, Employees, Payslips and Log out, with a Back button outside Home.
+- `/payslips` is the only payslip renderer, as [Amendment 7](#amendment-7--2026-10-26-payslip-view-design) describes, so Home has no saved-payslip state. After a successful save, Home stores `{url, message}` in `sessionStorage` under `payalign-saved-confirmation` and opens that month's `/payslips?employment_id=ID&year=YYYY&month=M`; a completed month opens the same URL. `/payslips` shows the message once when the URL matches, then removes it. If the saved-month read then fails, the message stays visible and the page's retry reads the month again; the payroll is never submitted again.

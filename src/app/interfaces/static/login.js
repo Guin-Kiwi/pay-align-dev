@@ -1,12 +1,10 @@
 "use strict";
 
-const element = id => document.getElementById(id);
 const value = id => element(id).value;
 const loginFields = {email: "login-email", password: "login-password"};
 const signupFields = {first_name: "signup-first-name", last_name: "signup-last-name", email: "signup-email", password: "signup-password"};
-const MIN_PASSWORD_LENGTH = 8;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const SETUP_PAGE = "/setup";
+const SETUP_PAGE = "/employments";
 const EMPLOYER_DESTINATION = "/employments";
 const rejectedRequest = "Your request was rejected. Reload the page and try again.";
 let accountState = "loading";
@@ -69,6 +67,7 @@ function updateControls() {
   const idle = accountState === "signed-out" && !submitting && !navigating;
   element("login-submit").disabled = !idle;
   element("open-signup").disabled = !idle;
+  element("header-signup").disabled = !idle;
   element("signup-submit").disabled = !idle;
   element("signup-cancel").disabled = submitting || navigating;
 }
@@ -92,23 +91,6 @@ function responseError(body) {
     }).join("\n");
   }
   return "Please check the entered values and try again.";
-}
-
-async function call(url, options, timeoutMs) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, {...options, signal: controller.signal});
-    return {status: response.status, body: await response.json()};
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function fetchCsrfToken() {
-  const {status, body} = await call("/api/v1/auth/csrf", {headers: {Accept: "application/json"}, cache: "no-store"}, 10000);
-  if (status !== 200 || typeof body?.csrf_token !== "string" || !body.csrf_token) throw new Error("response");
-  return body.csrf_token;
 }
 
 function postCredentials(path, payload, token) {
@@ -176,7 +158,7 @@ async function authenticate(request) {
   try {
     let token;
     try {
-      token = await fetchCsrfToken();
+      token = await fetchCsrfToken({fresh: true});
     } catch (failure) {
       showMessage(request.errorId, "Could not reach PayAlign. Nothing was sent; please try again.");
       return;
@@ -260,6 +242,7 @@ for (const id of [...Object.values(loginFields), ...Object.values(signupFields)]
 element("login-form").addEventListener("submit", submitLogin);
 element("signup-form").addEventListener("submit", submitSignup);
 element("open-signup").addEventListener("click", () => element("signup-dialog").showModal());
+element("header-signup").addEventListener("click", () => element("signup-dialog").showModal());
 element("signup-cancel").addEventListener("click", () => element("signup-dialog").close());
 element("signup-dialog").addEventListener("close", resetSignup);
 element("signup-dialog").addEventListener("cancel", event => { if (submitting || navigating) event.preventDefault(); });

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welcome | PayAlign</title>
+  <link rel="stylesheet" href="/setup-assets/setup.css?v=20261027-back">
+  <style>
+    .welcome { display: grid; grid-template-columns: minmax(0, 1fr) 12rem; align-items: center; gap: 2rem; padding: 2.5rem; }
+    .welcome h1 { margin: .5rem 0 1rem; font-size: clamp(2rem, 4vw, 2.7rem); letter-spacing: -.03em; }
+    .welcome p { line-height: 1.65; color: #526674; }
+    .welcome .eyebrow { color: #116257; font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .welcome-illustration { width: 100%; height: auto; }
+    @media (max-width: 36rem) { .welcome { grid-template-columns: 1fr; gap: .5rem; padding: 1.5rem; } .welcome-illustration { width: 8rem; } }
+  </style>
+</head>
+<body>
+<header class="app-header">
+  <div class="app-header-inner">
+    <p class="brand"><img src="/setup-assets/house.svg" alt="" width="28" height="28">PayAlign</p>
+    <nav class="app-navigation public-nav" aria-label="Account">
+      <a href="/login">Log in</a>
+      <a class="signup" href="/login#signup">Sign up</a>
+    </nav>
+  </div>
+</header>
+<main class="welcome">
+  <div>
+    <p class="eyebrow">For household employers in Basel-Stadt</p>
+    <h1>Household payroll, made simpler</h1>
+    <p>PayAlign helps you manage payroll under the simplified settlement procedure.</p>
+    <p>Keep employment details in one place, enter monthly work and view payslips for your household employees.</p>
+  </div>
+  <img class="welcome-illustration" src="/setup-assets/house.svg" alt="" aria-hidden="true">
+</main>
+</body>
+</html>

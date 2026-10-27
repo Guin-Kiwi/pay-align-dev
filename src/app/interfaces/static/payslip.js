@@ -1,33 +1,41 @@
 "use strict";
 
-const el = id => document.getElementById(id);
-const employment = el("employment");
-const month = el("month");
-const confirmationKey = "payalign-saved-confirmation";
+const employment = element("employment");
+const month = element("month");
+const TIMESHEETS_PAGE = "/timesheets";
 let requestVersion = 0;
 let employerName = "";
 let employments = [];
+let employeeDetails = null;
+let retryAction = loadDetail;
 
-function showError(message, retry = false) {
-  el("error").textContent = message;
-  el("error").hidden = !message;
-  el("retry").hidden = !retry;
-  el("login-link").hidden = true;
+function showError(message, retry = null) {
+  element("error").textContent = message;
+  element("error").hidden = !message;
+  element("retry").hidden = !retry;
+  if (retry) retryAction = retry;
+  element("login-link").hidden = true;
+  element("employer-setup-link").hidden = true;
 }
 
-async function readJSON(url) {
-  const response = await fetch(url, {headers: {Accept: "application/json"}, cache: "no-store"});
-  if (response.status === 401) throw new Error("session");
-  if (response.status === 404) throw new Error("not-found");
-  if (!response.ok) throw new Error("request");
-  return response.json();
+async function read(url) {
+  const {status, body} = await call(url, {headers: {Accept: "application/json"}, cache: "no-store"});
+  if (status === 401) throw new Error("session");
+  if (status === 404) throw new Error("not-found");
+  if (status !== 200) throw new Error("request");
+  return body;
 }
 
-function failure(error, retry = false) {
-  el("status").textContent = "";
+function failure(error, retry = null) {
+  element("status").textContent = "";
+  if (error.message === "no-employer") {
+    showError("Enter your account details before viewing payslips.");
+    element("employer-setup-link").hidden = false;
+    return;
+  }
   if (error.message === "session") {
     showError("Your session has expired. Please sign in again.");
-    el("login-link").hidden = false;
+    element("login-link").hidden = false;
     return;
   }
   showError(error.message === "not-found" ? "This employment or payslip could not be found." : "The payslip could not be loaded. Please try again.", retry);
@@ -58,6 +66,13 @@ function option(value, label) {
   return item;
 }
 
+function resetSelects(label) {
+  employment.replaceChildren(option("", label));
+  employment.disabled = true;
+  month.replaceChildren(option("", "Select an employee first"));
+  month.disabled = true;
+}
+
 function periodName(year, number) {
   return new Intl.DateTimeFormat("en-CH", {month: "long", year: "numeric", timeZone: "UTC"}).format(new Date(Date.UTC(year, number - 1, 1)));
 }
@@ -78,99 +93,107 @@ function render(detail, employee, year, number) {
     "holiday-balance": detail.holiday_balance_minutes};
   const formatted = Object.fromEntries(Object.entries(amounts).map(([id, value]) => [id, money(value)]));
   Object.assign(formatted, Object.fromEntries(Object.entries(durations).map(([id, value]) => [id, duration(value)])));
-  Object.entries(formatted).forEach(([id, value]) => { el(id).textContent = value; });
-  el("employer-name").textContent = employerName;
-  el("employee-name").textContent = employee.employee_name;
-  el("employee-ahv-number").textContent = employee.employee_ahv_number;
-  el("period").textContent = periodName(year, number);
-  el("payslip").hidden = false;
-  el("employer-costs").hidden = false;
-  el("print").hidden = false;
+  Object.entries(formatted).forEach(([id, value]) => { element(id).textContent = value; });
+  element("employer-name").textContent = employerName;
+  element("employee-name").textContent = employee.employee_name;
+  element("employee-ahv-number").textContent = employee.employee_ahv_number;
+  element("period").textContent = periodName(year, number);
+  element("payslip").hidden = false;
+  element("employer-costs").hidden = false;
+  element("print").hidden = false;
 }
 
 async function loadDetail() {
   const version = ++requestVersion;
-  el("payslip").hidden = true;
-  el("employer-costs").hidden = true;
-  el("print").hidden = true;
-  el("status").textContent = "";
+  element("payslip").hidden = true;
+  element("employer-costs").hidden = true;
+  element("print").hidden = true;
+  element("status").textContent = "";
   showError("");
   if (!employment.value || !month.value) return;
   const [year, number] = month.value.split("-").map(Number);
   const selected = employments.find(item => String(item.id) === employment.value);
-  if (!selected || !Number.isInteger(year) || number < 1 || number > 12) return;
-  el("status").textContent = "Loading payslip…";
+  if (!selected || !employeeDetails || !Number.isInteger(year) || number < 1 || number > 12) return;
+  element("status").textContent = "Loading payslip…";
   try {
-    const [detail, employee] = await Promise.all([
-      readJSON(`/api/v1/employments/${selected.id}/months/${year}/${number}`),
-      readJSON(`/api/v1/employments/${selected.id}`)
-    ]);
+    const detail = await read(`/api/v1/employments/${selected.id}/months/${year}/${number}`);
     if (version !== requestVersion) return;
-    render(detail, employee, year, number);
-    el("status").textContent = "";
+    render(detail, employeeDetails, year, number);
+    element("status").textContent = "";
   } catch (error) {
-    if (version === requestVersion) failure(error, true);
+    if (version === requestVersion) failure(error, loadDetail);
   }
 }
 
-async function loadMonths(preselected = "") {
+async function loadMonths(preselected = "", loadedHistory = null) {
   const version = ++requestVersion;
-  el("payslip").hidden = true;
-  el("employer-costs").hidden = true;
-  el("print").hidden = true;
+  employeeDetails = null;
+  element("enter-timesheet").hidden = true;
+  element("payslip").hidden = true;
+  element("employer-costs").hidden = true;
+  element("print").hidden = true;
   showError("");
   month.disabled = true;
   month.replaceChildren(option("", "Loading months…"));
   if (!employment.value) {
     month.replaceChildren(option("", "Select an employee first"));
-    el("status").textContent = "";
+    element("status").textContent = "";
     return;
   }
-  el("status").textContent = "Loading months…";
+  element("status").textContent = "Loading months…";
   try {
-    const history = await readJSON(`/api/v1/employments/${employment.value}/months`);
+    const [history, details] = await Promise.all([
+      loadedHistory ?? read(`/api/v1/employments/${employment.value}/months`),
+      read(`/api/v1/employments/${employment.value}`)
+    ]);
     if (version !== requestVersion) return;
+    employeeDetails = details;
     month.replaceChildren(option("", history.months.length ? "Select a month" : "No completed months"));
     history.months.forEach(item => month.append(option(`${item.year}-${item.month}`, periodName(item.year, item.month))));
     month.disabled = !history.months.length;
-    el("status").textContent = history.months.length ? "" : "There are no saved payslips for this employee yet.";
+    if (history.next_month) {
+      element("enter-timesheet").textContent = `Enter timesheet for ${periodName(history.next_month.year, history.next_month.month)}`;
+      element("enter-timesheet").hidden = false;
+    }
+    element("status").textContent = history.months.length ? "" : "There are no saved payslips for this employee yet.";
     if (preselected && [...month.options].some(item => item.value === preselected)) {
       month.value = preselected;
       await loadDetail();
     } else if (preselected) {
       showError("This employment or payslip could not be found.");
+    } else if (history.months.length) {
+      const latest = history.months.reduce((best, item) =>
+        item.year > best.year || (item.year === best.year && item.month > best.month) ? item : best);
+      month.value = `${latest.year}-${latest.month}`;
+      await loadDetail();
     }
   } catch (error) {
     if (version === requestVersion) failure(error);
   }
 }
 
-function showSavedConfirmation() {
-  try {
-    const saved = JSON.parse(window.sessionStorage.getItem(confirmationKey));
-    if (!saved || saved.url !== window.location.pathname + window.location.search || typeof saved.message !== "string") return;
-    el("confirmation").textContent = saved.message;
-    el("confirmation").hidden = false;
-    window.sessionStorage.removeItem(confirmationKey);
-  } catch (error) {
-    el("confirmation").hidden = true;
-  }
-}
-
-function hideSavedConfirmation() {
-  el("confirmation").hidden = true;
-}
-
 async function initialise() {
-  showSavedConfirmation();
   try {
-    const [employer, list] = await Promise.all([readJSON("/api/v1/employer"), readJSON("/api/v1/employments")]);
+    const saved = JSON.parse(window.sessionStorage.getItem("payalign-saved-confirmation") || "null");
+    if (saved && saved.url === `${window.location.pathname}${window.location.search}` && typeof saved.message === "string") {
+      element("save-confirmation").textContent = saved.message;
+      element("save-confirmation").hidden = false;
+      window.sessionStorage.removeItem("payalign-saved-confirmation");
+    }
+  } catch (error) { /* Browsing without session storage still opens the saved payslip. */ }
+  showError("");
+  resetSelects("Loading employees…");
+  try {
+    const [employer, list] = await Promise.all([
+      read("/api/v1/employer").catch(error => { throw error.message === "not-found" ? new Error("no-employer") : error; }),
+      read("/api/v1/employments")
+    ]);
     employerName = employer.name;
     employments = list;
     employment.replaceChildren(option("", list.length ? "Select an employee" : "No employments found"));
-    list.forEach(item => employment.append(option(String(item.id), `${item.employee_name} · from ${item.start_date}`)));
+    list.forEach(item => employment.append(option(String(item.id), `${item.employee_name} · from ${item.start_date}${item.end_date ? ` to ${item.end_date}` : ""}`)));
     employment.disabled = !list.length;
-    if (!list.length) el("status").textContent = "Set up an employment before viewing payslips.";
+    if (!list.length) element("status").textContent = "Set up an employment before viewing payslips.";
     const params = new URLSearchParams(window.location.search);
     const id = params.get("employment_id");
     const year = params.get("year");
@@ -180,14 +203,43 @@ async function initialise() {
       await loadMonths(year && number ? `${Number(year)}-${Number(number)}` : "");
     } else if (id) {
       showError("This employment or payslip could not be found.");
+    } else if (list.length) {
+      const version = ++requestVersion;
+      element("status").textContent = "Finding the latest payslip…";
+      let histories;
+      try {
+        histories = await Promise.all(list.map(item => read(`/api/v1/employments/${item.id}/months`)));
+      } catch (error) {
+        if (version !== requestVersion) return;
+        throw error;
+      }
+      if (version !== requestVersion) return;
+      let latest = null;
+      histories.forEach((history, index) => {
+        history.months.forEach(item => {
+          if (!latest || item.year > latest.year || (item.year === latest.year && item.month > latest.month)) {
+            latest = {...item, index};
+          }
+        });
+      });
+      if (latest) {
+        employment.value = String(list[latest.index].id);
+        await loadMonths(`${latest.year}-${latest.month}`, histories[latest.index]);
+      } else {
+        element("status").textContent = "No saved payslips yet.";
+      }
     }
   } catch (error) {
-    failure(error);
+    resetSelects("Select an employee");
+    failure(error, initialise);
   }
 }
 
-employment.addEventListener("change", () => { hideSavedConfirmation(); loadMonths(); });
-month.addEventListener("change", () => { hideSavedConfirmation(); loadDetail(); });
-el("retry").addEventListener("click", loadDetail);
-el("print").addEventListener("click", () => window.print());
+employment.addEventListener("change", () => loadMonths());
+element("enter-timesheet").addEventListener("click", () => window.location.assign(`${TIMESHEETS_PAGE}?employment_id=${employment.value}`));
+month.addEventListener("change", loadDetail);
+element("retry").addEventListener("click", () => retryAction());
+element("print").addEventListener("click", () => window.print());
+element("sign-in").addEventListener("click", () => window.location.assign("/login"));
+element("open-employer-setup").addEventListener("click", () => window.location.assign("/employer-setup"));
 initialise();

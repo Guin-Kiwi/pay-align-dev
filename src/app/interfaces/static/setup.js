@@ -1,6 +1,5 @@
 "use strict";
 
-const element = id => document.getElementById(id);
 const value = id => element(id).value;
 const form = element("setup-form");
 const save = element("save-setup");
@@ -28,10 +27,11 @@ function isDate(text) {
 
 function showLoginMessage(container, message) {
   container.textContent = `${message} `;
-  const link = document.createElement("a");
-  link.href = "/login";
-  link.textContent = "Open the login page.";
-  container.append(link);
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = "Open the login page";
+  button.addEventListener("click", () => window.location.assign("/login"));
+  container.append(button);
   container.hidden = false;
 }
 
@@ -44,21 +44,21 @@ function validateFields(reveal = false) {
       errors[id] = "Use the AHV format 756.XXXX.XXXX.XX.";
     }
   }
-  if (!isDate(value("start-date")) || value("start-date") < "2026-01-01" || value("start-date") > "2026-12-31") {
-    errors["start-date"] = "Enter a start date in 2026.";
+  if (!isDate(value("start-date")) || value("start-date") < RULES_YEAR_START || value("start-date") > RULES_YEAR_END) {
+    errors["start-date"] = `Enter a start date in ${RULES_YEAR}.`;
   }
   if (value("end-date") && !isDate(value("end-date"))) errors["end-date"] = "Enter a valid end date.";
   else if (value("end-date") && isDate(value("start-date")) && value("end-date") < value("start-date")) {
     errors["end-date"] = "End date cannot be before the start date.";
   }
-  if (!fullMatch(/^[0-9]+(?:\.[0-9]{1,2})?$/, value("hourly-wage")) || !Number.isFinite(Number(value("hourly-wage"))) || Number(value("hourly-wage")) < 22.20 || Number(value("hourly-wage")) > 500) {
-    errors["hourly-wage"] = "Enter CHF 22.20 to 500.00 per hour with at most two decimal places.";
+  if (!fullMatch(/^[0-9]+(?:\.[0-9]{1,2})?$/, value("hourly-wage")) || !Number.isFinite(Number(value("hourly-wage"))) || Number(value("hourly-wage")) < Number(MIN_HOURLY_WAGE) || Number(value("hourly-wage")) > Number(MAX_HOURLY_WAGE)) {
+    errors["hourly-wage"] = `Enter CHF ${MIN_HOURLY_WAGE} to ${MAX_HOURLY_WAGE} per hour with at most two decimal places.`;
   }
   const hours = /^([0-9]{1,2}):([0-5][0-9])$/.exec(value("weekly-hours"));
   if (!hours || hours[0] !== value("weekly-hours") || Number(hours[1]) * 60 + Number(hours[2]) === 0) {
     errors["weekly-hours"] = "Use H:MM above 0:00 and up to 99:59, for example 6:30.";
   }
-  if (!["4", "5"].includes(value("holiday-weeks"))) errors["holiday-weeks"] = "Holiday weeks must be 4 or 5.";
+  if (!ALLOWED_HOLIDAY_WEEKS.map(String).includes(value("holiday-weeks"))) errors["holiday-weeks"] = `Holiday weeks must be ${ALLOWED_HOLIDAY_WEEKS.join(" or ")}.`;
   for (const [id, message] of Object.entries(errors)) {
     element(id).setCustomValidity(message);
     if (reveal || touched.has(id)) {
@@ -106,10 +106,8 @@ async function loadEmployer() {
       element("employer-status").textContent = "Session expired.";
       showLoginMessage(element("employer-error"), "Your session has expired. Please log in again to continue.");
     } else if (response.status === 404 && body?.detail === "No employer is set up yet.") {
-      employerState = "new";
-      element("employer-fields").hidden = false;
-      element("employer-fields").disabled = false;
-      element("employer-status").textContent = "No employer is configured yet. Please enter the employer details.";
+      employerState = "failed";
+      window.location.replace("/employer-setup");
     } else {
       if (response.status !== 200 || !body || !Number.isSafeInteger(body.id) || body.id <= 0 ||
           !Object.keys(employerFields).every(key => typeof body[key] === "string" && body[key].trim()) ||
@@ -166,7 +164,12 @@ function responseError(body) {
   return "Please check the entered values and try again.";
 }
 
-async function submitSetup(event) {
+function describeEmployment({employee, employment}) {
+  const period = employment.end_date ? `from ${employment.start_date} to ${employment.end_date}` : `from ${employment.start_date}, with no end date`;
+  return `Employee: ${employee.name}. Employment ${period}, CHF ${employment.hourly_wage} an hour, ${employment.weekly_hours} hours a week, ${employment.holiday_weeks} holiday weeks.`;
+}
+
+function submitSetup(event) {
   event.preventDefault();
   if (submitting || submissionLocked || !csrfToken || !["new", "existing"].includes(employerState)) return;
   if (!validateFields(true)) {
@@ -174,8 +177,16 @@ async function submitSetup(event) {
     if (firstInvalid) element(firstInvalid).focus();
     return;
   }
+  element("add-employment-summary").textContent = describeEmployment(buildPayload());
+  warning.showModal();
+}
+
+async function saveSetup() {
   const payload = buildPayload();
   submitting = true;
+  element("add-employment-confirm").disabled = true;
+  element("add-employment-cancel").disabled = true;
+  element("add-employment-status").textContent = "Saving employment …";
   form.setAttribute("aria-busy", "true");
   element("setup-error").hidden = true;
   element("setup-success").hidden = true;
@@ -196,10 +207,7 @@ async function submitSetup(event) {
         throw new Error("response");
       }
       submissionLocked = true;
-      element("setup-success").textContent = "Employment set up successfully.";
-      element("setup-success").hidden = false;
-      element("setup-complete-actions").hidden = false;
-      await loadEmployer();
+      window.location.replace("/employments");
     } else if ([401, 403].includes(response.status)) {
       showLoginMessage(
         element("setup-error"),
@@ -220,6 +228,10 @@ async function submitSetup(event) {
     submitting = false;
     form.setAttribute("aria-busy", "false");
     element("setup-status").textContent = "";
+    element("add-employment-status").textContent = "";
+    element("add-employment-confirm").disabled = false;
+    element("add-employment-cancel").disabled = false;
+    warning.close();
     validateFields();
   }
 }
@@ -231,7 +243,12 @@ for (const id of allFields) {
     validateFields();
   });
 }
+const warning = wireWarningDialog({
+  dialogId: "add-employment-dialog", confirmId: "add-employment-confirm", cancelId: "add-employment-cancel",
+  onConfirm: saveSetup, isBusy: () => submitting
+});
 form.addEventListener("submit", submitSetup);
+element("view-employments").addEventListener("click", () => window.location.assign("/employments"));
 async function initialize() {
   await loadCsrfToken();
   await loadEmployer();

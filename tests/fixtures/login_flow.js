@@ -25,6 +25,8 @@ const authCases = {
   'login-network': {action: 'login', message: /try again/i},
   'login-timeout': {action: 'login', message: /try again/i},
   'login-csrf-failure': {action: 'login', message: /Nothing was sent/, requests: CSRF},
+  'login-again-401': {action: 'login', message: /Invalid email or password\./,
+    requests: [...POST('login'), 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/login']},
   'login-malformed': {action: 'login', message: /try again/i},
   register: {action: 'register', result: 'success'},
   'register-lookup-error': {action: 'register', result: 'lookup'},
@@ -35,6 +37,8 @@ const authCases = {
   'register-network': {action: 'register', message: /account may already have been created/},
   'register-timeout': {action: 'register', message: /account may already have been created/},
   'register-csrf-failure': {action: 'register', message: /Nothing was sent/, requests: CSRF},
+  'register-again-409': {action: 'register', result: 'duplicate-account',
+    requests: [...POST('register'), 'GET /api/v1/auth/csrf', 'POST /api/v1/auth/register']},
   'register-malformed': {action: 'register', message: /account may already have been created/}
 };
 
@@ -193,14 +197,14 @@ async function run({scenario, elements: attributes, javascript, credentials, sig
     browser.releasePost();
     await pending;
     await settle();
-    inspect({requests: AUTH(action), redirects: ['/setup']});
+    inspect({requests: AUTH(action), redirects: ['/employments']});
   }
 
   function inspectAuth({action, result, message, extra, requests}) {
     const form = formName(action);
     inspect({requests: requests ?? (result === 'success' || result === 'lookup' ? AUTH(action) : POST(action))});
     if (result === 'success') {
-      inspect({redirects: [scenario.includes('with-employer') ? '/employments' : '/setup'], disabled: {[`${form}-submit`]: true}, hidden: {[`${form}-error`]: true}});
+      inspect({redirects: [scenario.includes('with-employer') ? '/employments' : '/employments'], disabled: {[`${form}-submit`]: true}, hidden: {[`${form}-error`]: true}});
       assert.deepEqual(calls[2].headers, {
         'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': 'csrf-token-1'
       });
@@ -237,6 +241,7 @@ async function run({scenario, elements: attributes, javascript, credentials, sig
 
   if (authCases[scenario]) {
     await authenticate(authCases[scenario].action);
+    if (scenario.includes('-again-')) await authenticate(authCases[scenario].action);
     inspectAuth(authCases[scenario]);
   } else if (scenario === 'login-duplicate' || scenario === 'register-duplicate') {
     await duplicateSubmit(scenario.startsWith('register') ? 'register' : 'login');
@@ -245,7 +250,7 @@ async function run({scenario, elements: attributes, javascript, credentials, sig
     if (scenario.includes('lookup-')) inspect({redirects: [], hidden: {'account-error': false},
       matches: {'account-error': [/reload/i, /could not load your details/]},
       excludes: {'account-error': /employer/i}});
-    else inspect({redirects: [scenario.includes('with-employer') ? '/employments' : '/setup']});
+    else inspect({redirects: [scenario.includes('with-employer') ? '/employments' : '/employments']});
   } else if (scenario === 'loading') {
     inspect({disabled: locked, matches: {'account-status': /Checking/}});
     fill(loginValues);

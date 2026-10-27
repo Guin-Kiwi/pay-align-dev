@@ -4,17 +4,13 @@ import logging
 from datetime import date
 from typing import Optional
 
-from src.app.application.ports.setup_repository import SetupRepository, SetupResult
+from src.app.application.ports.setup_repository import EmployerAlreadyExistsError, SetupRepository, SetupResult
 from src.app.domain.employer import Employer
 from src.app.domain.employee import Employee
 from src.app.domain.employment import Employment
 from src.app.domain.constants import MIN_WEEKLY_HOURS, RULES_YEAR
 
 logger = logging.getLogger(__name__)
-
-
-class EmployerAlreadyExistsError(Exception):
-    """Raised when setup sends employer details although an employer is already saved."""
 
 
 def _build(part: str, build, details: dict):
@@ -34,6 +30,18 @@ class SetupService:
     def get_employer(self) -> Employer | None:
         """Return the saved employer, or None if setup has not run yet."""
         return self.repository.get_employer(self.account_id)
+
+    def set_up_employer(self, details: dict) -> Employer:
+        if self.repository.get_employer(self.account_id) is not None:
+            raise EmployerAlreadyExistsError("An employer already exists.")
+        employer = _build("Employer", self.create_employer, details)
+        return self.repository.save_employer(self.account_id, employer)
+
+    def update_employer(self, details: dict) -> Employer | None:
+        if self.repository.get_employer(self.account_id) is None:
+            return None
+        employer = _build("Employer", self.create_employer, details)
+        return self.repository.update_employer(self.account_id, employer)
 
     def set_up_employment(
         self,

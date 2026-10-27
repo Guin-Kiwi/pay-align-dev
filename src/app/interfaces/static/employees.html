@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Employees | PayAlign</title>
+  <link rel="stylesheet" href="/setup-assets/setup.css?v=20261027-back">
+  <link rel="stylesheet" href="/setup-assets/employments.css">
+  <link rel="stylesheet" href="/setup-assets/employees.css">
+  <script src="/setup-assets/navigation.js" defer></script>
+  <script src="/setup-assets/common.js" defer></script>
+  <script src="/setup-assets/employees.js" defer></script>
+</head>
+<body>
+<!-- SHARED_NAVIGATION -->
+<main class="wide">
+  <header class="workspace-header">
+    <div><h1>Your employees</h1><p>Each employee's agreement, what you need to do and the year so far.</p></div>
+  </header>
+  <noscript><p>Please enable JavaScript to see your employees.</p></noscript>
+  <p id="page-status" role="status" aria-live="polite">Loading employees …</p>
+  <p id="page-error" role="alert" hidden></p>
+  <p id="no-employees" hidden>No employees are set up yet. Add an employment on Home to start.</p>
+  <ul id="employee-list" class="employee-list"></ul>
+  <dialog id="details-dialog" class="details" aria-labelledby="details-title">
+    <h2 id="details-title">Employee details</h2>
+    <p id="details-status" role="status" aria-live="polite"></p>
+    <div id="details-rows"></div>
+    <div class="actions"><button id="details-close" type="button">Close</button></div>
+  </dialog>
+</main>
+</body>
+</html>

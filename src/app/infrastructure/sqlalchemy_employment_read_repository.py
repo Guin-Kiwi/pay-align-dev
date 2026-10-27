@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from src.app.application.ports.employment_read_repository import (
     CompletedMonth,
+    EmployeeDetails,
     EmploymentOverview,
     EmploymentReadRepository,
     SavedPayslip,
@@ -60,6 +61,24 @@ class SqlAlchemyEmploymentReadRepository(EmploymentReadRepository):
                 )
             ).first()
             return self._overview(row) if row else None
+
+    def get_employee(self, account_id: int, employee_id: int) -> EmployeeDetails | None:
+        with Session(self.engine) as session:
+            row = session.scalars(
+                select(EmployeeRow)
+                .join(EmployerRow, EmployerRow.id == EmployeeRow.employer_id)
+                .where(EmployerRow.account_id == account_id, EmployeeRow.id == employee_id)
+            ).first()
+            if row is None:
+                return None
+            return EmployeeDetails(
+                id=row.id,
+                name=row.name,
+                address=row.address,
+                ahv_number=row.ahv_number,
+                nationality=row.nationality,
+                tax_status=row.tax_status,
+            )
 
     def list_months(self, account_id: int, employment_id: int) -> list[CompletedMonth]:
         with Session(self.engine) as session:

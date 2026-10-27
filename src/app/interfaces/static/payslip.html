@@ -3,31 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Payslips | PayAlign</title>
-  <link rel="stylesheet" href="/setup-assets/setup.css">
+  <title>Payslip | PayAlign</title>
+  <link rel="stylesheet" href="/setup-assets/setup.css?v=20261027-back">
   <link rel="stylesheet" href="/setup-assets/payslip.css">
+  <script src="/setup-assets/navigation.js" defer></script>
+  <script src="/setup-assets/common.js" defer></script>
   <script src="/setup-assets/payslip.js" defer></script>
 </head>
 <body>
+<!-- SHARED_NAVIGATION -->
 <main>
-  <header class="page-header no-print">
-    <a class="brand" href="/employments">PayAlign</a>
-    <a href="/employments">Home</a>
-  </header>
   <div class="no-print">
     <p class="eyebrow">PAYROLL RECORDS</p>
-    <h1>Saved payslips</h1>
+    <h1>Payslip</h1>
     <p class="intro">Select an employee and a completed month to see the payslip.</p>
+    <p id="save-confirmation" role="status" hidden></p>
     <noscript><p>Enable JavaScript to view saved payslips.</p></noscript>
     <div class="selectors">
       <div><label for="employment">Employee</label><select id="employment" disabled><option value="">Loading employees…</option></select></div>
       <div><label for="month">Payroll month</label><select id="month" disabled><option value="">Select an employee first</option></select></div>
     </div>
-    <p id="confirmation" role="status" hidden></p>
+    <p><button id="enter-timesheet" type="button" hidden>Enter timesheet</button></p>
     <p id="status" role="status" aria-live="polite"></p>
     <p id="error" role="alert" hidden></p>
-    <p id="login-link" hidden><a href="/login">Sign in</a></p>
-    <button id="retry" type="button" hidden>Try loading the payslip again</button>
+    <p id="login-link" hidden><button id="sign-in" type="button">Sign in</button></p>
+    <p id="employer-setup-link" hidden><button id="open-employer-setup" type="button">Enter account details</button></p>
+    <button id="retry" type="button" hidden>Try again</button>
   </div>
   <div class="payslip-workspace">
     <section id="employer-costs" class="employer-panel no-print" hidden aria-labelledby="employer-costs-title">

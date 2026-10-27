@@ -16,6 +16,16 @@ class EmploymentOverview:
 
 
 @dataclass(frozen=True)
+class EmployeeDetails:
+    id: int
+    name: str
+    address: str
+    ahv_number: str
+    nationality: str
+    tax_status: str
+
+
+@dataclass(frozen=True)
 class CompletedMonth:
     monthly_record_id: int
     year: int
@@ -54,4 +64,8 @@ class EmploymentReadRepository(ABC):
     def get_payslip(
         self, account_id: int, employment_id: int, year: int, month: int
     ) -> SavedPayslip | None:
+        ...
+
+    @abstractmethod
+    def get_employee(self, account_id: int, employee_id: int) -> EmployeeDetails | None:
         ...

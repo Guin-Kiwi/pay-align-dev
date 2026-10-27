@@ -1,0 +1,14 @@
+<header class="app-header no-print">
+  <div class="app-header-inner">
+    {{BACK_BUTTON}}
+    <p class="brand"><img src="/setup-assets/house.svg" alt="" width="28" height="28">PayAlign</p>
+    <nav class="app-navigation" aria-label="Main navigation" data-current-route="{{CURRENT_ROUTE}}">
+      <button type="button" data-route="/employments" data-home>Home</button>
+      <button type="button" data-route="/timesheets">Timesheets</button>
+      <button type="button" data-route="/employees">Employees</button>
+      <button type="button" data-route="/payslips">Payslips</button>
+      <button id="logout-button" type="button">Log out</button>
+    </nav>
+    <p id="navigation-status" role="status" aria-live="polite" hidden></p>
+  </div>
+</header>
