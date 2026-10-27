@@ -177,7 +177,7 @@ The authenticated `/payslips` page is the saved-payslip view. It lets the employ
 employment and completed month, read the saved payroll detail, and use the browser's print or
 save-as-PDF dialog. It uses the existing employer, employment, month-history and
 saved-month reads, including the employee AHV number from the account-scoped
-employment detail. When the selected employment has a next month to enter, an Enter timesheet button
+employment detail. It opens the latest saved month across employments by default, or the latest for a selected employment. When the selected employment has a next month to enter, an Enter timesheet button
 opens `/timesheets` for it. A direct link can preselect a saved month using
 `/payslips?employment_id=ID&year=YYYY&month=M`; the server still checks ownership.
 Home, Timesheets and the Employees page link to selected saved months there.

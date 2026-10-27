@@ -37,7 +37,7 @@ The separate Timesheets entry page presents inputs on the left and the month tab
 
 5. Review and confirm the whole month before its single save. A month without work can be entered empty. On the Timesheets page, bonus and expenses must be added before saving. Drafts and patterns are not persisted.
 6. Employees groups employments by person. Each person has agreement details, a payslip picker and on-demand employee details on the left, their pending timesheets, and saved yearly totals, holiday balance and wage limit on the right. The personal detail read is account-scoped.
-7. Open a saved payslip at `/payslips` or from the relevant month. Employer costs appear separately on screen and are omitted from the employee printout; the browser supplies print or save-as-PDF. UC-003 describes the payslip data and limitations.
+7. Open a saved payslip at `/payslips` or from the relevant month. The general Payslips page opens the latest saved month across employments; selecting another employment opens its latest saved month. A link to a specific employment and month opens that payslip. Employer costs appear separately on screen and are omitted from the employee printout; the browser supplies print or save-as-PDF. UC-003 describes the payslip data and limitations.
 8. Signed-in navigation offers Home, Timesheets, Employees, Payslips and logout. A Back button appears outside Home. When unsaved timesheet entries or amounts would be lost, Back, navigation, logout and Cancel ask for confirmation.
 
 ## Alternate / edge flows

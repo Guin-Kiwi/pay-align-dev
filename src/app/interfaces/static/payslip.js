@@ -111,7 +111,7 @@ async function loadDetail() {
   }
 }
 
-async function loadMonths(preselected = "") {
+async function loadMonths(preselected = "", loadedHistory = null) {
   const version = ++requestVersion;
   element("enter-timesheet").hidden = true;
   element("payslip").hidden = true;
@@ -127,7 +127,7 @@ async function loadMonths(preselected = "") {
   }
   element("status").textContent = "Loading months…";
   try {
-    const history = await readJSON(`/api/v1/employments/${employment.value}/months`);
+    const history = loadedHistory ?? await readJSON(`/api/v1/employments/${employment.value}/months`);
     if (version !== requestVersion) return;
     month.replaceChildren(option("", history.months.length ? "Select a month" : "No completed months"));
     history.months.forEach(item => month.append(option(`${item.year}-${item.month}`, periodName(item.year, item.month))));
@@ -142,6 +142,11 @@ async function loadMonths(preselected = "") {
       await loadDetail();
     } else if (preselected) {
       showError("This employment or payslip could not be found.");
+    } else if (history.months.length) {
+      const latest = history.months.reduce((best, item) =>
+        item.year > best.year || (item.year === best.year && item.month > best.month) ? item : best);
+      month.value = `${latest.year}-${latest.month}`;
+      await loadDetail();
     }
   } catch (error) {
     if (version === requestVersion) failure(error);
@@ -174,6 +179,31 @@ async function initialise() {
       await loadMonths(year && number ? `${Number(year)}-${Number(number)}` : "");
     } else if (id) {
       showError("This employment or payslip could not be found.");
+    } else if (list.length) {
+      const version = ++requestVersion;
+      element("status").textContent = "Finding the latest payslip…";
+      let histories;
+      try {
+        histories = await Promise.all(list.map(item => readJSON(`/api/v1/employments/${item.id}/months`)));
+      } catch (error) {
+        if (version !== requestVersion) return;
+        throw error;
+      }
+      if (version !== requestVersion) return;
+      let latest = null;
+      histories.forEach((history, index) => {
+        history.months.forEach(item => {
+          if (!latest || item.year > latest.year || (item.year === latest.year && item.month > latest.month)) {
+            latest = {...item, index};
+          }
+        });
+      });
+      if (latest) {
+        employment.value = String(list[latest.index].id);
+        await loadMonths(`${latest.year}-${latest.month}`, histories[latest.index]);
+      } else {
+        element("status").textContent = "No saved payslips yet.";
+      }
     }
   } catch (error) {
     failure(error);
