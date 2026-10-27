@@ -238,9 +238,11 @@ month. These are current names, not historical name snapshots. No schema change
 is needed for these stored inputs.
 
 The interface renders the same saved-month detail after creation and when
-reopening a month. The existing POST supplies its success message; the detail
-comes from the account-scoped GET. Preserve the existing POST and GET fields
-when extending the read response. The application read boundary and repository
+reopening a month. The POST returns the same detail as the account-scoped GET,
+plus its success message. The POST takes the saved inputs from the service's
+rounded monthly record and the persisted snapshot; its existing handling of a
+missing or unreadable snapshot remains in place. Preserve the existing POST and
+GET fields when extending the responses. The application read boundary and repository
 continue to enforce employer ownership; a browser route or selected ID does not
 grant access. Domain calculation rules and payroll persistence stay unchanged.
 

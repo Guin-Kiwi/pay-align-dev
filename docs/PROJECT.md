@@ -180,7 +180,7 @@ The current HTTP endpoints are:
 | `GET /api/v1/employments/{employment_id}` | Read one owned employment's summary. |
 | `GET /api/v1/employments/{employment_id}/months` | List saved months and the next eligible 2026 month. |
 | `GET /api/v1/employments/{employment_id}/months/{year}/{month}` | Read an owned month's saved payslip, holiday balance, bonus and reimbursements, and the run's hourly rate and four hour-category totals for the payslip view ([UC-003 Amendment 6](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-6--2026-10-26-payslip-view-design)). |
-| `POST /api/v1/monthly-payroll` | Save the next monthly run. |
+| `POST /api/v1/monthly-payroll` | Save the next monthly run and return its saved payslip detail and confirmation message. |
 
 Employment and month reads require a session and return 404 for absent or other-account records. `PayrollService.process_monthly_payroll` and the payroll port's `employment_terms` require an account ID; neither provides an unscoped fallback. Completed months have no update or delete endpoint; the scope decision is in [UC-003 Amendment 3](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views).
 

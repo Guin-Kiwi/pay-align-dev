@@ -19,7 +19,7 @@ from src.app.domain.errors import (
 from src.app.domain.hour_categories import HourCategory
 from src.app.domain.work_entry import WorkEntry, calculate_paid_minutes
 from src.app.interfaces.auth import require_account_id, require_csrf_token
-from src.app.interfaces.employment_reads import PayslipSummaryResponse
+from src.app.interfaces.employment_reads import SavedPayslipResponse
 
 payroll_router = APIRouter()
 PAYROLL_SAVED_CONFIRMATION_UNAVAILABLE_MESSAGE = (
@@ -46,7 +46,7 @@ class MonthlyPayrollRequest(BaseModel):
     work_entries: list[WorkEntryRequest]
 
 
-class PayslipResponse(PayslipSummaryResponse):
+class PayslipResponse(SavedPayslipResponse):
     message: str
 
 
@@ -138,5 +138,12 @@ def process_monthly_payroll(
     return PayslipResponse(
         **values,
         holiday_balance_minutes=snapshot.holiday_balance_minutes,
+        hourly_wage=Decimal(snapshot.employment.hourly_wage_cents).scaleb(-2),
+        cash_bonus=record.cash_bonus,
+        expense_reimbursements=record.expense_reimbursements,
+        worked_minutes=snapshot.hours.worked,
+        public_holiday_worked_minutes=snapshot.hours.public_holiday_worked,
+        annual_holiday_taken_minutes=snapshot.hours.annual_holiday_taken,
+        public_holiday_taken_minutes=snapshot.hours.public_holiday_taken,
         message="Payroll processed successfully.",
     )

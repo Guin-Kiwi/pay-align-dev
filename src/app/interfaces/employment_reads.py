@@ -34,7 +34,7 @@ class MonthHistoryResponse(BaseModel):
     next_month: YearMonthResponse | None
 
 
-class PayslipSummaryResponse(BaseModel):
+class SavedPayslipResponse(BaseModel):
     monthly_record_id: int
     gross_wage: Decimal
     ahv_deduction: Decimal
@@ -49,9 +49,6 @@ class PayslipSummaryResponse(BaseModel):
     admin_charge: Decimal
     total_employer_cost: Decimal
     holiday_balance_minutes: int
-
-
-class SavedPayslipResponse(PayslipSummaryResponse):
     hourly_wage: Decimal
     cash_bonus: Decimal
     expense_reimbursements: Decimal
