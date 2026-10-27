@@ -4,11 +4,17 @@ import unittest
 from datetime import date, time
 from decimal import Decimal
 
-from src.app.domain.constants import PUBLIC_HOLIDAYS
+from src.app.domain.constants import (
+    EMPLOYEE_GROSS_LIMIT,
+    EMPLOYER_GROSS_LIMIT,
+    PUBLIC_HOLIDAYS,
+)
 from src.app.domain.employment import Employment
 from src.app.domain.errors import AnnualLimitExceededError, InvalidPayrollInputError
 from src.app.domain.hour_categories import HourCategory, MinuteTotals
 from src.app.domain.payroll_calculation import (
+    AKBS_HOUSEHOLD_EMPLOYMENT_URL,
+    ANNUAL_LIMIT_EXCEEDED_MESSAGE,
     calculate_employee_deductions,
     calculate_employer_costs,
     calculate_monthly_totals,
@@ -360,6 +366,40 @@ class TestPayrollCalculation(unittest.TestCase):
                 employee_gross_to_date=Decimal("0.00"),
                 employer_gross_to_date=Decimal("56000.00"),
             )
+
+    def test_employee_annual_limit_message_explains_next_step(self):
+        with self.assertRaises(AnnualLimitExceededError) as error:
+            validate_annual_limits(
+                current_gross_wage=Decimal("1.00"),
+                employee_gross_to_date=Decimal(EMPLOYEE_GROSS_LIMIT),
+            )
+
+        message = str(error.exception)
+        self.assertEqual(
+            message,
+            ANNUAL_LIMIT_EXCEEDED_MESSAGE.format(
+                limit_owner="Employee", limit_amount=EMPLOYEE_GROSS_LIMIT
+            ),
+        )
+        self.assertIn("The simplified procedure no longer applies.", message)
+        self.assertIn("Contact AKBS about the ordinary procedure", message)
+        self.assertIn("PayAlign does not support", message)
+        self.assertTrue(AKBS_HOUSEHOLD_EMPLOYMENT_URL.startswith("https://ak-bs.ch/"))
+        self.assertIn(AKBS_HOUSEHOLD_EMPLOYMENT_URL, message)
+
+    def test_employer_annual_limit_message_explains_next_step(self):
+        with self.assertRaises(AnnualLimitExceededError) as error:
+            validate_annual_limits(
+                current_gross_wage=Decimal("1.00"),
+                employer_gross_to_date=Decimal(EMPLOYER_GROSS_LIMIT),
+            )
+
+        self.assertEqual(
+            str(error.exception),
+            ANNUAL_LIMIT_EXCEEDED_MESSAGE.format(
+                limit_owner="Employer", limit_amount=EMPLOYER_GROSS_LIMIT
+            ),
+        )
 
 
 if __name__ == "__main__":

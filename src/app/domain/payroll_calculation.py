@@ -17,6 +17,13 @@ from src.app.domain.payslip import Payslip
 from src.app.domain.work_entry import WorkEntry, calculate_paid_minutes  # noqa: F401
 
 CENT = Decimal("0.01")
+AKBS_HOUSEHOLD_EMPLOYMENT_URL = "https://ak-bs.ch/themen/beitraege/haushaltshilfen"
+ANNUAL_LIMIT_EXCEEDED_MESSAGE = (
+    "{limit_owner} annual gross wage limit (CHF {limit_amount}) exceeded. "
+    "The simplified procedure no longer applies. Contact AKBS about the "
+    "ordinary procedure, which PayAlign does not support. "
+    f"AKBS household employment information: {AKBS_HOUSEHOLD_EMPLOYMENT_URL}"
+)
 
 
 def round_money(value: Decimal) -> Decimal:
@@ -246,9 +253,13 @@ def validate_annual_limits(
 
     if employee_gross_to_date + current_gross_wage > Decimal(str(EMPLOYEE_GROSS_LIMIT)):
         raise AnnualLimitExceededError(
-            f"Employee annual gross wage limit (CHF {EMPLOYEE_GROSS_LIMIT}) exceeded."
+            ANNUAL_LIMIT_EXCEEDED_MESSAGE.format(
+                limit_owner="Employee", limit_amount=EMPLOYEE_GROSS_LIMIT
+            )
         )
     if employer_gross_to_date + current_gross_wage > Decimal(str(EMPLOYER_GROSS_LIMIT)):
         raise AnnualLimitExceededError(
-            f"Employer annual gross wage limit (CHF {EMPLOYER_GROSS_LIMIT}) exceeded."
+            ANNUAL_LIMIT_EXCEEDED_MESSAGE.format(
+                limit_owner="Employer", limit_amount=EMPLOYER_GROSS_LIMIT
+            )
         )
