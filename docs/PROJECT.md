@@ -44,7 +44,7 @@ Where non-code material lives; link reference documents here so agents find them
   - Source: `Employing_Household_Help_Basel.pdf`, the guide to the 2026 AKBS simplified procedure, as published.
   - Source: `Employing_Household_Help_Basel.md`, an agent-readable summary of that guide, with citations.
   - Source: `Payslip_2026.xlsm`, the payslip workbook the golden payroll test cases (`tests/fixtures/payroll_golden_cases.json`) are derived from.
-  - [AKBS Household Employment Overview](https://www.ak-bs.ch/ubersicht/beitrage-an-die-ahv-iv-eo/haushaltshilfen/)
+  - [AKBS Household Employment Overview](https://ak-bs.ch/themen/beitraege/haushaltshilfen)
   - [Basel AWA NAV Legal Text](https://gesetzessammlung.bs.ch/app/de/texts_of_law/215.700)
 - Secrets and real config values: never in the repository; `.env` locally
 

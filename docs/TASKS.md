@@ -13,7 +13,7 @@ STATUS: in-progress
 | 1 — Specify | Done | UC-003 Amendment 2 specifies session and CSRF behaviour; ADR-007 Amendment 1 selects Starlette `SessionMiddleware` and links to the owning requirements. |
 | 2 — Design | Done | UC-003 Amendment 3 defines the five view boundaries for application logic. Presentation and navigation stay with the UI owner. ADR-007 sets the account-scoped read boundary; no new domain rule or ADR is needed. |
 | 3 — Develop | Done | PR #50 review changes implement a reviewed whole-month submission, expose the backend-owned 2026 public-holiday dates through a narrow authenticated read endpoint, and simplify setup success navigation. Focused tests, the full suite and a local Chrome journey pass. |
-| 4 — Validate | In progress alongside development | UC-002 was re-validated after the account backend merged. The open gap and the partly covered criterion are in the [UC-002 Validation plan](specs/UC-002-Process-the-Monthly-Employment.md). |
+| 4 — Validate | In progress alongside development | UC-002 was re-validated after the account backend merged. The remaining partly covered database-error criterion is in the [UC-002 Validation plan](specs/UC-002-Process-the-Monthly-Employment.md). |
 | 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
 ## Active objective
@@ -45,7 +45,7 @@ yours, hand it to a named teammate rather than moving it to Unassigned.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `limit-message` | todo | When a monthly run exceeds an annual limit, the 400 message says only "Employee annual gross wage limit (CHF 22680) exceeded." (or the employer one, CHF 60480). Make it say what that means for the employer: the simplified procedure no longer applies, and the employer has to contact AKBS about the ordinary procedure, which this app does not support. Change the two messages in `payroll_calculation.py`, say in UC-002 what the warning tells the employer, and check the text in a test (no test checks it today). Aaron reviews. | UC-002 | | Wed 28 Oct |
+| `limit-message` | doing | When a monthly run exceeds an annual limit, the 400 message says only "Employee annual gross wage limit (CHF 22680) exceeded." (or the employer one, CHF 60480). Make it say what that means for the employer: the simplified procedure no longer applies, and the employer has to contact AKBS about the ordinary procedure, which this app does not support. Change the two messages in `payroll_calculation.py`, say in UC-002 what the warning tells the employer, and check the text in a test (no test checks it today). Aaron reviews. | UC-002 | | Wed 28 Oct |
 
 ### Nano
 
@@ -58,7 +58,6 @@ yours, hand it to a named teammate rather than moving it to Unassigned.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `payslip-response` | todo | Return the whole payslip directly from `POST /api/v1/monthly-payroll`. Its 201 response has only `monthly_record_id`, `gross_wage` and `net_payout`. Add the employee deductions (`ahv_deduction`, `alv_deduction`, `nbu_deduction`, `tax_deduction`), the employer costs (`employer_ahv`, `employer_alv`, `employer_fak`, `employer_bu`, `admin_charge`, `total_employer_cost`), the holiday balance after the month (`holiday_balance_minutes` of the run snapshot) and a `message` confirming the month was saved, with `PayslipResponse` as the response model instead of `dict`. This closes the confirmation-message gap in the UC-002 Validation plan on the API side; the UI shows it. Why: UC-002 promises a compliant payslip, and the Basel household NAV requires all deductions and the holiday balance. Done when UC-002 has an acceptance line for it and an API test checks every field. Aaron sets the date, before Wed 28 Oct, because `demo-path` waits on it. Ayla reviews. | UC-002 | | |
 | `payslip-pdf` | todo | Decide whether v0.1.0 includes a printable or PDF payslip. If it does, write its spec first, then build it. | UC-002 | `payslip-response` | |
 | `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |

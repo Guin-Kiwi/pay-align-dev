@@ -11,7 +11,11 @@ from src.app.infrastructure.sqlalchemy_payroll_repository import (
     SqlAlchemyPayrollRepository,
 )
 from src.app.infrastructure.sqlalchemy_account_repository import SqlAlchemyAccountRepository
+from src.app.infrastructure.sqlalchemy_employment_read_repository import (
+    SqlAlchemyEmploymentReadRepository,
+)
 from src.app.infrastructure.sqlalchemy_setup_repository import SqlAlchemySetupRepository
+from src.app.domain.errors import PayrollSnapshotReadError
 from src.app.infrastructure.web.app import create_app
 from tests.database_helpers import add_employment
 
@@ -48,6 +52,7 @@ def client(tmp_path):
         payroll_repository=SqlAlchemyPayrollRepository(engine),
         setup_repository=SqlAlchemySetupRepository(engine),
         account_repository=SqlAlchemyAccountRepository(engine),
+        employment_read_repository=SqlAlchemyEmploymentReadRepository(engine),
     )
     with AuthenticatedTestClient(app, email="employer-3@example.ch", register=False) as test_client:
         yield test_client, engine
@@ -57,6 +62,57 @@ def client(tmp_path):
 def count(engine, table):
     with engine.connect() as connection:
         return connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
+
+
+class SnapshotFailureRepository:
+    def __init__(self, repository, *, return_none):
+        self._repository = repository
+        self._return_none = return_none
+
+    def __getattr__(self, name):
+        return getattr(self._repository, name)
+
+    def run_snapshot(self, monthly_record_id):
+        if self._return_none:
+            return None
+        raise PayrollSnapshotReadError("secret database detail")
+
+
+def replace_payroll_repository(test_client, *, return_none):
+    repository = test_client.app.state.payroll_repository
+    test_client.app.state.payroll_repository = SnapshotFailureRepository(
+        repository, return_none=return_none
+    )
+
+
+def assert_saved_month_after_snapshot_failure(test_client, response):
+    assert response.status_code == 500
+    assert response.json()["detail"] == (
+        "The payroll was saved, but its confirmation could not be loaded. "
+        "Check the saved month before retrying."
+    )
+    assert "secret database detail" not in response.text
+    saved = test_client.get("/api/v1/employments/7/months/2026/10")
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["monthly_record_id"] == 1
+
+
+def test_snapshot_missing_after_save_says_payroll_was_saved(client):
+    test_client, _ = client
+    replace_payroll_repository(test_client, return_none=True)
+
+    response = test_client.post("/api/v1/monthly-payroll", json=PAYLOAD)
+
+    assert_saved_month_after_snapshot_failure(test_client, response)
+
+
+def test_snapshot_read_failure_after_save_says_payroll_was_saved(client):
+    test_client, _ = client
+    replace_payroll_repository(test_client, return_none=False)
+
+    response = test_client.post("/api/v1/monthly-payroll", json=PAYLOAD)
+
+    assert_saved_month_after_snapshot_failure(test_client, response)
 
 
 def test_posting_a_month_saves_entries_snapshot_record_and_payslip(client):
@@ -70,6 +126,50 @@ def test_posting_a_month_saves_entries_snapshot_record_and_payslip(client):
     assert count(engine, "work_entries") == 1
     assert count(engine, "payroll_snapshots") == 1
     assert count(engine, "payslips") == 1
+
+
+def test_posting_a_month_returns_the_saved_payslip_and_a_confirmation_message(client):
+    test_client, engine = client
+    payload = {
+        **PAYLOAD,
+        "cash_bonus": 100,
+        "expense_reimbursements": 50,
+    }
+
+    response = test_client.post("/api/v1/monthly-payroll", json=payload)
+
+    assert response.status_code == 201, response.text
+    response_values = response.json()
+    assert set(response_values) == {
+        "monthly_record_id",
+        "gross_wage",
+        "ahv_deduction",
+        "alv_deduction",
+        "tax_deduction",
+        "nbu_deduction",
+        "net_payout",
+        "employer_ahv",
+        "employer_alv",
+        "employer_fak",
+        "employer_bu",
+        "admin_charge",
+        "total_employer_cost",
+        "holiday_balance_minutes",
+        "message",
+    }
+    assert response_values["message"] == "Payroll processed successfully."
+    assert response_values["gross_wage"] == "350.00"
+    assert response_values["net_payout"] == "355.09"
+    assert response_values["holiday_balance_minutes"] == 605
+
+    saved = test_client.get(
+        "/api/v1/employments/7/months/2026/10"
+    )
+
+    assert saved.status_code == 200, saved.text
+    assert {
+        key: value for key, value in response_values.items() if key != "message"
+    } == saved.json()
 
 
 def test_saved_snapshot_holds_the_minute_totals_and_balance(client):
