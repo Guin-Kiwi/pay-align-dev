@@ -22,7 +22,18 @@ Deliver the rest of the UC-003 browser flow, so that a new account gets from reg
 
 ## Current Use Case
 
-docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
+Fast Track: test the Timesheets guard against two day-off entries on one date
+
+- Scope: two scenarios in `tests/fixtures/timesheet_flow.js` and their names in
+  `tests/integration/test_timesheets_ui.py`; no app code changes.
+- Reason: the guard in `timesheets.js` (one annual-holiday row per date, no repeated day-off
+  entries at save time) shipped without a test.
+- Acceptance: a second annual-holiday row on one date is refused with a message; two public
+  holidays marked taken on one date block saving and send nothing.
+- Planned checks: the new scenarios pass, and fail with the guard removed; `bash scripts/test.sh`;
+  `bash scripts/check-lifecycle.sh`.
+- After merge: Current Use Case returns to
+  docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
