@@ -32,6 +32,17 @@ def setup_page(request: Request):
     return FileResponse(ASSETS / 'setup.html', media_type='text/html')
 
 
+@ui_router.get('/payslips', include_in_schema=False)
+def payslips_page(request: Request):
+    try:
+        require_account_id(request, request.app.state.account_service)
+    except HTTPException as error:
+        if error.status_code != 401:
+            raise
+        return RedirectResponse('/login', status_code=303)
+    return FileResponse(ASSETS / 'payslip.html', media_type='text/html')
+
+
 @ui_router.get('/employments', include_in_schema=False)
 def employments_page(request: Request):
     try:

@@ -241,3 +241,121 @@ Later employment setup reuses the existing `/setup` form and UC-001 setup
 operation. This slice does not add an employee picker or an employee-editing
 operation; persisted employee details remain governed by UC-001 and its
 employer-scoped setup behavior.
+
+## Amendment 7 — 2026-10-26: Payslip view design
+
+This design extends views 3 and 4 of Amendment 3, within UC-002's existing
+payroll rules. It describes a browser view and the data it needs; it does not
+change payroll calculations or claim legal compliance of the presentation.
+The design draws on [SECO's household employment guidance](https://www.seco.admin.ch/fr/annonce-des-rapports),
+which describes regularly documenting salary and employee contributions, and
+[AKBS's household-help guidance](https://ak-bs.ch/themen/beitraege/haushaltshilfen)
+on the simplified procedure and accident insurance. These are context, not a
+claim that this screen satisfies every requirement for a salary statement.
+
+### View and acceptance
+
+- For a completed month, the employer can open a read-only payslip. After a
+  successful new run, the employer sees the confirmation and the same payslip
+  detail. Identify the employer, employee, employee AHV number and payroll month. The displayed
+  period is the payroll period, not a claim about when payment occurred.
+- Organise the detail so an employer can follow the calculation:
+  1. **Hours and earnings:** saved hourly rate, minutes in each of the four
+     UC-002 hour categories, combined hourly pay, cash bonus and gross wage.
+     Identify the public-holiday work premium as 50% under UC-002.
+  2. **Employee deductions:** AHV/IV/EO, ALV, simplified-procedure tax and
+     NBU as separate deductions from gross wage. Show their total.
+  3. **Payout:** gross wage less employee deductions, plus expense
+     reimbursements, equals the net payout. Keep reimbursements separate from
+     gross wage and identify the amount as due, not proof of payment.
+  4. **Employer costs:** employer AHV/IV/EO, ALV, FAK, BU and administration
+     charge, followed by total employer cost. Separate these from employee
+     deductions; the total includes gross wage and reimbursements.
+     [Amendment 8](#amendment-8--2026-10-27-employer-costs-in-print) moves this
+     breakdown out of the printed payslip.
+  5. **Holiday:** the remaining holiday balance after the run.
+- Show zero values as zero; label monetary values in CHF and durations clearly.
+  Use the saved values and the project's formulas, not independently sourced
+  rates or rules.
+- Offer the browser's print dialog so the employer can print or save the view as
+  a PDF. The app does not generate a PDF file itself.
+- The saved amounts are authoritative. Show the combined hourly pay as gross
+  wage less the saved bonus, and identify the public-holiday work premium in
+  the description of its hour category. Do not display separately rounded
+  monetary amounts for each hour category: UC-002's calculation rounds the
+  combined hourly pay once, so independently rounded lines may not add up.
+  The existing formula is in [calculations.md](../reference/calculations.md#step-a-calculate-ahv-liable-gross-wage).
+- Completed runs remain view-only. An absent or other-account month has the
+  same not-found outcome; an expired session requires authentication.
+- If the run succeeds but the subsequent detail read fails, retain the success
+  confirmation and offer a way to reopen the saved month; do not submit the
+  payroll again automatically. A failed or lost POST response alone does not
+  establish whether the run was saved: advise checking the month before retrying.
+
+### Components and boundaries
+
+Extend the existing account-scoped saved-month read, rather than adding a new
+use case or recalculating payroll in the browser. The existing employment read
+port and adapter already join the monthly record, saved payslip and run snapshot:
+expose the record's bonus and reimbursements and the snapshot's hourly rate and
+four minute totals alongside the existing payslip and balance. The selected
+employment detail supplies the employee name and AHV number, the account-scoped employer
+read supplies the employer name, and the selected period supplies the year and
+month. These are current identity details, not historical snapshots. No schema change
+is needed for these stored inputs.
+
+The interface renders the same saved-month detail after creation and when
+reopening a month. The POST returns the same detail as the account-scoped GET,
+plus its success message. The POST takes the saved inputs from the service's
+rounded monthly record and the persisted snapshot; its existing handling of a
+missing or unreadable snapshot remains in place. Preserve the existing POST and
+GET fields when extending the responses. The application read boundary and repository
+continue to enforce employer ownership; a browser route or selected ID does not
+grant access. Domain calculation rules and payroll persistence stay unchanged.
+
+### Validation approach
+
+- Exercise the saved-month read with nonzero bonus, reimbursements, and each
+  hour category; verify values against the stored record and snapshot, including
+  zero values and the actual saved totals. Check the combined hourly pay and
+  payout reconcile under the existing rounding rules.
+- Verify that two accounts cannot read each other's detail and that a missing
+  month has the same outcome as another account's month.
+- Exercise the browser after successful payroll and when reopening the month:
+  both show the same detail, the success message is shown after creation, and
+  a completed month has no edit or delete action. Cover a failed detail read
+  after success and the uncertain outcome of a failed POST.
+
+`tests/integration/test_payroll_api.py` covers POST/GET detail equality, rounded
+inputs and saved-snapshot errors. `tests/integration/test_employer_access.py`
+covers saved detail and account isolation. `tests/integration/test_payslip_ui.py`
+and its JavaScript fixture cover the authenticated page, rendering and print
+invocation with a simulated DOM. The submission handoff and its failure paths
+remain to be exercised when the month-entry view is integrated; a real-browser
+check is also needed for the view and print layout.
+
+This is an itemised normal-case view of data the app stores. Printing or saving
+the view does not establish that a statement has been delivered to the employee.
+The exact visual layout and navigation remain with the UI owner; test results
+belong in the validation evidence once the feature is implemented.
+
+### Known limitations
+
+The [UC-002 payroll limitations](UC-002-Process-the-Monthly-Employment.md#known-limitations)
+also apply to the amounts shown on this view.
+
+**Compensation fund:** The payslip does not identify the
+employer's responsible compensation fund or its employer account number. The
+app does not record or determine either for the employment. While this project
+uses AKBS payroll rules, the responsible fund depends on the employer's
+circumstances; see the [AHV/IV simplified-procedure guidance, item 9](https://www.ahv-iv.ch/p/2.07.d).
+The employer's personal AHV number is not a substitute for the fund account number.
+
+## Amendment 8 — 2026-10-27: Employer costs in print
+
+The employer-cost breakdown in Amendment 7 remains visible in a separate
+on-screen employer panel beside the payslip, but is omitted when printing or
+saving the employee's payslip as a PDF. On smaller screens the panels stack.
+The employee deductions, payout and holiday balance remain in the printed
+view. `tests/integration/test_payslip_ui.py` checks that the employer-cost section
+uses the print-hiding class; the print layout still needs a real-browser check.

@@ -14,6 +14,7 @@
     <div><p class="brand">PayAlign</p><h1>Employments</h1></div>
     <button id="logout-button" type="button" disabled>Log out</button>
   </header>
+  <nav aria-label="Main navigation"><a id="view-payslips" href="/payslips">View saved payslips</a></nav>
   <noscript><p>Please enable JavaScript to manage monthly payroll.</p></noscript>
   <p id="page-status" role="status" aria-live="polite">Loading employments …</p>
   <p id="page-error" role="alert" hidden></p>
@@ -92,12 +93,6 @@
         <button id="cancel-review" type="button">Back to entries</button>
       </section>
     </form>
-  </section>
-
-  <section id="payslip-section" aria-labelledby="payslip-heading" hidden>
-    <h2 id="payslip-heading">Saved payslip</h2>
-    <p id="payslip-month"></p>
-    <dl id="payslip-details" class="payslip"></dl>
   </section>
 </main>
 </body>

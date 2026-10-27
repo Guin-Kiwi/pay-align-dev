@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**PayAlign** is a payroll management system for private household employers in Basel-Stadt. It simplifies the process of calculating monthly pay, applying social insurance and tax deductions, and generating compliant payslips.
+**PayAlign** is a payroll management system for private household employers in Basel-Stadt. It simplifies the process of calculating monthly pay, applying social insurance and tax deductions, and generating payslips.
 
 ### Monthly payroll saving (UC-002)
 
@@ -17,6 +17,8 @@ The run snapshot is defined in [ADR-004 Amendment 2](docs/adr/ADR-004-payroll-en
 Run order, empty months, daily entries, public holidays and the known limitations are
 specified in [UC-002](docs/specs/UC-002-Process-the-Monthly-Employment.md); rates and
 limits are in [calculations.md](docs/reference/calculations.md).
+The saved-payslip view and its limitations are described in
+[UC-003 Amendment 7](docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md#known-limitations).
 
 ## Project documentation
 

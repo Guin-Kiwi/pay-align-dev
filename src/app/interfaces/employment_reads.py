@@ -18,6 +18,10 @@ class EmploymentOverviewResponse(BaseModel):
     end_date: date | None
 
 
+class EmploymentDetailResponse(EmploymentOverviewResponse):
+    employee_ahv_number: str
+
+
 class CompletedMonthResponse(BaseModel):
     monthly_record_id: int
     year: int
@@ -49,6 +53,13 @@ class SavedPayslipResponse(BaseModel):
     admin_charge: Decimal
     total_employer_cost: Decimal
     holiday_balance_minutes: int
+    hourly_wage: Decimal
+    cash_bonus: Decimal
+    expense_reimbursements: Decimal
+    worked_minutes: int
+    public_holiday_worked_minutes: int
+    annual_holiday_taken_minutes: int
+    public_holiday_taken_minutes: int
 
 
 def get_employment_read_service(request: Request) -> EmploymentReadService:
@@ -66,7 +77,7 @@ def list_employments(
 
 
 @employment_reads_router.get(
-    "/employments/{employment_id}", response_model=EmploymentOverviewResponse
+    "/employments/{employment_id}", response_model=EmploymentDetailResponse
 )
 def get_employment(
     employment_id: int,
@@ -109,7 +120,6 @@ def get_saved_payslip(
         raise HTTPException(status_code=404, detail="Employment or month not found.")
     values = asdict(saved.payslip)
     values.pop("id")
-    return SavedPayslipResponse(
-        **values,
-        holiday_balance_minutes=saved.holiday_balance_minutes,
-    )
+    details = asdict(saved)
+    details.pop("payslip")
+    return SavedPayslipResponse(**values, **details)

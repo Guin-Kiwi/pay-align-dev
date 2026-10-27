@@ -87,12 +87,16 @@ async function loadEmployments() {
   } catch (failure) { element("page-status").textContent = ""; showError("Could not load employments. Please check your connection and reload the page."); }
 }
 
+function payslipUrl(employmentId, year, month) {
+  return `/payslips?employment_id=${employmentId}&year=${year}&month=${month}`;
+}
+
 function completedMonthButton(month) {
   const item = document.createElement("li");
   const button = document.createElement("button");
   button.type = "button";
   button.textContent = `View ${monthLabel(month.year, month.month)} payslip`;
-  button.addEventListener("click", () => loadPayslip(month.year, month.month));
+  button.addEventListener("click", () => window.location.assign(payslipUrl(selectedEmployment.id, month.year, month.month)));
   item.append(button);
   return item;
 }
@@ -110,7 +114,7 @@ async function selectEmployment(employment) {
     element("month-empty").hidden = body.months.length !== 0;
     element("next-month").textContent = nextMonth ? `Next month: ${monthLabel(nextMonth.year, nextMonth.month)}` : "No further month is available.";
     element("open-month-entry").disabled = !nextMonth;
-    element("months-section").hidden = false; element("entry-section").hidden = true; element("payslip-section").hidden = true;
+    element("months-section").hidden = false; element("entry-section").hidden = true;
     element("page-status").textContent = ""; updateControls();
   } catch (failure) { element("page-status").textContent = ""; showError("Could not load employment months. Please check your connection and try again."); }
 }
@@ -118,26 +122,6 @@ async function selectEmployment(employment) {
 function addPayslipLine(container, label, value) {
   const term = document.createElement("dt"); const detail = document.createElement("dd");
   term.textContent = label; detail.textContent = value; container.append(term, detail);
-}
-
-function displayPayslip(body, year, month) {
-  const details = element("payslip-details"); details.replaceChildren();
-  const money = [["Gross wage", "gross_wage"], ["AHV deduction", "ahv_deduction"], ["ALV deduction", "alv_deduction"], ["NBU deduction", "nbu_deduction"], ["Tax deduction", "tax_deduction"], ["Net payout", "net_payout"], ["Employer AHV", "employer_ahv"], ["Employer ALV", "employer_alv"], ["Employer FAK", "employer_fak"], ["Employer BU", "employer_bu"], ["Administration charge", "admin_charge"], ["Total employer cost", "total_employer_cost"]];
-  for (const [label, key] of money) addPayslipLine(details, label, `CHF ${body[key]}`);
-  addPayslipLine(details, "Holiday balance", `${body.holiday_balance_minutes} minutes`);
-  element("payslip-month").textContent = monthLabel(year, month); element("payslip-section").hidden = false;
-}
-
-async function loadPayslip(year, month) {
-  clearMessage(); element("page-status").textContent = "Loading saved payslip …";
-  try {
-    const {status, body} = await call(`/api/v1/employments/${selectedEmployment.id}/months/${year}/${month}`, {headers: {Accept: "application/json"}, cache: "no-store"});
-    if (status === 401) showLoginMessage("Your session has expired. Please log in again to continue.");
-    else if (status === 404) showError("The saved payslip was not found.");
-    else if (status === 200 && body && Number.isSafeInteger(body.monthly_record_id)) displayPayslip(body, year, month);
-    else throw new Error("response");
-  } catch (failure) { showError("Could not load the saved payslip. Please check your connection and try again."); }
-  finally { element("page-status").textContent = ""; }
 }
 
 function dateParts(value) { const [year, month, day] = value.split("-").map(Number); return {year, month, day}; }
@@ -283,7 +267,7 @@ function openMonthEntry() {
   if (!nextMonth) return; clearMessage(); entries = []; stagedRowsEdited = false; reviewedPayload = null;
   const {minimum, maximum} = monthBounds();
   for (const id of ["work-entry-date", "annual-holiday-date"]) { element(id).min = minimum; element(id).max = maximum; element(id).value = minimum; }
-  element("entry-month").textContent = monthLabel(nextMonth.year, nextMonth.month); element("entry-section").hidden = false; element("review-section").hidden = true; element("payslip-section").hidden = true;
+  element("entry-month").textContent = monthLabel(nextMonth.year, nextMonth.month); element("entry-section").hidden = false; element("review-section").hidden = true;
   showEntryError(""); renderEntries(); updateControls(); element("pattern-monday").focus();
 }
 
@@ -317,6 +301,12 @@ function reviewPayroll(event) {
   element("review-entries").replaceChildren(...reviewItems); element("review-section").hidden = false; element("confirm-payroll").focus();
 }
 
+function openSavedPayslip(payload, message) {
+  const url = payslipUrl(payload.employment_id, payload.year, payload.month);
+  try { window.sessionStorage.setItem("payalign-saved-confirmation", JSON.stringify({url, message})); } catch (failure) {}
+  window.location.assign(url);
+}
+
 function invalidateReview() {
   reviewedPayload = null;
   element("review-section").hidden = true;
@@ -329,7 +319,7 @@ async function submitPayroll() {
     const {status, body} = await call("/api/v1/monthly-payroll", {method: "POST", headers: {"Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken}, body: JSON.stringify(payload)}, 15000);
     if ([401, 403].includes(status)) showLoginMessage("Authentication/session or CSRF validation failed. The request was rejected. Please log in again.");
     else if ([400, 422].includes(status)) showError(responseError(body));
-    else if (status === 201 && Number.isSafeInteger(body?.monthly_record_id)) { submissionLocked = true; await loadPayslip(payload.year, payload.month); }
+    else if (status === 201 && Number.isSafeInteger(body?.monthly_record_id)) { submissionLocked = true; openSavedPayslip(payload, typeof body.message === "string" ? body.message : "Payroll processed successfully."); }
     else throw new Error("response");
   } catch (failure) { submissionLocked = true; showError("The request outcome is uncertain: this month may have been saved. Do not submit again until you reload its month history. No automatic retry was made."); }
   finally { submitting = false; element("page-status").textContent = ""; updateControls(); }

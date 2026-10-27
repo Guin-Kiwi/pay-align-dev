@@ -1,0 +1,44 @@
+main { max-width: 90rem; padding: 2.5rem; }
+.page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.page-header a { color: #116257; }
+#confirmation { padding: .5rem .75rem; border-left: 4px solid #116257; background: #eef6f4; }
+.eyebrow { color: #52736e; font-size: .7rem; font-weight: 750; letter-spacing: .12em; margin: 0 0 .45rem; }
+h1 { font-size: clamp(2rem, 5vw, 2.8rem); margin: .2rem 0 .5rem; letter-spacing: -.035em; }
+.intro, .section-note { color: #526674; }
+.selectors { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0 .5rem; }
+.selectors label { margin-top: 0; font-size: .85rem; }
+button { background: #116257; color: white; border: 0; border-radius: .35rem; cursor: pointer; font-weight: 650; }
+.payslip-workspace { display: grid; grid-template-columns: minmax(16rem, 1fr) minmax(0, 2fr); gap: 2rem; align-items: start; margin-top: 1.5rem; }
+.employer-panel { background: #f0f5f4; border: 1px solid #dbe4e5; border-radius: .6rem; padding: 1.5rem; }
+.employer-panel h2 { font-size: 1.15rem; margin: .2rem 0; }
+#print { margin: 0 0 1rem; }
+#payslip { border: 1px solid #dbe4e5; border-radius: .6rem; padding: 2rem; background: white; }
+.slip-header { display: flex; justify-content: space-between; gap: 2rem; flex-wrap: wrap; }
+.slip-header h2 { margin: .2rem 0; font-size: 2rem; letter-spacing: -.03em; }
+.period { margin: .3rem 0; color: #526674; }
+.parties { display: grid; grid-template-columns: repeat(2, minmax(7rem, 1fr)); gap: 2rem; }
+.parties span { color: #657781; font-size: .78rem; display: block; margin-bottom: .35rem; }
+.parties strong { overflow-wrap: anywhere; }
+.parties .ahv-label { margin-top: .7rem; }
+.section-note { font-size: .83rem; line-height: 1.5; }
+.slip-section { margin-top: 1.75rem; padding-top: 1.2rem; border-top: 1px solid #dbe4e5; }
+.section-heading { display: flex; align-items: baseline; gap: .8rem; }
+.section-heading span { font-size: .75rem; color: #68817c; font-weight: 700; }
+.section-heading h3 { margin: 0; font-size: 1.08rem; }
+.lines { margin: .8rem 0 0; }
+.lines div, .payout dl div { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: .35rem 0; }
+.lines dt, .lines dd, .payout dt, .payout dd { margin: 0; font-weight: 400; }
+.lines dd, .payout dd { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lines small { display: block; font-size: .75rem; color: #657781; }
+.lines .total { border-top: 1px solid #dbe4e5; margin-top: .4rem; padding-top: .7rem; }
+.lines .total dt, .lines .total dd { font-weight: 700; }
+.payout { margin-top: 1.75rem; background: #eaf4f0; border-radius: .5rem; padding: 1.3rem 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.payout h3 { margin: .2rem 0; font-size: 1.25rem; }
+.payout p:not(.eyebrow) { margin: .4rem 0 0; font-size: .8rem; color: #526674; }
+.payout dl { margin: 0; }
+.payout .payout-total { border-top: 1px solid #bad2c8; margin-top: .4rem; padding-top: .6rem; }
+.payout-total dt, .payout-total dd { font-weight: 750; }
+@media (max-width: 800px) { .payslip-workspace { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { main { padding: 1.25rem; } .selectors, .payout { grid-template-columns: 1fr; } #payslip { padding: 1.1rem; } .parties { gap: 1rem; } }
+@page { size: A4 portrait; margin: 12mm; }
+@media print { :root, body { background: white; } main { max-width: none; margin: 0; padding: 0; } .no-print { display: none !important; } .payslip-workspace { display: block; margin: 0; } #payslip { border: 0; margin: 0; padding: 0; } .slip-section, .payout { break-inside: avoid; } .payout { border: 1px solid #bad2c8; } }
