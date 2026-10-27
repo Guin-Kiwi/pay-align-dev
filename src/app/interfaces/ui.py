@@ -22,6 +22,7 @@ def login_page():
 
 
 @ui_router.get('/setup', include_in_schema=False)
+@ui_router.get('/payslips', include_in_schema=False)
 def setup_page(request: Request):
     try:
         require_account_id(request, request.app.state.account_service)
@@ -29,7 +30,8 @@ def setup_page(request: Request):
         if error.status_code != 401:
             raise
         return RedirectResponse('/login', status_code=303)
-    return FileResponse(ASSETS / 'setup.html', media_type='text/html')
+    page = 'payslip.html' if request.url.path == '/payslips' else 'setup.html'
+    return FileResponse(ASSETS / page, media_type='text/html')
 
 
 @ui_router.get('/employments', include_in_schema=False)

@@ -152,7 +152,15 @@ Authentication endpoints are under `/api/v1/auth`: `GET /csrf` issues a CSRF tok
 
 The `/login` page is view 0 of [UC-003 Amendment 3](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views). It is static HTML, CSS and JavaScript under `src/app/interfaces/static/` (`login.html`, `login.js`, `login.css`) and calls the endpoints above; `login.css` adds to `setup.css`, which loads first. The script checks `GET /api/v1/auth/me` first. Logging in, or creating an account in the sign-up dialog, fetches a fresh token from `GET /api/v1/auth/csrf` and sends it in `X-CSRF-Token` to `/api/v1/auth/login` or `/api/v1/auth/register`. Whenever the page knows the account (after either of those, or on opening `/login` already signed in) it asks `GET /api/v1/employer`, which answers only for the employer linked to the signed-in account (one employer per account, taken from the session), and replaces the page: an employer opens `/employments`, while a 404 "No employer is set up yet." opens `/setup`; any other answer stops with a message asking for a reload. An employer that belongs to another account never counts. The redirects replace the history entry, so Back does not return to `/login`. If the employer lookup fails while the sign-up dialog is open, the reload message appears both inside the dialog and in `#account-error`, where it remains visible after the dialog closes. The sign-up dialog always lists the three registration password requirements under the password field and turns each green as the typed password meets it. When the user leaves a non-empty field, the page flags a malformed email (on both forms) or an unmet password requirement with a red outline; email notes use reserved space, so nothing moves. Empty required fields get a red outline and note only on form submission, which checks every field at once. The page holds its own copy of the email pattern and the password rules; tests tie the minimum length to `MIN_PASSWORD_LENGTH` and compare both copies with the real registration API, and the server stays the authority (its message is shown if it rejects what the page accepted). The login form never applies the password policy. Arriving at `/login#signup` opens the sign-up dialog.
 
-`/employments` is the authenticated browser home and implements UC-003 Amendment 3 views 2 to 4 in one workspace. It lists owned employments, loads the selected employment's completed months and next eligible month, creates that next run with the existing monthly-payroll API, and reads the saved payslip so all deductions, employer costs and the holiday balance are displayed. Completed months have only a payslip-view action. The page links to `/setup` for another employment and has a CSRF-protected logout button. Explicit authentication or CSRF rejection links back to `/login`; state-changing requests are never retried automatically. `/` redirects to `/login`, and the login page sends an authenticated account to setup or this employment home according to whether its employer profile exists. These navigation decisions are in [proposed UC-003 Amendment 6](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-6--2026-10-27-minimum-browser-navigation), which requires human review before acceptance.
+`/employments` is the authenticated browser home and implements UC-003 Amendment 3 views 2 to 4 in one workspace. It lists owned employments, loads the selected employment's completed months and next eligible month, creates that next run with the existing monthly-payroll API, and reads the saved payslip so all deductions, employer costs and the holiday balance are displayed. Completed months have only a payslip-view action. The page links to `/setup` for another employment and has a CSRF-protected logout button. Explicit authentication or CSRF rejection links back to `/login`; state-changing requests are never retried automatically. `/` redirects to `/login`, and the login page sends an authenticated account to setup or this employment home according to whether its employer profile exists. These navigation decisions are in [proposed UC-003 Amendment 6](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-8--2026-10-27-minimum-browser-navigation), which requires human review before acceptance.
+
+The authenticated `/payslips` page lets the employer select an employment and
+completed month, read the saved payroll detail, and use the browser's print or
+save-as-PDF dialog. It uses the existing employer, employment, month-history and
+saved-month reads, including the employee AHV number from the account-scoped
+employment detail. A direct link can preselect a saved month using
+`/payslips?employment_id=ID&year=YYYY&month=M`; the server still checks ownership.
+The setup page links to it.
 
 The current HTTP endpoints are:
 
@@ -163,6 +171,7 @@ The current HTTP endpoints are:
 | `GET /login` | Browser page to log in or create an account. |
 | `GET /setup` | Serve the authenticated employment setup page; unauthenticated browsers are redirected to `/login`. |
 | `GET /employments` | Serve the authenticated employment, month-entry and saved-payslip workspace; unauthenticated browsers are redirected to `/login`. |
+| `GET /payslips` | Serve the authenticated saved-payslip view; unauthenticated browsers are redirected to `/login`. |
 | `GET /setup-assets/*` | Serve static CSS and JavaScript assets used by the browser pages. |
 | `GET /api/v1/auth/csrf` | Issue a CSRF token. |
 | `POST /api/v1/auth/register` | Register an account and start its session. |
@@ -174,9 +183,9 @@ The current HTTP endpoints are:
 | `GET /api/v1/employments` | List the signed-in employer's employments. |
 | `GET /api/v1/employments/{employment_id}` | Read one owned employment's summary. |
 | `GET /api/v1/employments/{employment_id}/months` | List saved months and the next eligible 2026 month. |
-| `GET /api/v1/employments/{employment_id}/months/{year}/{month}` | Read an owned month's saved payslip and holiday balance. |
 | `GET /api/v1/public-holidays/2026` | Read the authenticated 2026 Basel-Stadt public-holiday dates from the domain ruleset. |
-| `POST /api/v1/monthly-payroll` | Save the next monthly run. |
+| `GET /api/v1/employments/{employment_id}/months/{year}/{month}` | Read an owned month's saved payslip, holiday balance, bonus and reimbursements, and the run's hourly rate and four hour-category totals for the payslip view ([UC-003 Amendment 6](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-6--2026-10-26-payslip-view-design)). |
+| `POST /api/v1/monthly-payroll` | Save the next monthly run and return its saved payslip detail and confirmation message. |
 
 Employment, month and public-holiday-calendar reads require a session; employment data returns 404 for absent or other-account records. `PayrollService.process_monthly_payroll` and the payroll port's `employment_terms` require an account ID; neither provides an unscoped fallback. Completed months have no update or delete endpoint; the scope decision is in [UC-003 Amendment 3](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-3--2026-10-23-minimum-browser-views).
 

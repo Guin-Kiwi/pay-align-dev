@@ -155,6 +155,13 @@ def test_posting_a_month_returns_the_saved_payslip_and_a_confirmation_message(cl
         "admin_charge",
         "total_employer_cost",
         "holiday_balance_minutes",
+        "hourly_wage",
+        "cash_bonus",
+        "expense_reimbursements",
+        "worked_minutes",
+        "public_holiday_worked_minutes",
+        "annual_holiday_taken_minutes",
+        "public_holiday_taken_minutes",
         "message",
     }
     assert response_values["message"] == "Payroll processed successfully."
@@ -167,9 +174,29 @@ def test_posting_a_month_returns_the_saved_payslip_and_a_confirmation_message(cl
     )
 
     assert saved.status_code == 200, saved.text
-    assert {
-        key: value for key, value in response_values.items() if key != "message"
-    } == saved.json()
+    assert {key: value for key, value in response_values.items() if key != "message"} == saved.json()
+
+    assert saved.json()["cash_bonus"] == "100.00"
+    assert saved.json()["expense_reimbursements"] == "50.00"
+    assert saved.json()["hourly_wage"] == "25.00"
+    assert saved.json()["worked_minutes"] == 600
+    assert saved.json()["public_holiday_worked_minutes"] == 0
+    assert saved.json()["annual_holiday_taken_minutes"] == 0
+    assert saved.json()["public_holiday_taken_minutes"] == 0
+
+
+def test_posted_detail_matches_saved_rounded_inputs(client):
+    test_client, _ = client
+    response = test_client.post(
+        "/api/v1/monthly-payroll",
+        json={**PAYLOAD, "cash_bonus": "1.005", "expense_reimbursements": "2.005"},
+    )
+    assert response.status_code == 201, response.text
+    saved = test_client.get("/api/v1/employments/7/months/2026/10")
+    assert saved.status_code == 200
+    assert response.json()["cash_bonus"] == "1.01"
+    assert response.json()["expense_reimbursements"] == "2.01"
+    assert {key: value for key, value in response.json().items() if key != "message"} == saved.json()
 
 
 def test_saved_snapshot_holds_the_minute_totals_and_balance(client):
