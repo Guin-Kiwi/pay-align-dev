@@ -212,6 +212,8 @@ claim that this screen satisfies every requirement for a salary statement.
 - Show zero values as zero; label monetary values in CHF and durations clearly.
   Use the saved values and the project's formulas, not independently sourced
   rates or rules.
+- Offer the browser's print dialog so the employer can print or save the view as
+  a PDF. The app does not generate a PDF file itself.
 - The saved amounts are authoritative. Show the combined hourly pay as gross
   wage less the saved bonus, and identify the public-holiday work premium in
   the description of its hour category. Do not display separately rounded
@@ -259,14 +261,25 @@ grant access. Domain calculation rules and payroll persistence stay unchanged.
   a completed month has no edit or delete action. Cover a failed detail read
   after success and the uncertain outcome of a failed POST.
 
-This is an itemised normal-case view of data the app stores, not a decision on
-PDF, printing or how the employer delivers a statement to the employee. A browser
-view alone does not establish that a statement has been delivered. UC-002's
-known payroll limitations still apply. The exact
-visual layout and navigation remain with the UI owner; test results belong in
-the validation evidence once the feature is implemented.
+`tests/integration/test_payroll_api.py` covers POST/GET detail equality, rounded
+inputs and saved-snapshot errors. `tests/integration/test_employer_access.py`
+covers saved detail and account isolation. `tests/integration/test_payslip_ui.py`
+and its JavaScript fixture cover the authenticated page, rendering and print
+invocation with a simulated DOM. The submission handoff and its failure paths
+remain to be exercised when the month-entry view is integrated; a real-browser
+check is also needed for the view and print layout.
 
-**Known limitation — compensation fund:** The payslip does not identify the
+This is an itemised normal-case view of data the app stores. Printing or saving
+the view does not establish that a statement has been delivered to the employee.
+The exact visual layout and navigation remain with the UI owner; test results
+belong in the validation evidence once the feature is implemented.
+
+### Known limitations
+
+The [UC-002 payroll limitations](UC-002-Process-the-Monthly-Employment.md#known-limitations)
+also apply to the amounts shown on this view.
+
+**Compensation fund:** The payslip does not identify the
 employer's responsible compensation fund or its employer account number. The
 app does not record or determine either for the employment. While this project
 uses AKBS payroll rules, the responsible fund depends on the employer's
