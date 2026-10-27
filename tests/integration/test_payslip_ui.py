@@ -39,6 +39,35 @@ def test_payslip_page_exposes_read_only_detail_and_assets():
         assert client.get('/setup-assets/payslip.css').status_code == 200
 
 
+def test_payslip_page_brand_and_nav_link_go_home_to_employments():
+    class Anchors(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.anchors = []
+            self._current = None
+
+        def handle_starttag(self, tag, attrs):
+            if tag == 'a':
+                self._current = {**dict(attrs), 'text': ''}
+                self.anchors.append(self._current)
+
+        def handle_data(self, data):
+            if self._current is not None:
+                self._current['text'] += data
+
+        def handle_endtag(self, tag):
+            if tag == 'a':
+                self._current = None
+
+    with AuthenticatedTestClient(create_app()) as client:
+        anchors = Anchors()
+        anchors.feed(client.get('/payslips').text)
+    brand = next(a for a in anchors.anchors if a.get('class') == 'brand')
+    home = next(a for a in anchors.anchors if a['text'] == 'Home')
+    assert brand['href'] == '/employments'
+    assert home['href'] == '/employments'
+
+
 def test_payslip_javascript_renders_saved_detail_and_handles_errors():
     root = Path(__file__).resolve().parents[2]
     subprocess.run(

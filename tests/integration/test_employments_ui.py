@@ -124,6 +124,7 @@ def test_employments_page_exposes_the_minimum_accessible_workspace():
     assert fields["annual-holiday-date"]["type"] == "date"
     assert fields["confirm-payroll"]["type"] == "button"
     assert fields["add-employment"]["href"] == "/setup"
+    assert fields["view-payslips"]["href"] == "/payslips"
     assert all(
         field in {attrs.get("for") for tag, attrs in page.tags if tag == "label"}
         for field in ("work-entry-date", "annual-holiday-date", "cash-bonus", "expense-reimbursements")

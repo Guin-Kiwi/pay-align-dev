@@ -160,7 +160,7 @@ or save-as-PDF dialog. It uses the existing employer, employment, month-history
 and saved-month reads, including the employee AHV number from the account-scoped
 employment detail. A direct link can preselect a saved month using
 `/payslips?employment_id=ID&year=YYYY&month=M`; the server still checks ownership.
-The setup page links to it. The primary create-and-review workflow is the
+The setup and employments pages link to it, and its header links back to `/employments`. The primary create-and-review workflow is the
 `/employments` workspace above.
 
 The current HTTP endpoints are:
