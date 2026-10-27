@@ -14,6 +14,7 @@ from src.app.domain.errors import (
     EmploymentNotFoundError,
     InvalidHolidayBalanceError,
     InvalidPayrollInputError,
+    PayrollSnapshotReadError,
 )
 from src.app.domain.hour_categories import HourCategory
 from src.app.domain.work_entry import WorkEntry, calculate_paid_minutes
@@ -21,6 +22,10 @@ from src.app.interfaces.auth import require_account_id, require_csrf_token
 from src.app.interfaces.employment_reads import SavedPayslipResponse
 
 payroll_router = APIRouter()
+PAYROLL_SAVED_CONFIRMATION_UNAVAILABLE_MESSAGE = (
+    "The payroll was saved, but its confirmation could not be loaded. "
+    "Check the saved month before retrying."
+)
 
 
 class WorkEntryRequest(BaseModel):
@@ -116,11 +121,17 @@ def process_monthly_payroll(
         ValueError,
     ) as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
-    snapshot = repository.run_snapshot(record.id)
+    try:
+        snapshot = repository.run_snapshot(record.id)
+    except PayrollSnapshotReadError as error:
+        raise HTTPException(
+            status_code=500,
+            detail=PAYROLL_SAVED_CONFIRMATION_UNAVAILABLE_MESSAGE,
+        ) from error
     if snapshot is None:
         raise HTTPException(
             status_code=500,
-            detail="The saved payroll snapshot could not be read.",
+            detail=PAYROLL_SAVED_CONFIRMATION_UNAVAILABLE_MESSAGE,
         )
     values = asdict(payslip)
     values.pop("id")
