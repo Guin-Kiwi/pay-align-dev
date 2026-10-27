@@ -265,3 +265,10 @@ view alone does not establish that a statement has been delivered. UC-002's
 known payroll limitations still apply. The exact
 visual layout and navigation remain with the UI owner; test results belong in
 the validation evidence once the feature is implemented.
+
+**Known limitation — compensation fund:** The payslip does not identify the
+employer's responsible compensation fund or its employer account number. The
+app does not record or determine either for the employment. While this project
+uses AKBS payroll rules, the responsible fund depends on the employer's
+circumstances; see the [AHV/IV simplified-procedure guidance, item 9](https://www.ahv-iv.ch/p/2.07.d).
+The employer's personal AHV number is not a substitute for the fund account number.
