@@ -209,7 +209,7 @@ The current HTTP endpoints are:
 | `GET /api/v1/payroll-overview?year=YYYY&month=M` | Summarize saved payroll for the selected month and account. |
 | `POST /api/v1/setup` | Create an employer profile and first employment, or add an employment under the signed-in employer. |
 | `GET /api/v1/public-holidays?year=YYYY` | Return the configured rules-year public holidays to a signed-in account. |
-| `GET /api/v1/public-holidays/{year}` | Return the configured rules-year public holidays to a signed-in account (PR 50 compatibility route). |
+| `GET /api/v1/public-holidays/{year}` | Path form of the route above for the same calendar; returns `{year, dates}`. |
 | `GET /api/v1/employees` | One overview per person of the signed-in account's employer: their employments with terms, saved months, next month and months due; the year's totals; the stored holiday balance; and the wage limit used and remaining, with the household's. Never another account's people. |
 | `GET /api/v1/employees/{employee_id}` | Read one person's address, AHV number, nationality and tax status, on request only; an absent id and another account's id both answer 404. |
 | `GET /api/v1/employments` | List the signed-in employer's employments. |
