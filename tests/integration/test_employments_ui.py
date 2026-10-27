@@ -64,10 +64,11 @@ def run_flow(scenario):
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_root_opens_the_login_page_without_creating_a_second_login_view():
+def test_root_opens_the_welcome_page():
     response = TestClient(create_app()).get("/", follow_redirects=False)
-    assert response.status_code == 303
-    assert response.headers["location"] == "/login"
+    assert response.status_code == 200
+    assert 'href="/login"' in response.text
+    assert 'href="/login#signup"' in response.text
 
 
 def test_employments_page_requires_an_authenticated_session():

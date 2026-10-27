@@ -69,7 +69,7 @@ def _page_with_navigation(page: str, current_route: str) -> HTMLResponse:
 
 @ui_router.get('/', include_in_schema=False)
 def browser_home():
-    return RedirectResponse('/login', status_code=303)
+    return FileResponse(ASSETS / 'welcome.html', media_type='text/html')
 
 
 @ui_router.get('/login', include_in_schema=False)

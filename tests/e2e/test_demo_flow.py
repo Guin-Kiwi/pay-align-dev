@@ -129,8 +129,8 @@ def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
 
     with running_app(database_url, log_file) as app:
         entry = app.get("/", follow_redirects=False)
-        assert entry.status_code == 303
-        assert entry.headers["location"] == "/login"
+        assert entry.status_code == 200
+        assert 'href="/login"' in entry.text
         assert "Log in" in app.get("/login").text
         registration = app.post(
             "/api/v1/auth/register",

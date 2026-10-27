@@ -186,7 +186,7 @@ The current HTTP endpoints are:
 
 | Method and path | Purpose |
 |---|---|
-| `GET /` | Redirect to the browser login entry page. |
+| `GET /` | Serve the public welcome page with login and sign-up links. |
 | `GET /health` | Health check. |
 | `GET /login` | Browser page to log in or create an account. |
 | `GET /setup` | Serve employment setup; redirect to login if unauthenticated or home if no employer profile exists. |
