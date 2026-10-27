@@ -10,6 +10,12 @@
     .welcome-nav a:hover { background: #e8efee; }
     .welcome-nav .signup { background: #116257; border-color: #116257; color: white; }
     .welcome-nav .signup:hover { background: #0c4b43; }
+    .welcome { display: grid; grid-template-columns: minmax(0, 1fr) 12rem; align-items: center; gap: 2rem; padding: 2.5rem; }
+    .welcome h1 { margin: .5rem 0 1rem; font-size: clamp(2rem, 4vw, 2.7rem); letter-spacing: -.03em; }
+    .welcome p { line-height: 1.65; color: #526674; }
+    .welcome .eyebrow { color: #116257; font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .welcome svg { width: 100%; height: auto; }
+    @media (max-width: 36rem) { .welcome { grid-template-columns: 1fr; gap: .5rem; padding: 1.5rem; } .welcome svg { width: 8rem; } }
   </style>
 </head>
 <body>
@@ -22,10 +28,23 @@
     </nav>
   </div>
 </header>
-<main>
-  <h1>Household payroll, made simpler</h1>
-  <p>PayAlign helps household employers in Basel-Stadt manage payroll under the simplified settlement procedure.</p>
-  <p>Keep employment details in one place, enter monthly work and view payslips for your household employees.</p>
+<main class="welcome">
+  <div>
+    <p class="eyebrow">For household employers in Basel-Stadt</p>
+    <h1>Household payroll, made simpler</h1>
+    <p>PayAlign helps you manage payroll under the simplified settlement procedure.</p>
+    <p>Keep employment details in one place, enter monthly work and view payslips for your household employees.</p>
+  </div>
+  <svg viewBox="0 0 200 200" fill="none" aria-hidden="true" focusable="false">
+    <circle cx="100" cy="100" r="90" fill="#E8F3F0"/>
+    <path d="M36 91 92 44l56 47" stroke="#116257" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M49 83v66a8 8 0 0 0 8 8h70a8 8 0 0 0 8-8V83" fill="#fff" stroke="#116257" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M80 157v-33a12 12 0 0 1 24 0v33" stroke="#116257" stroke-width="6"/>
+    <rect x="119" y="98" width="45" height="57" rx="7" fill="#D5E9E2" stroke="#116257" stroke-width="5"/>
+    <path d="M130 116h23m-23 10h23m-23 10h13" stroke="#116257" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="153" cy="154" r="17" fill="#116257"/>
+    <path d="m146 154 5 5 9-10" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
 </main>
 </body>
 </html>
