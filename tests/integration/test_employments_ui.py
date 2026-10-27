@@ -109,12 +109,11 @@ def test_employments_page_exposes_the_minimum_accessible_workspace():
         "review-entries",
         "confirm-payroll",
         "cancel-review",
-        "payslip-section",
-        "payslip-details",
         "page-status",
         "page-error",
     ):
         assert element_id in fields
+    assert not {"payslip-section", "payslip-details", "payslip-month"} & set(fields)
     assert fields["page-status"]["role"] == "status"
     assert fields["page-status"]["aria-live"] == "polite"
     assert fields["page-error"]["role"] == "alert"
@@ -179,7 +178,6 @@ def test_employment_assets_are_available(asset, content_type):
         "empty",
         "completed-month",
         "months-401",
-        "payslip-401",
         "holidays-401",
         "fill-month",
         "fill-boundaries",

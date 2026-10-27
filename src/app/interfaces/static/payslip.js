@@ -3,6 +3,7 @@
 const el = id => document.getElementById(id);
 const employment = el("employment");
 const month = el("month");
+const confirmationKey = "payalign-saved-confirmation";
 let requestVersion = 0;
 let employerName = "";
 let employments = [];
@@ -144,7 +145,24 @@ async function loadMonths(preselected = "") {
   }
 }
 
+function showSavedConfirmation() {
+  try {
+    const saved = JSON.parse(window.sessionStorage.getItem(confirmationKey));
+    if (!saved || saved.url !== window.location.pathname + window.location.search || typeof saved.message !== "string") return;
+    el("confirmation").textContent = saved.message;
+    el("confirmation").hidden = false;
+    window.sessionStorage.removeItem(confirmationKey);
+  } catch (error) {
+    el("confirmation").hidden = true;
+  }
+}
+
+function hideSavedConfirmation() {
+  el("confirmation").hidden = true;
+}
+
 async function initialise() {
+  showSavedConfirmation();
   try {
     const [employer, list] = await Promise.all([readJSON("/api/v1/employer"), readJSON("/api/v1/employments")]);
     employerName = employer.name;
@@ -168,8 +186,8 @@ async function initialise() {
   }
 }
 
-employment.addEventListener("change", () => loadMonths());
-month.addEventListener("change", loadDetail);
+employment.addEventListener("change", () => { hideSavedConfirmation(); loadMonths(); });
+month.addEventListener("change", () => { hideSavedConfirmation(); loadDetail(); });
 el("retry").addEventListener("click", loadDetail);
 el("print").addEventListener("click", () => window.print());
 initialise();

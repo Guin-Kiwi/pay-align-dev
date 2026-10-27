@@ -25,6 +25,13 @@ async function scenario(failure) {
   const el = id => { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); };
   const requests = [];
   let prints = 0;
+  const storage = new Map();
+  const savedUrl = failure === 'confirmation-other-url'
+    ? '/payslips?employment_id=7&year=2026&month=5' : '/payslips?employment_id=7&year=2026&month=4';
+  if (String(failure).startsWith('confirmation')) {
+    storage.set('payalign-saved-confirmation', JSON.stringify({url: savedUrl, message: 'Payroll processed successfully.'}));
+  }
+  let detailReads = 0;
   let release;
   const pending = new Promise(resolve => { release = resolve; });
   const fetch = async url => {
@@ -35,11 +42,13 @@ async function scenario(failure) {
     if (url === '/api/v1/employments/7') return {status: 200, ok: true, json: async () => ({id: 7, employee_name: '<Employee>', employee_ahv_number: '756.1234.5678.97'})};
     if (url === '/api/v1/employments/7/months') return {status: 200, ok: true, json: async () => ({months: [{year: 2026, month: 4}]})};
     if (failure === 'detail') return {status: 500, ok: false};
+    if (failure === 'confirmation-detail-failure' && url.endsWith('/months/2026/4') && detailReads++ === 0) return {status: 500, ok: false};
     if (failure === 'superseded') await pending;
     return {status: 200, ok: true, json: async () => detail};
   };
   const context = {document: {getElementById: el, createElement: () => new Element()}, fetch,
-    window: {location: {search: '?employment_id=7&year=2026&month=4'}, print: () => { prints++; }},
+    window: {location: {pathname: '/payslips', search: '?employment_id=7&year=2026&month=4'}, print: () => { prints++; },
+      sessionStorage: {getItem: key => (storage.has(key) ? storage.get(key) : null), removeItem: key => { storage.delete(key); }}},
     URLSearchParams, Intl, Date, Number, BigInt, Object, String, Error};
   vm.runInNewContext(fs.readFileSync(process.argv[2], 'utf8'), context);
   for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
@@ -55,6 +64,27 @@ async function scenario(failure) {
     for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
     assert.equal(el('status').textContent, '');
     assert.equal(el('payslip').hidden, true);
+  } else if (failure === 'confirmation') {
+    assert.equal(el('confirmation').hidden, false);
+    assert.equal(el('confirmation').textContent, 'Payroll processed successfully.');
+    assert.equal(el('payslip').hidden, false);
+    assert.equal(storage.has('payalign-saved-confirmation'), false);
+    el('month').handlers.change();
+    assert.equal(el('confirmation').hidden, true);
+  } else if (failure === 'confirmation-other-url') {
+    assert.equal(el('confirmation').hidden, true);
+    assert.equal(storage.has('payalign-saved-confirmation'), true);
+  } else if (failure === 'confirmation-detail-failure') {
+    assert.equal(el('confirmation').hidden, false);
+    assert.equal(el('payslip').hidden, true);
+    assert.equal(el('retry').hidden, false);
+    assert.match(el('error').textContent, /could not be loaded/);
+    el('retry').handlers.click();
+    for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.equal(el('confirmation').hidden, false);
+    assert.equal(el('payslip').hidden, false);
+    assert.equal(requests.filter(url => url.endsWith('/months/2026/4')).length, 2);
+    assert.equal(requests.some(url => url.includes('monthly-payroll')), false);
   } else if (failure === 'detail') {
     assert.equal(el('payslip').hidden, true);
     assert.equal(el('employer-costs').hidden, true);
@@ -80,4 +110,5 @@ async function scenario(failure) {
   }
 }
 
-(async () => { await scenario(); await scenario('detail'); await scenario('session'); await scenario('superseded'); })().catch(error => { console.error(error); process.exitCode = 1; });
+(async () => { await scenario(); await scenario('detail'); await scenario('session'); await scenario('superseded');
+  await scenario('confirmation'); await scenario('confirmation-other-url'); await scenario('confirmation-detail-failure'); })().catch(error => { console.error(error); process.exitCode = 1; });

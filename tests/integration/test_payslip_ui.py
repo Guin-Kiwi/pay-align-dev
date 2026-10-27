@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from html.parser import HTMLParser
 from pathlib import Path
+import re
 import subprocess
 
 from src.app.infrastructure.web.app import create_app
@@ -35,6 +36,7 @@ def test_payslip_page_exposes_read_only_detail_and_assets():
         assert 'no-print' in sections.sections['employer-costs']
         assert '@media print' in client.get('/setup-assets/payslip.css').text
         assert '.no-print { display: none !important; }' in client.get('/setup-assets/payslip.css').text
+        assert re.search(r'<p id="confirmation"[^>]*\bhidden\b', response.text)
         assert client.get('/setup-assets/payslip.js').status_code == 200
         assert client.get('/setup-assets/payslip.css').status_code == 200
 
