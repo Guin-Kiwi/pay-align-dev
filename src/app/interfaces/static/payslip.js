@@ -1,17 +1,17 @@
 "use strict";
 
-const el = id => document.getElementById(id);
-const employment = el("employment");
-const month = el("month");
+const employment = element("employment");
+const month = element("month");
+const TIMESHEETS_PAGE = "/timesheets";
 let requestVersion = 0;
 let employerName = "";
 let employments = [];
 
 function showError(message, retry = false) {
-  el("error").textContent = message;
-  el("error").hidden = !message;
-  el("retry").hidden = !retry;
-  el("login-link").hidden = true;
+  element("error").textContent = message;
+  element("error").hidden = !message;
+  element("retry").hidden = !retry;
+  element("login-link").hidden = true;
 }
 
 async function readJSON(url) {
@@ -23,10 +23,10 @@ async function readJSON(url) {
 }
 
 function failure(error, retry = false) {
-  el("status").textContent = "";
+  element("status").textContent = "";
   if (error.message === "session") {
     showError("Your session has expired. Please sign in again.");
-    el("login-link").hidden = false;
+    element("login-link").hidden = false;
     return;
   }
   showError(error.message === "not-found" ? "This employment or payslip could not be found." : "The payslip could not be loaded. Please try again.", retry);
@@ -77,27 +77,27 @@ function render(detail, employee, year, number) {
     "holiday-balance": detail.holiday_balance_minutes};
   const formatted = Object.fromEntries(Object.entries(amounts).map(([id, value]) => [id, money(value)]));
   Object.assign(formatted, Object.fromEntries(Object.entries(durations).map(([id, value]) => [id, duration(value)])));
-  Object.entries(formatted).forEach(([id, value]) => { el(id).textContent = value; });
-  el("employer-name").textContent = employerName;
-  el("employee-name").textContent = employee.employee_name;
-  el("employee-ahv-number").textContent = employee.employee_ahv_number;
-  el("period").textContent = periodName(year, number);
-  el("payslip").hidden = false;
-  el("employer-costs").hidden = false;
-  el("print").hidden = false;
+  Object.entries(formatted).forEach(([id, value]) => { element(id).textContent = value; });
+  element("employer-name").textContent = employerName;
+  element("employee-name").textContent = employee.employee_name;
+  element("employee-ahv-number").textContent = employee.employee_ahv_number;
+  element("period").textContent = periodName(year, number);
+  element("payslip").hidden = false;
+  element("employer-costs").hidden = false;
+  element("print").hidden = false;
 }
 
 async function loadDetail() {
   const version = ++requestVersion;
-  el("payslip").hidden = true;
-  el("employer-costs").hidden = true;
-  el("print").hidden = true;
+  element("payslip").hidden = true;
+  element("employer-costs").hidden = true;
+  element("print").hidden = true;
   showError("");
   if (!employment.value || !month.value) return;
   const [year, number] = month.value.split("-").map(Number);
   const selected = employments.find(item => String(item.id) === employment.value);
   if (!selected || !Number.isInteger(year) || number < 1 || number > 12) return;
-  el("status").textContent = "Loading payslip…";
+  element("status").textContent = "Loading payslip…";
   try {
     const [detail, employee] = await Promise.all([
       readJSON(`/api/v1/employments/${selected.id}/months/${year}/${number}`),
@@ -105,7 +105,7 @@ async function loadDetail() {
     ]);
     if (version !== requestVersion) return;
     render(detail, employee, year, number);
-    el("status").textContent = "";
+    element("status").textContent = "";
   } catch (error) {
     if (version === requestVersion) failure(error, true);
   }
@@ -113,25 +113,30 @@ async function loadDetail() {
 
 async function loadMonths(preselected = "") {
   const version = ++requestVersion;
-  el("payslip").hidden = true;
-  el("employer-costs").hidden = true;
-  el("print").hidden = true;
+  element("enter-timesheet").hidden = true;
+  element("payslip").hidden = true;
+  element("employer-costs").hidden = true;
+  element("print").hidden = true;
   showError("");
   month.disabled = true;
   month.replaceChildren(option("", "Loading months…"));
   if (!employment.value) {
     month.replaceChildren(option("", "Select an employee first"));
-    el("status").textContent = "";
+    element("status").textContent = "";
     return;
   }
-  el("status").textContent = "Loading months…";
+  element("status").textContent = "Loading months…";
   try {
     const history = await readJSON(`/api/v1/employments/${employment.value}/months`);
     if (version !== requestVersion) return;
     month.replaceChildren(option("", history.months.length ? "Select a month" : "No completed months"));
     history.months.forEach(item => month.append(option(`${item.year}-${item.month}`, periodName(item.year, item.month))));
     month.disabled = !history.months.length;
-    el("status").textContent = history.months.length ? "" : "There are no saved payslips for this employee yet.";
+    if (history.next_month) {
+      element("enter-timesheet").textContent = `Enter timesheet for ${periodName(history.next_month.year, history.next_month.month)}`;
+      element("enter-timesheet").hidden = false;
+    }
+    element("status").textContent = history.months.length ? "" : "There are no saved payslips for this employee yet.";
     if (preselected && [...month.options].some(item => item.value === preselected)) {
       month.value = preselected;
       await loadDetail();
@@ -145,13 +150,21 @@ async function loadMonths(preselected = "") {
 
 async function initialise() {
   try {
+    const saved = JSON.parse(window.sessionStorage.getItem("payalign-saved-confirmation") || "null");
+    if (saved && saved.url === `${window.location.pathname}${window.location.search}` && typeof saved.message === "string") {
+      element("save-confirmation").textContent = saved.message;
+      element("save-confirmation").hidden = false;
+      window.sessionStorage.removeItem("payalign-saved-confirmation");
+    }
+  } catch (error) { /* Browsing without session storage still opens the saved payslip. */ }
+  try {
     const [employer, list] = await Promise.all([readJSON("/api/v1/employer"), readJSON("/api/v1/employments")]);
     employerName = employer.name;
     employments = list;
     employment.replaceChildren(option("", list.length ? "Select an employee" : "No employments found"));
-    list.forEach(item => employment.append(option(String(item.id), `${item.employee_name} · from ${item.start_date}`)));
+    list.forEach(item => employment.append(option(String(item.id), `${item.employee_name} · from ${item.start_date}${item.end_date ? ` to ${item.end_date}` : ""}`)));
     employment.disabled = !list.length;
-    if (!list.length) el("status").textContent = "Set up an employment before viewing payslips.";
+    if (!list.length) element("status").textContent = "Set up an employment before viewing payslips.";
     const params = new URLSearchParams(window.location.search);
     const id = params.get("employment_id");
     const year = params.get("year");
@@ -168,7 +181,9 @@ async function initialise() {
 }
 
 employment.addEventListener("change", () => loadMonths());
+element("enter-timesheet").addEventListener("click", () => window.location.assign(`${TIMESHEETS_PAGE}?employment_id=${employment.value}`));
 month.addEventListener("change", loadDetail);
-el("retry").addEventListener("click", loadDetail);
-el("print").addEventListener("click", () => window.print());
+element("retry").addEventListener("click", loadDetail);
+element("print").addEventListener("click", () => window.print());
+element("sign-in").addEventListener("click", () => window.location.assign("/login"));
 initialise();

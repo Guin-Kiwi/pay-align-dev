@@ -4,21 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Set up employment | PayAlign</title>
-  <link rel="stylesheet" href="/setup-assets/setup.css">
+  <link rel="stylesheet" href="/setup-assets/setup.css?v=20261027-back">
+  <script src="/setup-assets/navigation.js" defer></script>
+  <script src="/setup-assets/constants.js" defer></script>
+  <script src="/setup-assets/common.js" defer></script>
   <script src="/setup-assets/setup.js" defer></script>
 </head>
 <body>
+<!-- SHARED_NAVIGATION -->
 <main>
-  <p class="brand">PayAlign</p>
-  <nav aria-label="Main navigation"><a href="/payslips">View saved payslips</a></nav>
   <h1>Set up employment</h1>
-  <p>Prepare the details for your employment arrangement. Enter your details, then select Save Setup.</p>
+  <p>Enter the employee and employment details, then save.</p>
   <noscript><p>Please enable JavaScript to load the employer status. JavaScript is required to save setup.</p></noscript>
   <form id="setup-form" novalidate>
-    <section aria-labelledby="employer-heading">
+    <p id="employer-status" role="status" aria-live="polite">Loading employer status …</p>
+    <p id="employer-error" role="alert" hidden></p>
+    <section id="employer-section" aria-labelledby="employer-heading" hidden>
       <h2 id="employer-heading">Employer</h2>
-      <p id="employer-status" role="status" aria-live="polite">Loading employer status …</p>
-      <p id="employer-error" role="alert" hidden></p>
       <dl id="employer-details" hidden></dl>
       <fieldset id="employer-fields" disabled>
         <legend>Employer details</legend>
@@ -45,28 +47,39 @@
     </section>
     <section aria-labelledby="employment-heading">
       <h2 id="employment-heading">Employment</h2>
-      <label for="start-date">Start date (2026)</label><input id="start-date" type="date" min="2026-01-01" max="2026-12-31" required aria-describedby="start-date-error">
+      <label for="start-date">Start date ({{RULES_YEAR}})</label><input id="start-date" type="date" min="{{RULES_YEAR_START}}" max="{{RULES_YEAR_END}}" required aria-describedby="start-date-error">
       <p id="start-date-error" role="alert" hidden></p>
       <label for="end-date">End date (optional)</label><input id="end-date" type="date" aria-describedby="end-date-note end-date-error">
-      <p id="end-date-note">Leave blank for an open-ended contract. The end date may extend beyond 2026.</p>
+      <p id="end-date-note">Leave blank for an open-ended contract. The end date may extend beyond {{RULES_YEAR}}.</p>
       <p id="end-date-error" role="alert" hidden></p>
-      <label for="hourly-wage">Hourly wage in CHF per hour</label><input id="hourly-wage" type="number" min="22.20" max="500.00" step="0.01" required aria-describedby="wage-note hourly-wage-error">
-      <p id="wage-note">Minimum CHF 22.20 per hour, with at most two decimal places. From 5 hours a week, the NAV Hauswirtschaft minimum applies instead (CHF 20.35, or 22.30 with 4 years' experience or EBA, or 24.55 with EFZ); this version accepts only CHF 22.20 or more and does not check the NAV category.</p>
+      <label for="hourly-wage">Hourly wage in CHF per hour</label><input id="hourly-wage" type="number" min="{{MIN_HOURLY_WAGE}}" max="{{MAX_HOURLY_WAGE}}" step="0.01" required aria-describedby="wage-note hourly-wage-error">
+      <p id="wage-note">Minimum CHF {{MIN_HOURLY_WAGE}} per hour, with at most two decimal places. From 5 hours a week, the NAV Hauswirtschaft minimum applies instead (CHF 20.35, or 22.30 with 4 years' experience or EBA, or 24.55 with EFZ); this version accepts only CHF {{MIN_HOURLY_WAGE}} or more and does not check the NAV category.</p>
       <p id="hourly-wage-error" role="alert" hidden></p>
       <label for="weekly-hours">Weekly hours (H:MM)</label><input id="weekly-hours" type="text" placeholder="6:30" pattern="[0-9]{1,2}:[0-5][0-9]" required aria-describedby="hours-note weekly-hours-error">
       <p id="hours-note">Use H:MM, for example 6:30. Allowed range: 0:01 to 99:59.</p>
       <p id="weekly-hours-error" role="alert" hidden></p>
       <label for="holiday-weeks">Holiday weeks per year</label>
-      <select id="holiday-weeks" aria-describedby="holiday-weeks-error"><option value="4" selected>4</option><option value="5">5</option></select>
+      <select id="holiday-weeks" aria-describedby="holiday-weeks-error">{{HOLIDAY_WEEK_OPTIONS}}</select>
       <p id="holiday-weeks-error" role="alert" hidden></p>
     </section>
     <p id="save-note">Save becomes available after the employer status has loaded. Select it to check required fields before submission.</p>
     <button id="save-setup" type="submit" disabled aria-describedby="save-note">Save Setup</button>
     <p id="setup-status" role="status" aria-live="polite"></p>
     <p id="setup-success" role="status" aria-live="polite" hidden></p>
-    <p id="setup-complete-actions" hidden><a id="view-employments" class="primary-action" href="/employments">View employments</a></p>
+    <p id="setup-complete-actions" hidden><button id="view-employments" type="button">View employments</button></p>
     <p id="setup-error" role="alert" hidden></p>
   </form>
+  <dialog id="add-employment-dialog" class="warning" aria-labelledby="add-employment-dialog-heading">
+    <h2 id="add-employment-dialog-heading">Are you sure?</h2>
+    <p>Once this employment is added, it <strong>cannot be changed</strong>. Its dates, wage, weekly hours and holiday weeks, and the details of a new employee, cannot be edited later.</p>
+    <p>If an employee with this AHV number is already saved, their saved details are kept and the details entered here are ignored.</p>
+    <p id="add-employment-summary"></p>
+    <div class="actions">
+      <button id="add-employment-confirm" class="primary" type="button">Yes, add this employment</button>
+      <button id="add-employment-cancel" class="secondary" type="button">No, go back</button>
+    </div>
+    <p id="add-employment-status" role="status" aria-live="polite"></p>
+  </dialog>
 </main>
 </body>
 </html>

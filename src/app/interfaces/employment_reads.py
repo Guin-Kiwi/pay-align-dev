@@ -6,10 +6,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from src.app.application.employment_read_service import EmploymentReadService
-from src.app.domain.constants import RULES_YEAR
+from src.app.domain.constants import PUBLIC_HOLIDAYS, RULES_YEAR
 from src.app.interfaces.auth import require_account_id
 
 employment_reads_router = APIRouter()
+
+
+@employment_reads_router.get('/public-holidays', response_model=list[date])
+def public_holidays(year: int, account_id: int = Depends(require_account_id)):
+    if year != RULES_YEAR:
+        raise HTTPException(status_code=422, detail='No holiday calendar is available for this year.')
+    return sorted(PUBLIC_HOLIDAYS)
 
 
 class EmploymentOverviewResponse(BaseModel):
