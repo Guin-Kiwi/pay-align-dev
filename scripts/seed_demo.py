@@ -2,7 +2,8 @@
 """Fill a local PayAlign with a demo account: one employment up to date, one with months due.
 
 Uses only the app's API, so every saved month passes the normal payroll rules.
-Run it against a fresh local database while the app is running:
+Run it against a fresh local database while the app is running. If the demo account
+already exists, it logs in and adds whatever an interrupted run left missing:
 
     python3 scripts/seed_demo.py              # http://localhost:8000
     python3 scripts/seed_demo.py --url http://127.0.0.1:8001
@@ -65,9 +66,17 @@ class Client:
         request = Request(self.base_url + path, data=data, headers=headers, method=method)
         try:
             with self.opener.open(request, timeout=30) as response:
-                return response.status, json.loads(response.read() or b"null")
+                status, text = response.status, response.read().decode("utf-8", errors="replace")
         except HTTPError as error:
-            return error.code, json.loads(error.read() or b"null")
+            status, text = error.code, error.read().decode("utf-8", errors="replace")
+        if not text:
+            return status, None
+        try:
+            return status, json.loads(text)
+        except ValueError:
+            if status >= 400:
+                return status, text
+            raise SystemExit(f"{method} {path} returned {status} but not JSON: {text}")
 
 
 def _days(month, weekdays, start):
@@ -121,28 +130,59 @@ def _last_month_due(today):
     return today.month if today.year == YEAR else 0
 
 
+def _ensure_employer(client, created):
+    status, body = client.call("GET", "/api/v1/employer")
+    if status == 200:
+        return
+    _require(status, body, 404, "Employer profile lookup")
+    _require(*client.call("POST", "/api/v1/employer", EMPLOYER), 201, "Employer profile")
+    created.append("the employer profile")
+
+
+def _ensure_employment(client, setup, existing, month_for, months, created):
+    name = setup["employee"]["name"]
+    start_date = setup["employment"]["start_date"]
+    found = next((item for item in existing if item["employee_name"] == name and item["start_date"] == start_date), None)
+    if found:
+        employment_id = found["id"]
+    else:
+        employment_id = _require(*client.call("POST", "/api/v1/setup", setup), 201, f"{name}'s employment")["employment_id"]
+        created.append(f"{name}'s employment")
+    history = _require(*client.call("GET", f"/api/v1/employments/{employment_id}/months"), 200, f"{name}'s saved months")
+    saved = {(item["year"], item["month"]) for item in history["months"]}
+    for month in months:
+        if (YEAR, month) not in saved:
+            _require(*client.call("POST", "/api/v1/monthly-payroll", month_for(employment_id, month)), 201, f"{name} {month:02d}/{YEAR}")
+            created.append(f"{name} {month:02d}/{YEAR}")
+
+
 def seed(client, today):
     client.csrf_token = _require(*client.call("GET", "/api/v1/auth/csrf"), 200, "CSRF token")["csrf_token"]
-    status, body = client.call(
-        "POST", "/api/v1/auth/register",
-        {"email": EMAIL, "password": PASSWORD, "first_name": "Demo", "last_name": "Employer"},
-    )
-    if status == 409:
-        print(f"The demo account already exists. Log in with {EMAIL} / {PASSWORD}.")
-        return
-    client.csrf_token = _require(status, body, 201, "Registration")["csrf_token"]
-    _require(*client.call("POST", "/api/v1/employer", EMPLOYER), 201, "Employer profile")
+    credentials = {"email": EMAIL, "password": PASSWORD}
+    status, body = client.call("POST", "/api/v1/auth/register", {**credentials, "first_name": "Demo", "last_name": "Employer"})
+    existed = status == 409
+    if existed:
+        status, body = client.call("POST", "/api/v1/auth/login", credentials)
+        if status == 401:
+            raise SystemExit(f"The account {EMAIL} exists but does not accept the demo password. Use a fresh local database.")
+        client.csrf_token = _require(status, body, 200, "Login")["csrf_token"]
+    else:
+        client.csrf_token = _require(status, body, 201, "Registration")["csrf_token"]
 
-    mara = _require(*client.call("POST", "/api/v1/setup", UP_TO_DATE), 201, "Mara's employment")["employment_id"]
-    for month in range(7, _last_month_due(today) + 1):
-        _require(*client.call("POST", "/api/v1/monthly-payroll", _mara_month(mara, month)), 201, f"Mara {month:02d}/{YEAR}")
+    created = []
+    _ensure_employer(client, created)
+    existing = _require(*client.call("GET", "/api/v1/employments"), 200, "Employment list")
+    _ensure_employment(client, UP_TO_DATE, existing, _mara_month, range(7, _last_month_due(today) + 1), created)
+    _ensure_employment(client, NEEDS_ATTENTION, existing, _luca_month, (5, 6), created)
 
-    luca = _require(*client.call("POST", "/api/v1/setup", NEEDS_ATTENTION), 201, "Luca's employment")["employment_id"]
-    for month in (5, 6):
-        _require(*client.call("POST", "/api/v1/monthly-payroll", _luca_month(luca, month)), 201, f"Luca {month:02d}/{YEAR}")
-
-    print(f"Demo data saved. Log in at {client.base_url}/login with {EMAIL} / {PASSWORD}.")
-    print("Mara Beispiel is up to date; Luca Muster has months to enter from July.")
+    if not existed:
+        print(f"Demo data saved. Log in at {client.base_url}/login with {EMAIL} / {PASSWORD}.")
+        print("Mara Beispiel is up to date; Luca Muster has months to enter from July.")
+    elif created:
+        print(f"The demo account already existed with incomplete data; added {', '.join(created)}.")
+        print(f"Log in at {client.base_url}/login with {EMAIL} / {PASSWORD}.")
+    else:
+        print(f"The demo account already exists and its demo data is complete. Log in with {EMAIL} / {PASSWORD}.")
 
 
 def main(argv=None):
