@@ -17,12 +17,12 @@ function showError(message, retry = null) {
   element("employer-setup-link").hidden = true;
 }
 
-async function readJSON(url) {
-  const response = await fetch(url, {headers: {Accept: "application/json"}, cache: "no-store"});
-  if (response.status === 401) throw new Error("session");
-  if (response.status === 404) throw new Error("not-found");
-  if (!response.ok) throw new Error("request");
-  return response.json();
+async function read(url) {
+  const {status, body} = await call(url, {headers: {Accept: "application/json"}, cache: "no-store"});
+  if (status === 401) throw new Error("session");
+  if (status === 404) throw new Error("not-found");
+  if (status !== 200) throw new Error("request");
+  return body;
 }
 
 function failure(error, retry = null) {
@@ -116,8 +116,8 @@ async function loadDetail() {
   element("status").textContent = "Loading payslip…";
   try {
     const [detail, employee] = await Promise.all([
-      readJSON(`/api/v1/employments/${selected.id}/months/${year}/${number}`),
-      readJSON(`/api/v1/employments/${selected.id}`)
+      read(`/api/v1/employments/${selected.id}/months/${year}/${number}`),
+      read(`/api/v1/employments/${selected.id}`)
     ]);
     if (version !== requestVersion) return;
     render(detail, employee, year, number);
@@ -143,7 +143,7 @@ async function loadMonths(preselected = "", loadedHistory = null) {
   }
   element("status").textContent = "Loading months…";
   try {
-    const history = loadedHistory ?? await readJSON(`/api/v1/employments/${employment.value}/months`);
+    const history = loadedHistory ?? await read(`/api/v1/employments/${employment.value}/months`);
     if (version !== requestVersion) return;
     month.replaceChildren(option("", history.months.length ? "Select a month" : "No completed months"));
     history.months.forEach(item => month.append(option(`${item.year}-${item.month}`, periodName(item.year, item.month))));
@@ -182,8 +182,8 @@ async function initialise() {
   resetSelects("Loading employees…");
   try {
     const [employer, list] = await Promise.all([
-      readJSON("/api/v1/employer").catch(error => { throw error.message === "not-found" ? new Error("no-employer") : error; }),
-      readJSON("/api/v1/employments")
+      read("/api/v1/employer").catch(error => { throw error.message === "not-found" ? new Error("no-employer") : error; }),
+      read("/api/v1/employments")
     ]);
     employerName = employer.name;
     employments = list;
@@ -205,7 +205,7 @@ async function initialise() {
       element("status").textContent = "Finding the latest payslip…";
       let histories;
       try {
-        histories = await Promise.all(list.map(item => readJSON(`/api/v1/employments/${item.id}/months`)));
+        histories = await Promise.all(list.map(item => read(`/api/v1/employments/${item.id}/months`)));
       } catch (error) {
         if (version !== requestVersion) return;
         throw error;

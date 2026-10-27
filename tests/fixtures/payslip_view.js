@@ -34,25 +34,32 @@ async function scenario(failure) {
   let employmentListReads = 0;
   let release;
   const pending = new Promise(resolve => { release = resolve; });
-  const fetch = async url => {
+  const timers = [];
+  const rejected = status => ({status, ok: false, json: async () => ({detail: 'rejected'})});
+  const fetch = async (url, options = {}) => {
     requests.push(url);
-    if (failure === 'session') return {status: 401, ok: false};
+    if (failure === 'session') return rejected(401);
+    if (failure === 'timeout' && url === '/api/v1/employments') {
+      return new Promise((_, reject) => options.signal.addEventListener('abort', () => reject(new Error('timeout'))));
+    }
     if (failure === 'no-employer' && url === '/api/v1/employer') return {status: 404, ok: false, json: async () => ({detail: 'No employer is set up yet.'})};
     if (url === '/api/v1/employer') return {status: 200, ok: true, json: async () => ({name: '<Employer>', ahv_number: '756.9876.5432.17'})};
-    if (failure === 'initial-failure' && url === '/api/v1/employments' && employmentListReads++ === 0) return {status: 500, ok: false};
+    if (failure === 'initial-failure' && url === '/api/v1/employments' && employmentListReads++ === 0) return rejected(500);
     if (url === '/api/v1/employments') return {status: 200, ok: true, json: async () => [
       {id: 7, employee_name: '<Employee>', start_date: `${YEAR}-04-01`, end_date: `${YEAR}-09-30`},
       {id: 8, employee_name: '<Employee>', start_date: `${YEAR}-10-01`, end_date: null}]};
     if (url === '/api/v1/employments/7') return {status: 200, ok: true, json: async () => ({id: 7, employee_name: '<Employee>', employee_ahv_number: '756.1234.5678.97'})};
     if (url === '/api/v1/employments/7/months') return {status: 200, ok: true, json: async () => ({months: [{year: YEAR, month: 4}], next_month: failure === 'finished' ? null : {year: YEAR, month: 5}})};
-    if (failure === 'detail') return {status: 500, ok: false};
+    if (failure === 'detail') return rejected(500);
     if (failure === 'superseded') await pending;
     return {status: 200, ok: true, json: async () => detail};
   };
   const context = {document: {getElementById: el, createElement: () => new Element()}, fetch,
     window: {location: {pathname: PAGE, search: QUERY, assign: url => { assigned.push(url); }}, print: () => { prints++; },
       sessionStorage: {getItem: () => JSON.stringify({url: `${PAGE}${QUERY}`, message: 'Payroll processed successfully.'}), removeItem: () => {}}},
-    URLSearchParams, Intl, Date, Number, BigInt, Object, String, Error};
+    AbortController, URLSearchParams, Intl, Date, Number, BigInt, Object, String, Error,
+    setTimeout: (callback, delay) => { timers.push({callback, delay, cleared: false}); return timers.length; },
+    clearTimeout: id => { if (timers[id - 1]) timers[id - 1].cleared = true; }};
   vm.runInNewContext(process.argv.slice(2).map(path => fs.readFileSync(path, 'utf8')).join('\n'), context);
   for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
   assert.equal(el('save-confirmation').textContent, 'Payroll processed successfully.');
@@ -69,6 +76,14 @@ async function scenario(failure) {
     for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
     assert.equal(el('status').textContent, '');
     assert.equal(el('payslip').hidden, true);
+  } else if (failure === 'timeout') {
+    const timer = timers.find(item => item.delay === 10000 && !item.cleared);
+    assert.ok(timer, 'the employments read must use the shared request helper and its timeout');
+    timer.callback();
+    for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.match(el('error').textContent, /could not be loaded/);
+    assert.equal(el('retry').hidden, false);
+    assert.equal(el('employment').disabled, true);
   } else if (failure === 'no-employer') {
     assert.match(el('error').textContent, /account details/);
     assert.doesNotMatch(el('error').textContent, /could not be found/);
@@ -134,4 +149,4 @@ async function scenario(failure) {
   }
 }
 
-(async () => { await scenario(); await scenario('finished'); await scenario('detail'); await scenario('session'); await scenario('superseded'); await scenario('initial-failure'); await scenario('no-employer'); })().catch(error => { console.error(error); process.exitCode = 1; });
+(async () => { await scenario(); await scenario('finished'); await scenario('detail'); await scenario('session'); await scenario('superseded'); await scenario('initial-failure'); await scenario('no-employer'); await scenario('timeout'); })().catch(error => { console.error(error); process.exitCode = 1; });
