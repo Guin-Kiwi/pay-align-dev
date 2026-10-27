@@ -45,10 +45,13 @@ async function scenario(failure) {
     assert.equal(el('payslip').hidden, true);
   } else if (failure === 'detail') {
     assert.equal(el('payslip').hidden, true);
+    assert.equal(el('employer-costs').hidden, true);
     assert.equal(el('retry').hidden, false);
     assert.match(el('error').textContent, /could not be loaded/);
   } else {
     assert.equal(el('payslip').hidden, false);
+    assert.equal(el('employer-costs').hidden, false);
+    assert.equal(el('employer-total').textContent, 'CHF 330.08');
     assert.equal(el('employee-name').textContent, '<Employee>');
     assert.equal(el('employer-name').textContent, '<Employer>');
     assert.equal(el('employee-ahv-number').textContent, '756.1234.5678.97');
