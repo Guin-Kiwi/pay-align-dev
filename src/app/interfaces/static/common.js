@@ -19,12 +19,15 @@ async function call(url, options = {}, timeoutMs = 10000) {
 }
 
 let csrfTokenPromise;
-async function fetchCsrfToken() {
-  if (!csrfTokenPromise) csrfTokenPromise = (async () => {
+async function fetchCsrfToken({fresh = false} = {}) {
+  if (fresh || !csrfTokenPromise) csrfTokenPromise = (async () => {
     const {status, body} = await call("/api/v1/auth/csrf", {headers: {Accept: "application/json"}, cache: "no-store"});
     if (status !== 200 || typeof body?.csrf_token !== "string" || !body.csrf_token) throw new Error("csrf");
     return body.csrf_token;
-  })();
+  })().catch(failure => {
+    csrfTokenPromise = undefined;
+    throw failure;
+  });
   return csrfTokenPromise;
 }
 
