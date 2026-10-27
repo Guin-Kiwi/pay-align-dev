@@ -29,3 +29,8 @@ class ImmutableRecordError(Exception):
 class EmploymentNotFoundError(Exception):
     """Raised when a payroll run names an employment that is not saved."""
     pass
+
+
+class PayrollSnapshotReadError(Exception):
+    """Raised when a saved payroll snapshot cannot be read."""
+    pass

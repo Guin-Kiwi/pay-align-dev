@@ -12,8 +12,8 @@ STATUS: in-progress
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 Amendment 2 specifies session and CSRF behaviour; ADR-007 Amendment 1 selects Starlette `SessionMiddleware` and links to the owning requirements. |
 | 2 — Design | Done | UC-003 Amendment 3 defines the five view boundaries for application logic. Presentation and navigation stay with the UI owner. ADR-007 sets the account-scoped read boundary; no new domain rule or ADR is needed. |
-| 3 — Develop | In progress | UC-003's backend is implemented and the use case was accepted on 25 October 2026. The login and registration page, logout API and first-employment setup are built; the logout control, views 2 to 4, the home page and the full payslip response remain open. |
-| 4 — Validate | In progress alongside development | UC-002 was re-validated after the account backend merged. The open gap and the partly covered criterion are in the [UC-002 Validation plan](specs/UC-002-Process-the-Monthly-Employment.md). |
+| 3 — Develop | In progress | UC-003's backend is implemented and the use case was accepted on 25 October 2026. The login and registration page, logout API and first-employment setup are built; the logout control, views 2 to 4 and the home page remain open. |
+| 4 — Validate | In progress alongside development | UC-002 was re-validated after the account backend merged. The partly covered criteria (database error text, showing the confirmation message) are in the [UC-002 Validation plan](specs/UC-002-Process-the-Monthly-Employment.md). |
 | 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
 ## Active objective
@@ -60,7 +60,6 @@ yours, hand it to a named teammate rather than moving it to Unassigned.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `payslip-response` | todo | Return the whole payslip directly from `POST /api/v1/monthly-payroll`. Its 201 response has only `monthly_record_id`, `gross_wage` and `net_payout`. Add the employee deductions (`ahv_deduction`, `alv_deduction`, `nbu_deduction`, `tax_deduction`), the employer costs (`employer_ahv`, `employer_alv`, `employer_fak`, `employer_bu`, `admin_charge`, `total_employer_cost`), the holiday balance after the month (`holiday_balance_minutes` of the run snapshot) and a `message` confirming the month was saved, with `PayslipResponse` as the response model instead of `dict`. This closes the confirmation-message gap in the UC-002 Validation plan on the API side; the UI shows it. Why: UC-002 promises a compliant payslip, and the Basel household NAV requires all deductions and the holiday balance. Done when UC-002 has an acceptance line for it and an API test checks every field. Aaron sets the date, before Wed 28 Oct, because `demo-path` waits on it. Ayla reviews. | UC-002 | | |
 | `payslip-pdf` | todo | Decide whether v0.1.0 includes a printable or PDF payslip. If it does, write its spec first, then build it. | UC-002 | `payslip-response` | |
 | `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |

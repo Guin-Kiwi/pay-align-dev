@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from datetime import date, time
 from decimal import Decimal
 
@@ -13,12 +14,18 @@ from src.app.domain.errors import (
     EmploymentNotFoundError,
     InvalidHolidayBalanceError,
     InvalidPayrollInputError,
+    PayrollSnapshotReadError,
 )
 from src.app.domain.hour_categories import HourCategory
 from src.app.domain.work_entry import WorkEntry, calculate_paid_minutes
 from src.app.interfaces.auth import require_account_id, require_csrf_token
+from src.app.interfaces.employment_reads import SavedPayslipResponse
 
 payroll_router = APIRouter()
+PAYROLL_SAVED_CONFIRMATION_UNAVAILABLE_MESSAGE = (
+    "The payroll was saved, but its confirmation could not be loaded. "
+    "Check the saved month before retrying."
+)
 
 
 class WorkEntryRequest(BaseModel):
@@ -39,10 +46,8 @@ class MonthlyPayrollRequest(BaseModel):
     work_entries: list[WorkEntryRequest]
 
 
-class PayslipResponse(BaseModel):
-    monthly_record_id: int
-    gross_wage: Decimal
-    net_payout: Decimal
+class PayslipResponse(SavedPayslipResponse):
+    message: str
 
 
 def get_payroll_service(request: Request) -> PayrollService:
@@ -87,7 +92,7 @@ def _to_work_entry(entry: WorkEntryRequest) -> WorkEntry:
     )
 
 
-@payroll_router.post("/monthly-payroll", response_model=dict, status_code=201)
+@payroll_router.post("/monthly-payroll", response_model=PayslipResponse, status_code=201)
 def process_monthly_payroll(
     payload: MonthlyPayrollRequest,
     _: None = Depends(require_csrf_token),
@@ -116,8 +121,22 @@ def process_monthly_payroll(
         ValueError,
     ) as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
-    return {
-        "monthly_record_id": record.id,
-        "gross_wage": str(payslip.gross_wage),
-        "net_payout": str(payslip.net_payout),
-    }
+    try:
+        snapshot = repository.run_snapshot(record.id)
+    except PayrollSnapshotReadError as error:
+        raise HTTPException(
+            status_code=500,
+            detail=PAYROLL_SAVED_CONFIRMATION_UNAVAILABLE_MESSAGE,
+        ) from error
+    if snapshot is None:
+        raise HTTPException(
+            status_code=500,
+            detail=PAYROLL_SAVED_CONFIRMATION_UNAVAILABLE_MESSAGE,
+        )
+    values = asdict(payslip)
+    values.pop("id")
+    return PayslipResponse(
+        **values,
+        holiday_balance_minutes=snapshot.holiday_balance_minutes,
+        message="Payroll processed successfully.",
+    )
