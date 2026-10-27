@@ -53,6 +53,7 @@ def test_payslip_page_exposes_read_only_detail_and_assets():
         assert '@media print' in client.get('/setup-assets/payslip.css').text
         assert '.no-print { display: none !important; }' in client.get('/setup-assets/payslip.css').text
         assert re.search(r'<p id="save-confirmation"[^>]*\bhidden\b', response.text)
+        assert '<button id="open-employer-setup" type="button">' in response.text
         assert client.get('/setup-assets/payslip.js').status_code == 200
         assert client.get('/setup-assets/payslip.css').status_code == 200
 

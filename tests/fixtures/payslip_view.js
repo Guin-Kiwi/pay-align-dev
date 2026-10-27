@@ -37,6 +37,7 @@ async function scenario(failure) {
   const fetch = async url => {
     requests.push(url);
     if (failure === 'session') return {status: 401, ok: false};
+    if (failure === 'no-employer' && url === '/api/v1/employer') return {status: 404, ok: false, json: async () => ({detail: 'No employer is set up yet.'})};
     if (url === '/api/v1/employer') return {status: 200, ok: true, json: async () => ({name: '<Employer>', ahv_number: '756.9876.5432.17'})};
     if (failure === 'initial-failure' && url === '/api/v1/employments' && employmentListReads++ === 0) return {status: 500, ok: false};
     if (url === '/api/v1/employments') return {status: 200, ok: true, json: async () => [
@@ -68,6 +69,14 @@ async function scenario(failure) {
     for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve));
     assert.equal(el('status').textContent, '');
     assert.equal(el('payslip').hidden, true);
+  } else if (failure === 'no-employer') {
+    assert.match(el('error').textContent, /account details/);
+    assert.doesNotMatch(el('error').textContent, /could not be found/);
+    assert.equal(el('employer-setup-link').hidden, false);
+    assert.equal(el('retry').hidden, true);
+    assert.equal(el('payslip').hidden, true);
+    el('open-employer-setup').handlers.click();
+    assert.deepEqual(assigned, ['/employer-setup']);
   } else if (failure === 'initial-failure') {
     assert.equal(el('employment').options.length, 1);
     assert.equal(el('employment').options[0].textContent, 'Select an employee');
@@ -125,4 +134,4 @@ async function scenario(failure) {
   }
 }
 
-(async () => { await scenario(); await scenario('finished'); await scenario('detail'); await scenario('session'); await scenario('superseded'); await scenario('initial-failure'); })().catch(error => { console.error(error); process.exitCode = 1; });
+(async () => { await scenario(); await scenario('finished'); await scenario('detail'); await scenario('session'); await scenario('superseded'); await scenario('initial-failure'); await scenario('no-employer'); })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -14,6 +14,7 @@ function showError(message, retry = null) {
   element("retry").hidden = !retry;
   if (retry) retryAction = retry;
   element("login-link").hidden = true;
+  element("employer-setup-link").hidden = true;
 }
 
 async function readJSON(url) {
@@ -26,6 +27,11 @@ async function readJSON(url) {
 
 function failure(error, retry = null) {
   element("status").textContent = "";
+  if (error.message === "no-employer") {
+    showError("Enter your account details before viewing payslips.");
+    element("employer-setup-link").hidden = false;
+    return;
+  }
   if (error.message === "session") {
     showError("Your session has expired. Please sign in again.");
     element("login-link").hidden = false;
@@ -175,7 +181,10 @@ async function initialise() {
   showError("");
   resetSelects("Loading employees…");
   try {
-    const [employer, list] = await Promise.all([readJSON("/api/v1/employer"), readJSON("/api/v1/employments")]);
+    const [employer, list] = await Promise.all([
+      readJSON("/api/v1/employer").catch(error => { throw error.message === "not-found" ? new Error("no-employer") : error; }),
+      readJSON("/api/v1/employments")
+    ]);
     employerName = employer.name;
     employments = list;
     employment.replaceChildren(option("", list.length ? "Select an employee" : "No employments found"));
@@ -229,4 +238,5 @@ month.addEventListener("change", loadDetail);
 element("retry").addEventListener("click", () => retryAction());
 element("print").addEventListener("click", () => window.print());
 element("sign-in").addEventListener("click", () => window.location.assign("/login"));
+element("open-employer-setup").addEventListener("click", () => window.location.assign("/employer-setup"));
 initialise();
