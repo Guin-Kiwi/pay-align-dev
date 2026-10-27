@@ -155,7 +155,8 @@ The `/login` page is view 0 of [UC-003 Amendment 3](specs/UC-003-Employer-Accoun
 The authenticated `/payslips` page lets the employer select an employment and
 completed month, read the saved payroll detail, and use the browser's print or
 save-as-PDF dialog. It uses the existing employer, employment, month-history and
-saved-month reads. A direct link can preselect a saved month using
+saved-month reads, including the employee AHV number from the account-scoped
+employment detail. A direct link can preselect a saved month using
 `/payslips?employment_id=ID&year=YYYY&month=M`; the server still checks ownership.
 The setup page links to it. The month-entry view and its success-message handoff
 are not yet built.

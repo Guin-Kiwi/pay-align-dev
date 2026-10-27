@@ -15,6 +15,7 @@ button { background: #116257; color: white; border: 0; border-radius: .35rem; cu
 .parties { display: grid; grid-template-columns: repeat(2, minmax(7rem, 1fr)); gap: 2rem; }
 .parties span { color: #657781; font-size: .78rem; display: block; margin-bottom: .35rem; }
 .parties strong { overflow-wrap: anywhere; }
+.parties .ahv-label { margin-top: .7rem; }
 .due-note, .section-note { font-size: .83rem; line-height: 1.5; }
 .slip-section { margin-top: 1.75rem; padding-top: 1.2rem; border-top: 1px solid #dbe4e5; }
 .section-heading { display: flex; align-items: baseline; gap: .8rem; }

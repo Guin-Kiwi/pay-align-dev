@@ -194,7 +194,7 @@ claim that this screen satisfies every requirement for a salary statement.
 
 - For a completed month, the employer can open a read-only payslip. After a
   successful new run, the employer sees the confirmation and the same payslip
-  detail. Identify the employer, employee and payroll month. The displayed
+  detail. Identify the employer, employee, employee AHV number and payroll month. The displayed
   period is the payroll period, not a claim about when payment occurred.
 - Organise the detail so an employer can follow the calculation:
   1. **Hours and earnings:** saved hourly rate, minutes in each of the four
@@ -232,9 +232,9 @@ use case or recalculating payroll in the browser. The existing employment read
 port and adapter already join the monthly record, saved payslip and run snapshot:
 expose the record's bonus and reimbursements and the snapshot's hourly rate and
 four minute totals alongside the existing payslip and balance. The selected
-employment overview supplies the employee name, the account-scoped employer
+employment detail supplies the employee name and AHV number, the account-scoped employer
 read supplies the employer name, and the selected period supplies the year and
-month. These are current names, not historical name snapshots. No schema change
+month. These are current identity details, not historical snapshots. No schema change
 is needed for these stored inputs.
 
 The interface renders the same saved-month detail after creation and when

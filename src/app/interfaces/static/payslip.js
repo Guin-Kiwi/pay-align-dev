@@ -61,7 +61,7 @@ function periodName(year, number) {
   return new Intl.DateTimeFormat("en-CH", {month: "long", year: "numeric", timeZone: "UTC"}).format(new Date(Date.UTC(year, number - 1, 1)));
 }
 
-function render(detail, employeeName, year, number) {
+function render(detail, employee, year, number) {
   const amounts = {
     "hourly-wage": detail.hourly_wage, bonus: detail.cash_bonus, gross: detail.gross_wage,
     ahv: detail.ahv_deduction, alv: detail.alv_deduction, tax: detail.tax_deduction,
@@ -79,7 +79,8 @@ function render(detail, employeeName, year, number) {
   Object.assign(formatted, Object.fromEntries(Object.entries(durations).map(([id, value]) => [id, duration(value)])));
   Object.entries(formatted).forEach(([id, value]) => { el(id).textContent = value; });
   el("employer-name").textContent = employerName;
-  el("employee-name").textContent = employeeName;
+  el("employee-name").textContent = employee.employee_name;
+  el("employee-ahv-number").textContent = employee.employee_ahv_number;
   el("period").textContent = periodName(year, number);
   el("payslip").hidden = false;
   el("print").hidden = false;
@@ -96,9 +97,12 @@ async function loadDetail() {
   if (!selected || !Number.isInteger(year) || number < 1 || number > 12) return;
   el("status").textContent = "Loading payslip…";
   try {
-    const detail = await readJSON(`/api/v1/employments/${selected.id}/months/${year}/${number}`);
+    const [detail, employee] = await Promise.all([
+      readJSON(`/api/v1/employments/${selected.id}/months/${year}/${number}`),
+      readJSON(`/api/v1/employments/${selected.id}`)
+    ]);
     if (version !== requestVersion) return;
-    render(detail, selected.employee_name, year, number);
+    render(detail, employee, year, number);
     el("status").textContent = "";
   } catch (error) {
     if (version === requestVersion) failure(error, true);

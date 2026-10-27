@@ -18,6 +18,10 @@ class EmploymentOverviewResponse(BaseModel):
     end_date: date | None
 
 
+class EmploymentDetailResponse(EmploymentOverviewResponse):
+    employee_ahv_number: str
+
+
 class CompletedMonthResponse(BaseModel):
     monthly_record_id: int
     year: int
@@ -73,7 +77,7 @@ def list_employments(
 
 
 @employment_reads_router.get(
-    "/employments/{employment_id}", response_model=EmploymentOverviewResponse
+    "/employments/{employment_id}", response_model=EmploymentDetailResponse
 )
 def get_employment(
     employment_id: int,

@@ -10,6 +10,7 @@ from src.app.domain.payslip import Payslip
 class EmploymentOverview:
     id: int
     employee_name: str
+    employee_ahv_number: str
     start_date: date
     end_date: date | None
 

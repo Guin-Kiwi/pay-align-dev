@@ -26,7 +26,7 @@ class SqlAlchemyEmploymentReadRepository(EmploymentReadRepository):
 
     def _employment_query(self, account_id: int):
         return (
-            select(EmploymentRow, EmployeeRow.name)
+            select(EmploymentRow, EmployeeRow.name, EmployeeRow.ahv_number)
             .join(EmployerRow, EmployerRow.id == EmploymentRow.employer_id)
             .join(EmployeeRow, EmployeeRow.id == EmploymentRow.employee_id)
             .where(EmployerRow.account_id == account_id)
@@ -34,10 +34,11 @@ class SqlAlchemyEmploymentReadRepository(EmploymentReadRepository):
 
     @staticmethod
     def _overview(row) -> EmploymentOverview:
-        employment, employee_name = row
+        employment, employee_name, employee_ahv_number = row
         return EmploymentOverview(
             id=employment.id,
             employee_name=employee_name,
+            employee_ahv_number=employee_ahv_number,
             start_date=employment.start_date,
             end_date=employment.end_date,
         )
