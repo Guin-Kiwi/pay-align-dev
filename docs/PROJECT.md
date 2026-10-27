@@ -159,7 +159,7 @@ hosts the employment and month-entry workspace, which does not render payslips; 
 shows per-employment tasks. The Timesheets and Employees pages remain available
 from the shared navigation. [UC-004](specs/UC-004-UI-AND-USER-FLOW.md) owns the
 browser journey and presentation; the navigation decisions are in
-[proposed UC-003 Amendment 6](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-6--2026-10-27-minimum-browser-navigation)
+[UC-003 Amendment 6](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-6--2026-10-27-minimum-browser-navigation)
 and [Amendment 11](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-11--2026-10-27-welcome-page-employer-setup-and-payslip-handoff). The pages use shared JavaScript helpers and
 rules supplied by `constants.py`; the employment workspace retains its own scoped
 handlers so its form controls do not conflict with Home.

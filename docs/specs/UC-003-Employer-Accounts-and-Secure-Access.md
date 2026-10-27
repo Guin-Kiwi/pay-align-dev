@@ -181,7 +181,7 @@ foreign saves without partial changes.
 
 ## Amendment 6 — 2026-10-27: Minimum browser navigation
 
-Status: **Proposed — requires human review and is not yet accepted.**
+Approval: Proposed by Assvinth; accepted by a non-author reviewer's approval of the pull request that records this approval.
 
 The authenticated employment list is the browser home after setup. The login
 page sends an account without an employer profile to `/setup` and an account
@@ -353,7 +353,7 @@ uses the print-hiding class; the print layout still needs a real-browser check.
 
 ## Amendment 9 — 2026-10-27: Employer profile operations
 
-Status: Proposed; human review pending.
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
 
 The owning account can create and update its employer profile independently of an employment. Authentication, CSRF and the one-employer-per-account boundary continue to apply. Combined setup remains available to existing API clients. Reopened payslips use current employer identity as described in [Amendment 7](#amendment-7--2026-10-26-payslip-view-design).
 
@@ -367,7 +367,7 @@ The employee overview, details and stored-value decisions were approved by Guin-
 
 ## Amendment 11 — 2026-10-27: Welcome page, employer setup and payslip handoff
 
-Status: **Proposed — requires human review and is not yet accepted.**
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
 
 This amendment changes the browser navigation of [Amendment 6](#amendment-6--2026-10-27-minimum-browser-navigation). The journey and presentation are owned by [UC-004](UC-004-UI-AND-USER-FLOW.md); no payroll rule, endpoint or stored data changes.
 

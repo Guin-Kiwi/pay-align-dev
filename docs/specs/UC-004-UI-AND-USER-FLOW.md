@@ -1,6 +1,8 @@
 # UC-004: UI and User Flow
 
-Status: **Draft.** The Employees design, saved-months presentation and final Home layout were approved by Guin-Kiwi on 2026-10-27 and checked against code and tests that day. The revised Home layout and other proposed decisions still require human review. This document describes the intended browser journey; implementation is in progress.
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
+
+The Employees design, saved-months presentation and final Home layout were approved by Guin-Kiwi on 2026-10-27 and checked against code and tests that day. This document describes the intended browser journey; implementation is in progress.
 Payroll and employment rules remain owned by [UC-002](UC-002-Process-the-Monthly-Employment.md) and [UC-001](UC-001-Set-Up-an-Employment.md); account and session rules belong to [UC-003](UC-003-Employer-Accounts-and-Secure-Access.md).
 
 ## Goal
@@ -69,7 +71,7 @@ Exercise onboarding and two-account isolation, whole-month entry and recovery, s
 
 ## Open questions / assumptions
 
-The remaining proposed UI and supporting decision amendments require human review. Reopened payslips use current identity details, rather than historical identity snapshots, as described in UC-003.
+Acceptance of the UI and supporting decision amendments follows the approval statement at the top of this document and in the documents that record them. Reopened payslips use current identity details, rather than historical identity snapshots, as described in UC-003.
 
 ## Notes for implementation
 

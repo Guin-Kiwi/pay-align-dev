@@ -38,7 +38,9 @@ Decision: `SetupRepository` keeps `get_employment(employment_id)`, which returns
 
 ## Amendment 2 — 2026-10-27: Separate employer profile operations
 
-Status: Proposed; human review pending. The user requested the separate profile
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
+
+The user requested the separate profile
 flow in UC-004. The account-scoped employer profile can be created and updated
 independently using the setup service and repository; validate the existing
 employer fields and retain the one-employer-per-account constraint. These writes

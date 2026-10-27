@@ -78,7 +78,9 @@ This amendment clarifies document ownership for the accepted session and CSRF de
 
 ## Amendment 2 — 2026-10-27: Separate employer profile onboarding
 
-Status: Proposed; human review pending. As requested for
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
+
+As requested for
 [UC-004](../specs/UC-004-UI-AND-USER-FLOW.md), an account may create and edit
 its own employer profile before adding an employment. This amends the combined
 first-time setup described in Decision items 3 and 7; account ownership, session,
