@@ -45,7 +45,7 @@ def run_flow(scenario):
             {
                 "scenario": scenario,
                 "elements": page.by_id(),
-                "javascript": client.get("/setup-assets/employments.js").text,
+                "javascript": client.get("/setup-assets/common.js").text + "\n" + client.get("/setup-assets/employments.js").text,
             }
         ),
         text=True,
@@ -79,6 +79,7 @@ def test_employments_page_exposes_the_minimum_accessible_workspace():
         if tag == "link" and attrs.get("rel") == "stylesheet"
     ] == ["/setup-assets/setup.css", "/setup-assets/employments.css"]
     assert [attrs for tag, attrs in page.tags if tag == "script"] == [
+        {"src": "/setup-assets/common.js", "defer": None},
         {"src": "/setup-assets/employments.js", "defer": None}
     ]
     for element_id in (

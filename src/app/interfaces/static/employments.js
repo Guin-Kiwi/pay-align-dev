@@ -1,7 +1,5 @@
 "use strict";
 
-const element = id => document.getElementById(id);
-const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 let csrfToken = null;
 let selectedEmployment = null;
@@ -14,7 +12,6 @@ let submitting = false;
 let submissionLocked = false;
 let reviewedPayload = null;
 
-function monthLabel(year, month) { return `${monthNames[month - 1]} ${year}`; }
 function clearMessage() { element("page-error").textContent = ""; element("page-error").hidden = true; }
 function showError(message) { element("page-error").textContent = message; element("page-error").hidden = false; }
 function showEntryError(message) { element("entry-error").textContent = message; element("entry-error").hidden = !message; }
@@ -33,15 +30,6 @@ function responseError(body) {
   if (typeof body?.detail === "string") return body.detail;
   if (Array.isArray(body?.detail)) return body.detail.map(item => item?.msg ?? "Invalid input.").join("\n");
   return "Please check the entered values and try again.";
-}
-
-async function call(url, options = {}, timeoutMs = 10000) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, {...options, signal: controller.signal});
-    return {status: response.status, body: response.status === 204 ? null : await response.json()};
-  } finally { clearTimeout(timeout); }
 }
 
 function updateControls() {
