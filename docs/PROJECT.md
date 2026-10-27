@@ -170,6 +170,7 @@ The current HTTP endpoints are:
 | `GET /health` | Health check. |
 | `GET /login` | Browser page to log in or create an account. |
 | `GET /setup` | Serve the authenticated employment setup page; unauthenticated browsers are redirected to `/login`. |
+| `GET /employer-setup` | Serve the authenticated employer profile form. |
 | `GET /employments` | Serve the authenticated employment, month-entry and saved-payslip workspace; unauthenticated browsers are redirected to `/login`. |
 | `GET /payslips` | Serve the authenticated saved-payslip view; unauthenticated browsers are redirected to `/login`. |
 | `GET /setup-assets/*` | Serve static CSS and JavaScript assets used by the browser pages. |

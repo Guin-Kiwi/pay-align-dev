@@ -22,6 +22,7 @@ def login_page():
 
 
 @ui_router.get('/setup', include_in_schema=False)
+@ui_router.get('/employer-setup', include_in_schema=False)
 @ui_router.get('/payslips', include_in_schema=False)
 def setup_page(request: Request):
     try:
@@ -30,7 +31,7 @@ def setup_page(request: Request):
         if error.status_code != 401:
             raise
         return RedirectResponse('/login', status_code=303)
-    page = 'payslip.html' if request.url.path == '/payslips' else 'setup.html'
+    page = {'/payslips': 'payslip.html', '/employer-setup': 'employer-setup.html'}.get(request.url.path, 'setup.html')
     return FileResponse(ASSETS / page, media_type='text/html')
 
 

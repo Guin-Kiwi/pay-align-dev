@@ -332,3 +332,20 @@ def test_ui_setup_payload_persists_across_app_restarts(monkeypatch, tmp_path):
             assert employment.hourly_wage_cents == 2850
             assert employment.weekly_minutes == 390
             assert employment.holiday_weeks == 5
+
+
+def test_employer_profile_page_requires_login_and_has_profile_form():
+    assert TestClient(create_app()).get('/employer-setup', follow_redirects=False).status_code == 303
+    page = AuthenticatedTestClient(create_app()).get('/employer-setup')
+    assert page.status_code == 200
+    assert '<h1>Your account details</h1>' in page.text
+    assert '/setup-assets/employer-setup.js' in page.text
+
+
+def test_employer_profile_form_creates_and_updates_with_csrf():
+    import subprocess
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    subprocess.run(['node', str(root / 'tests/fixtures/employer_setup.js'),
+                    str(root / 'src/app/interfaces/static/common.js'),
+                    str(root / 'src/app/interfaces/static/employer-setup.js')], check=True, timeout=10)
