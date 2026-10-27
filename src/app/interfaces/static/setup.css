@@ -8,6 +8,8 @@ label { display: block; margin-top: 1rem; font-weight: 600; }
 input, select { box-sizing: border-box; width: 100%; padding: .7rem; margin-top: .3rem; font: inherit; border: 1px solid #637783; border-radius: .25rem; }
 fieldset { margin: 1rem 0; border: 1px solid #c7d1d8; }
 button { padding: .8rem 1.2rem; font: inherit; }
+.primary-action { display: inline-block; padding: .8rem 1.2rem; border-radius: .25rem; background: #116257; color: white; font-weight: 700; text-decoration: none; }
+.primary-action:hover { background: #0b4d45; }
 input:disabled, select:disabled, button:disabled { background: #e5e9ed; color: #4b5963; cursor: not-allowed; }
 :focus-visible { outline: 3px solid #116257; outline-offset: 3px; }
 [role="alert"] { color: #912323; }
