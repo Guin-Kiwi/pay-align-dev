@@ -43,6 +43,32 @@ PAYROLL = {
 }
 
 
+def test_monthly_overview_includes_only_owned_saved_payroll_and_flags_missing(monkeypatch, tmp_path):
+    monkeypatch.setenv('DATABASE_URL', f"sqlite:///{tmp_path / 'overview.db'}")
+    app = create_app()
+    from tests.integration.authenticated_client import AuthenticatedTestClient
+    owner = AuthenticatedTestClient(app, email='overview-owner@example.ch')
+    other = AuthenticatedTestClient(app, email='overview-other@example.ch')
+    assert owner.post('/api/v1/setup', json=SETUP).status_code == 201
+    assert owner.post('/api/v1/setup', json={**SETUP, 'employer': None, 'employee': {**SETUP['employee'], 'ahv_number': '756.1111.2222.33'}}).status_code == 201
+    assert other.post('/api/v1/setup', json=SETUP).status_code == 201
+    assert owner.post('/api/v1/monthly-payroll', json={**PAYROLL, 'cash_bonus': '50.00', 'expense_reimbursements': '12.40'}).status_code == 201
+    response = owner.get('/api/v1/payroll-overview?year=2026&month=1')
+    assert response.status_code == 200
+    result = response.json()
+    assert result['eligible_count'] == 2
+    assert result['saved_count'] == 1
+    assert len(result['employments']) == 2
+    assert sum(item['payslip'] is None for item in result['employments']) == 1
+    saved = next(item['payslip'] for item in result['employments'] if item['payslip'] is not None)
+    assert Decimal(result['payout_due']) == Decimal(saved['net_payout'])
+    assert Decimal(result['employer_cost']) == Decimal(saved['total_employer_cost'])
+    assert Decimal(result['estimated_set_aside']) == Decimal(saved['total_employer_cost']) - Decimal(saved['net_payout'])
+    assert other.get('/api/v1/payroll-overview?year=2026&month=1').json()['saved_count'] == 0
+    assert owner.get('/api/v1/payroll-overview?year=2026&month=13').status_code == 422
+    assert TestClient(app).get('/api/v1/payroll-overview?year=2026&month=1').status_code == 401
+
+
 def _csrf(client: TestClient) -> str:
     response = client.get("/api/v1/auth/csrf")
     assert response.status_code == 200

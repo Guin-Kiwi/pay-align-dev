@@ -2,10 +2,11 @@ from dataclasses import asdict
 from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from src.app.application.employment_read_service import EmploymentReadService
+from src.app.domain.constants import RULES_YEAR
 from src.app.interfaces.auth import require_account_id
 
 employment_reads_router = APIRouter()
@@ -62,8 +63,44 @@ class SavedPayslipResponse(BaseModel):
     public_holiday_taken_minutes: int
 
 
+class OverviewEmploymentResponse(BaseModel):
+    employment: EmploymentOverviewResponse
+    next_month: YearMonthResponse | None
+    payslip: SavedPayslipResponse | None
+
+
+class PayrollOverviewResponse(BaseModel):
+    employments: list[OverviewEmploymentResponse]
+    eligible_count: int
+    saved_count: int
+    payout_due: Decimal
+    estimated_set_aside: Decimal
+    employer_cost: Decimal
+
+
 def get_employment_read_service(request: Request) -> EmploymentReadService:
     return request.app.state.employment_read_service
+
+
+@employment_reads_router.get('/payroll-overview', response_model=PayrollOverviewResponse)
+def payroll_overview(
+    year: int = Query(ge=RULES_YEAR, le=RULES_YEAR),
+    month: int = Query(ge=1, le=12),
+    account_id: int = Depends(require_account_id),
+    service: EmploymentReadService = Depends(get_employment_read_service),
+):
+    overview = service.payroll_overview(account_id, year, month)
+    items = []
+    for item in overview.employments:
+        saved = None
+        if item.payslip is not None:
+            values = asdict(item.payslip.payslip)
+            values.pop('id')
+            details = asdict(item.payslip)
+            details.pop('payslip')
+            saved = SavedPayslipResponse(**values, **details)
+        items.append(OverviewEmploymentResponse(employment=asdict(item.employment), next_month=asdict(item.next_month) if item.next_month else None, payslip=saved))
+    return PayrollOverviewResponse(employments=items, eligible_count=overview.eligible_count, saved_count=overview.saved_count, payout_due=overview.payout_due, estimated_set_aside=overview.estimated_set_aside, employer_cost=overview.employer_cost)
 
 
 @employment_reads_router.get(
