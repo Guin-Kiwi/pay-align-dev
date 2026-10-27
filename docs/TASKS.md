@@ -12,8 +12,8 @@ STATUS: in-progress
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 Amendment 2 specifies session and CSRF behaviour; ADR-007 Amendment 1 selects Starlette `SessionMiddleware` and links to the owning requirements. |
 | 2 — Design | Done | UC-003 Amendment 3 defines the five view boundaries for application logic. Presentation and navigation stay with the UI owner. ADR-007 sets the account-scoped read boundary; no new domain rule or ADR is needed. |
-| 3 — Develop | In progress | UC-003's backend is implemented and the use case was accepted on 25 October 2026. The login and registration page, logout API and first-employment setup are built; the logout control, views 2 to 4, the home page and the full payslip response remain open. |
-| 4 — Validate | In progress alongside development | UC-002 was re-validated after the account backend merged. The open gap and the partly covered criterion are in the [UC-002 Validation plan](specs/UC-002-Process-the-Monthly-Employment.md). |
+| 3 — Develop | In progress | UC-003's backend is implemented and the use case was accepted on 25 October 2026. The login and registration page, logout API and first-employment setup are built; the logout control, views 2 to 4 and the home page remain open. |
+| 4 — Validate | In progress alongside development | UC-002 was re-validated after the account backend merged. The partly covered criteria (database error text, showing the confirmation message) are in the [UC-002 Validation plan](specs/UC-002-Process-the-Monthly-Employment.md). |
 | 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
 ## Active objective
