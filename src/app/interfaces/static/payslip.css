@@ -3,7 +3,7 @@ main { max-width: 90rem; padding: 2.5rem; }
 .page-header a { color: #116257; }
 .eyebrow { color: #52736e; font-size: .7rem; font-weight: 750; letter-spacing: .12em; margin: 0 0 .45rem; }
 h1 { font-size: clamp(2rem, 5vw, 2.8rem); margin: .2rem 0 .5rem; letter-spacing: -.035em; }
-.intro, .section-note, .due-note { color: #526674; }
+.intro, .section-note { color: #526674; }
 .selectors { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0 .5rem; }
 .selectors label { margin-top: 0; font-size: .85rem; }
 button { background: #116257; color: white; border: 0; border-radius: .35rem; cursor: pointer; font-weight: 650; }
@@ -19,7 +19,7 @@ button { background: #116257; color: white; border: 0; border-radius: .35rem; cu
 .parties span { color: #657781; font-size: .78rem; display: block; margin-bottom: .35rem; }
 .parties strong { overflow-wrap: anywhere; }
 .parties .ahv-label { margin-top: .7rem; }
-.due-note, .section-note { font-size: .83rem; line-height: 1.5; }
+.section-note { font-size: .83rem; line-height: 1.5; }
 .slip-section { margin-top: 1.75rem; padding-top: 1.2rem; border-top: 1px solid #dbe4e5; }
 .section-heading { display: flex; align-items: baseline; gap: .8rem; }
 .section-heading span { font-size: .75rem; color: #68817c; font-weight: 700; }
