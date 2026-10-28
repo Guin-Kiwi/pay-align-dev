@@ -51,7 +51,7 @@ element("employer-form").addEventListener("submit", async event => {
     });
     const body = await response.json();
     if (response.status === (editing ? 200 : 201) && Number.isSafeInteger(body?.id) && body.id > 0) {
-      window.location.replace("/employments");
+      window.location.replace("/home");
       return;
     }
     if ([400, 409, 422].includes(response.status)) {

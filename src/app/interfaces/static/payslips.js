@@ -241,5 +241,5 @@ month.addEventListener("change", loadDetail);
 element("retry").addEventListener("click", () => retryAction());
 element("print").addEventListener("click", () => window.print());
 element("sign-in").addEventListener("click", () => window.location.assign("/login"));
-element("open-employer-setup").addEventListener("click", () => window.location.assign("/employer-setup"));
+element("open-employer-setup").addEventListener("click", () => window.location.assign("/account-details"));
 initialise();

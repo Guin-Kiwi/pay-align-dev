@@ -8,7 +8,7 @@ from src.app.infrastructure.web.app import create_app
 from tests.integration.authenticated_client import AuthenticatedTestClient
 from tests.integration.page_scripts import Page, node_binary
 
-FLOW = Path(__file__).resolve().parents[1] / "fixtures" / "workspace_flow.js"
+FLOW = Path(__file__).resolve().parents[1] / "fixtures" / "home_workspace_flow.js"
 
 
 @pytest.mark.parametrize("scenario", [
@@ -18,10 +18,10 @@ FLOW = Path(__file__).resolve().parents[1] / "fixtures" / "workspace_flow.js"
 ])
 def test_home_employment_workspace(scenario):
     client = AuthenticatedTestClient(create_app())
-    page = Page(client.get("/employments").text)
+    page = Page(client.get("/home").text)
     fields = {key.removeprefix("workspace-"): value for key, value in page.by_id().items() if key.startswith("workspace-")}
     assert not {"payslip-section", "payslip-details", "payslip-month"} & set(fields)
-    javascript = "\n".join(client.get(f"/setup-assets/{name}.js").text for name in ("constants", "common", "workspace"))
+    javascript = "\n".join(client.get(f"/setup-assets/{name}.js").text for name in ("constants", "common", "home-workspace"))
     result = subprocess.run(
         [node_binary(), str(FLOW)],
         input=json.dumps({"scenario": scenario, "elements": fields, "javascript": javascript}),

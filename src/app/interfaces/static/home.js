@@ -218,8 +218,8 @@ function defaultOverviewMonth(histories) {
   return today.getFullYear() === RULES_YEAR ? today.getMonth() + 1 : 12;
 }
 
-element("add-employment").addEventListener("click", () => { if (confirmBeforeLeaving()) window.location.assign("/setup"); });
-element("employer-details-button").addEventListener("click", () => { if (confirmBeforeLeaving()) window.location.assign("/employer-setup"); });
+element("add-employment").addEventListener("click", () => { if (confirmBeforeLeaving()) window.location.assign("/employment-setup"); });
+element("employer-details-button").addEventListener("click", () => { if (confirmBeforeLeaving()) window.location.assign("/account-details"); });
 element("overview-month").addEventListener("change", loadOverview);
 element("show-employments").addEventListener("click", () => {
   showAllEmployments = !showAllEmployments;

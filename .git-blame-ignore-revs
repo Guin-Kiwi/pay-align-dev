@@ -1,0 +1,13 @@
+# UI rename cleanup (Issue #55)
+# Ignore mechanical updates to page URLs and asset filenames in git blame.
+# Keep this PR's commits when merging (do not squash), so these hashes remain valid.
+6d56fcda9352b1f7800ad0ca3db9b5fbfc1b9e70
+e6e89aa4b36afae651839481f21c241d3d6d9f07
+b573b64d01188950f4ebf04cb86433b938da9f55
+55dadc5c5f44a60cbf067b9317a7d21d3e5069d0
+d95a594bca5dc1e6382fadec6b8763317310ecd9
+9f3ddddc8288652634a6851ae6a9ca7bfc97a3c5
+728afaab46459885cdfadd1faa428e7d8c1b60e4
+81a41ddf93d157eee001ddec6f3526b10f35124d
+e433f0efe4ff0264909adfc6e0104452a7fea95d
+e3f5564b5cdc96eede9052551ec92632d4a2e1fa

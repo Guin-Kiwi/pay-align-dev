@@ -189,7 +189,7 @@ process.stdin.on('end', async () => {
           assert.equal(elements['save-setup'].disabled, true);
           await submit(); assert.equal(posts.length, 1);
         } else {
-          assert.deepEqual(redirects, ['/employments']);
+          assert.deepEqual(redirects, ['/home']);
           assert.equal(gets, 1);
           assert.equal(elements['save-setup'].disabled, true);
           await submit(); assert.equal(posts.length, 1);

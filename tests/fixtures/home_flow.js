@@ -255,9 +255,9 @@ const scenarios = {
     assert.equal(p.el('add-employment').disabled, false);
     assert.equal(p.el('employer-status').textContent, '');
     await p.click(p.el('add-employment'));
-    assert.equal(p.redirects.at(-1), '/setup');
+    assert.equal(p.redirects.at(-1), '/employment-setup');
     await p.click(p.el('employer-details-button'));
-    assert.equal(p.redirects.at(-1), '/employer-setup');
+    assert.equal(p.redirects.at(-1), '/account-details');
   }},
   'many': {employments: [LEA, LEA_AGAIN, MARCO, NORA], run: async p => {
     assert.equal(p.el('employment-list').children.length, 4);

@@ -22,7 +22,7 @@ def test_common_helpers_build_requests_and_read_the_csrf_token():
 
 def test_static_assets_are_revalidated_on_every_load_so_changes_always_show():
     client = TestClient(create_app())
-    for asset in ("common.js", "timesheets.js", "employments.css", "setup.css"):
+    for asset in ("common.js", "timesheets.js", "overview.css", "base.css"):
         first = client.get(f"/setup-assets/{asset}")
         assert first.status_code == 200, asset
         assert first.headers["cache-control"] == "no-cache", asset

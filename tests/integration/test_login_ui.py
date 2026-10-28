@@ -63,7 +63,7 @@ def test_login_page_is_served_with_the_setup_page_styles():
     assert ('html', {'lang': 'en'}) in page.tags
     assert 'Log in' in response.text
     stylesheets = [attrs['href'] for tag, attrs in page.tags if tag == 'link' and attrs.get('rel') == 'stylesheet']
-    assert [href.split('?')[0] for href in stylesheets] == ['/setup-assets/setup.css', '/setup-assets/login.css']
+    assert [href.split('?')[0] for href in stylesheets] == ['/setup-assets/base.css', '/setup-assets/login.css']
     scripts = [attrs for tag, attrs in page.tags if tag == 'script']
     assert scripts == [{'src': '/setup-assets/constants.js', 'defer': None}, {'src': '/setup-assets/common.js', 'defer': None}, {'src': '/setup-assets/login.js', 'defer': None}]
     assert any(tag == 'noscript' for tag, _ in page.tags)
@@ -251,7 +251,7 @@ def test_sign_up_dialog_is_wide_and_compact_so_that_it_fits_a_laptop_screen():
 
 def test_login_css_only_uses_colours_that_setup_css_already_defines():
     colour = re.compile(r'#[0-9a-fA-F]{3,8}\b')
-    setup_colours = set(colour.findall((STATIC / 'setup.css').read_text()))
+    setup_colours = set(colour.findall((STATIC / 'base.css').read_text()))
     login_colours = set(colour.findall((STATIC / 'login.css').read_text()))
     assert login_colours
     assert login_colours <= setup_colours
@@ -377,7 +377,7 @@ def test_the_pages_employer_check_matches_the_real_api_for_an_account_with_an_em
     employer = responses[3].json()
     assert isinstance(employer['id'], int) and employer['id'] > 0
     assert employer['name'] == 'Anna Muster'
-    assert run_flow('login-with-employer')['assigned'] == ['/employments']
+    assert run_flow('login-with-employer')['assigned'] == ['/home']
 
 
 def test_an_employer_that_belongs_to_another_account_does_not_count_for_the_page():

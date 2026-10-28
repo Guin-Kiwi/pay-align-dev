@@ -12,7 +12,7 @@ from tests.integration.authenticated_client import AuthenticatedTestClient
 from tests.integration.page_scripts import Page, node_binary, page_javascript
 
 
-FLOW = Path(__file__).resolve().parents[1] / "fixtures" / "employments_flow.js"
+FLOW = Path(__file__).resolve().parents[1] / "fixtures" / "home_flow.js"
 
 
 def test_public_holidays_are_the_configured_dates_and_require_login():
@@ -25,14 +25,14 @@ def test_public_holidays_are_the_configured_dates_and_require_login():
 
 
 def test_home_offers_account_details_and_add_employment_buttons():
-    page = AuthenticatedTestClient(create_app()).get("/employments").text
+    page = AuthenticatedTestClient(create_app()).get("/home").text
     assert '<h2 id="household-heading">Household overview</h2>' in page
     assert '<button id="employer-details-button" type="button">Account details</button>' in page
     assert '<button id="add-employment" type="button" disabled>Add employment</button>' in page
 
 
 def test_home_combines_household_costs_workspace_and_tasks():
-    page = AuthenticatedTestClient(create_app()).get("/employments").text
+    page = AuthenticatedTestClient(create_app()).get("/home").text
     assert page.index('id="overview-month"') < page.index('class="household-strip"')
     assert page.index('id="household-rows"') < page.index('id="overview-heading"') < page.index('class="overview-grid"')
     assert page.index('id="workspace-employment-list-heading"') < page.index('id="employment-list-heading"')
@@ -46,7 +46,7 @@ def test_home_combines_household_costs_workspace_and_tasks():
 
 def run_flow(scenario):
     client = AuthenticatedTestClient(create_app())
-    page = Page(client.get("/employments").text)
+    page = Page(client.get("/home").text)
     result = subprocess.run(
         [node_binary(), str(FLOW)],
         input=json.dumps(
@@ -54,7 +54,7 @@ def run_flow(scenario):
                 "scenario": scenario,
                 "year": RULES_YEAR,
                 "elements": page.by_id(),
-                "javascript": page_javascript(client, "employments", rules=True),
+                "javascript": page_javascript(client, "home", rules=True),
             }
         ),
         text=True,
@@ -71,14 +71,14 @@ def test_root_opens_the_welcome_page():
     assert 'href="/login#signup"' in response.text
 
 
-def test_employments_page_requires_an_authenticated_session():
-    response = TestClient(create_app()).get("/employments", follow_redirects=False)
+def test_home_page_requires_an_authenticated_session():
+    response = TestClient(create_app()).get("/home", follow_redirects=False)
     assert response.status_code == 303
     assert response.headers["location"] == "/login"
 
 
-def test_employments_page_exposes_the_minimum_accessible_workspace():
-    response = AuthenticatedTestClient(create_app()).get("/employments")
+def test_home_page_exposes_the_minimum_accessible_workspace():
+    response = AuthenticatedTestClient(create_app()).get("/home")
     assert response.status_code == 200
     page = Page(response.text)
     fields = page.by_id()
@@ -87,15 +87,15 @@ def test_employments_page_exposes_the_minimum_accessible_workspace():
         attrs["href"]
         for tag, attrs in page.tags
         if tag == "link" and attrs.get("rel") == "stylesheet"
-    ] == ["/setup-assets/setup.css?v=20261027-back", "/setup-assets/employments.css"]
+    ] == ["/setup-assets/base.css?v=20261027-back", "/setup-assets/overview.css"]
     assert [attrs for tag, attrs in page.tags if tag == "script"] == [
         {"src": "/setup-assets/navigation.js", "defer": None},
         {"src": "/setup-assets/constants.js", "defer": None},
         {"src": "/setup-assets/common.js", "defer": None},
-        {"src": "/setup-assets/employments.js", "defer": None},
-        {"src": "/setup-assets/workspace.js", "defer": None},
+        {"src": "/setup-assets/home.js", "defer": None},
+        {"src": "/setup-assets/home-workspace.js", "defer": None},
     ]
-    assert 'data-current-route="/employments"' in response.text
+    assert 'data-current-route="/home"' in response.text
     for element_id in (
         "logout-button", "employment-list", "employment-empty", "show-employments", "overview-month",
         "overview-completeness", "overview-payout", "overview-reserve", "overview-cost", "workspace-payroll-form",
@@ -120,7 +120,7 @@ def test_employments_page_exposes_the_minimum_accessible_workspace():
 
 @pytest.mark.parametrize(
     "asset, content_type",
-    [("employments.css", "text/css"), ("employments.js", "javascript")],
+    [("overview.css", "text/css"), ("home.js", "javascript")],
 )
 def test_employment_assets_are_available(asset, content_type):
     response = TestClient(create_app()).get(f"/setup-assets/{asset}")
@@ -143,7 +143,7 @@ def test_employment_workspace_javascript(scenario):
 
 
 def test_employee_boxes_share_one_compact_row_style_with_right_aligned_buttons():
-    css = TestClient(create_app()).get("/setup-assets/employments.css").text
+    css = TestClient(create_app()).get("/setup-assets/overview.css").text
     for rule in (".employee-card .subheading", ".card-rows", ".card-rows th", ".card-rows tr:nth-child(even)", ".card-rows .action"):
         assert rule in css, rule
     for rule in (".household-strip", ".limit-bar", ".employee-card.pending", ".employee-card .tasks.pending", ".employee-card .tasks.done"):

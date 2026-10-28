@@ -197,14 +197,14 @@ async function run({scenario, elements: attributes, javascript, credentials, sig
     browser.releasePost();
     await pending;
     await settle();
-    inspect({requests: AUTH(action), redirects: ['/employments']});
+    inspect({requests: AUTH(action), redirects: ['/home']});
   }
 
   function inspectAuth({action, result, message, extra, requests}) {
     const form = formName(action);
     inspect({requests: requests ?? (result === 'success' || result === 'lookup' ? AUTH(action) : POST(action))});
     if (result === 'success') {
-      inspect({redirects: [scenario.includes('with-employer') ? '/employments' : '/employments'], disabled: {[`${form}-submit`]: true}, hidden: {[`${form}-error`]: true}});
+      inspect({redirects: ['/home'], disabled: {[`${form}-submit`]: true}, hidden: {[`${form}-error`]: true}});
       assert.deepEqual(calls[2].headers, {
         'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': 'csrf-token-1'
       });
@@ -250,7 +250,7 @@ async function run({scenario, elements: attributes, javascript, credentials, sig
     if (scenario.includes('lookup-')) inspect({redirects: [], hidden: {'account-error': false},
       matches: {'account-error': [/reload/i, /could not load your details/]},
       excludes: {'account-error': /employer/i}});
-    else inspect({redirects: [scenario.includes('with-employer') ? '/employments' : '/employments']});
+    else inspect({redirects: ['/home']});
   } else if (scenario === 'loading') {
     inspect({disabled: locked, matches: {'account-status': /Checking/}});
     fill(loginValues);

@@ -143,14 +143,14 @@ def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
             },
         )
         assert registration.status_code == 201, registration.text
-        assert app.get("/setup", follow_redirects=False).status_code == 303
+        assert app.get("/employment-setup", follow_redirects=False).status_code == 303
         employer = app.post("/api/v1/employer", headers=_csrf_header(app), json=SETUP["employer"])
         assert employer.status_code == 201, employer.text
-        assert "Set up employment" in app.get("/setup").text
+        assert "Set up employment" in app.get("/employment-setup").text
         setup = app.post("/api/v1/setup", headers=_csrf_header(app), json={"employee": SETUP["employee"], "employment": SETUP["employment"]})
         assert setup.status_code == 201, setup.text
         employment_id = setup.json()["employment_id"]
-        assert "Your employments" in app.get("/employments").text
+        assert "Your employments" in app.get("/home").text
         employments = app.get("/api/v1/employments")
         assert employments.status_code == 200
         assert [employment["id"] for employment in employments.json()] == [employment_id]
@@ -180,7 +180,7 @@ def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
 
         logout = app.post("/api/v1/auth/logout", headers=_csrf_header(app))
         assert logout.status_code == 204
-        protected = app.get("/employments", follow_redirects=False)
+        protected = app.get("/home", follow_redirects=False)
         assert protected.status_code == 303
         assert protected.headers["location"] == "/login"
 
@@ -191,7 +191,7 @@ def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
             json={"email": "demo@example.ch", "password": "A-long-test-password-123!"},
         )
         assert login.status_code == 200, login.text
-        assert "Your employments" in app.get("/employments").text
+        assert "Your employments" in app.get("/home").text
         february = app.post(
             "/api/v1/monthly-payroll",
             headers=_csrf_header(app),
