@@ -111,7 +111,7 @@ def update_employer(
     return EmployerResponse(**asdict(employer))
 
 
-@setup_router.post("/employment-setup", response_model=SetupResponse, status_code=201)
+@setup_router.post("/setup", response_model=SetupResponse, status_code=201)
 def set_up_employment(
     payload: SetupRequest,
     _: None = Depends(require_csrf_token),
