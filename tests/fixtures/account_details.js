@@ -36,7 +36,7 @@ async function run(scenario) {
   assert.equal(posts[0].method, scenario === 'existing' ? 'PUT' : 'POST');
   assert.equal(posts[0].headers['X-CSRF-Token'], 'token');
   assert.deepEqual(posts[0].body, {name: 'Anna', address: 'Basel', ahv_number: '756.1234.5678.97', contact_info: 'anna@example.ch'});
-  if (scenario === 'success' || scenario === 'existing') assert.deepEqual(redirects, ['/employments']);
+  if (scenario === 'success' || scenario === 'existing') assert.deepEqual(redirects, ['/home']);
   if (scenario === 'invalid') { assert.match(el('error').textContent, /invalid/); assert.equal(el('save').disabled, false); }
   if (scenario === 'network') {
     assert.match(el('error').textContent, /could not be confirmed/i);

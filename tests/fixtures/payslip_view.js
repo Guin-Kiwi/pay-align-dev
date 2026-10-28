@@ -104,7 +104,7 @@ async function scenario(failure) {
     assert.equal(el('retry').hidden, true);
     assert.equal(el('payslip').hidden, true);
     el('open-employer-setup').handlers.click();
-    assert.deepEqual(assigned, ['/employer-setup']);
+    assert.deepEqual(assigned, ['/account-details']);
   } else if (failure === 'initial-failure') {
     assert.equal(el('employment').options.length, 1);
     assert.equal(el('employment').options[0].textContent, 'Select an employee');

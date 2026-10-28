@@ -9,7 +9,7 @@ function element(extra = {}) {
 }
 
 function run({historyLength = 1, withBack = true, warning = '', answer = true, logoutStatus = 204}) {
-  const home = element({dataset: {route: '/employments', home: ''}});
+  const home = element({dataset: {route: '/home', home: ''}});
   const employees = element({dataset: {route: '/employees'}});
   const navigation = element({dataset: {currentRoute: '/employees'}, querySelector: selector => (selector === '[data-home]' ? home : null)});
   const back = element();
@@ -49,7 +49,7 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
   const first = run({historyLength: 1});
   first.back.listeners.click();
   assert.equal(first.seen.back, 0);
-  assert.deepEqual(first.seen.assigned, ['/employments']);
+  assert.deepEqual(first.seen.assigned, ['/home']);
 
   const home = run({withBack: false});
   home.employees.listeners.click();
