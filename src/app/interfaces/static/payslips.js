@@ -15,7 +15,7 @@ function showError(message, retry = null) {
   element("retry").hidden = !retry;
   if (retry) retryAction = retry;
   element("login-link").hidden = true;
-  element("employer-setup-link").hidden = true;
+  element("account-details-link").hidden = true;
 }
 
 async function read(url) {
@@ -30,7 +30,7 @@ function failure(error, retry = null) {
   element("status").textContent = "";
   if (error.message === "no-employer") {
     showError("Enter your account details before viewing payslips.");
-    element("employer-setup-link").hidden = false;
+    element("account-details-link").hidden = false;
     return;
   }
   if (error.message === "session") {
@@ -241,5 +241,5 @@ month.addEventListener("change", loadDetail);
 element("retry").addEventListener("click", () => retryAction());
 element("print").addEventListener("click", () => window.print());
 element("sign-in").addEventListener("click", () => window.location.assign("/login"));
-element("open-employer-setup").addEventListener("click", () => window.location.assign("/account-details"));
+element("open-account-details").addEventListener("click", () => window.location.assign("/account-details"));
 initialise();
