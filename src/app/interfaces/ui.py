@@ -83,7 +83,7 @@ SIGNED_IN_PAGES = {
     '/employment-setup': 'employment-setup.html',
     '/employees': 'employees.html',
     '/payslips': 'payslips.html',
-    '/account-details': 'employer-employment-setup.html',
+    '/account-details': 'account-details.html',
 }
 
 
