@@ -100,10 +100,10 @@ async function scenario(failure) {
   } else if (failure === 'no-employer') {
     assert.match(el('error').textContent, /account details/);
     assert.doesNotMatch(el('error').textContent, /could not be found/);
-    assert.equal(el('employer-setup-link').hidden, false);
+    assert.equal(el('account-details-link').hidden, false);
     assert.equal(el('retry').hidden, true);
     assert.equal(el('payslip').hidden, true);
-    el('open-employer-setup').handlers.click();
+    el('open-account-details').handlers.click();
     assert.deepEqual(assigned, ['/account-details']);
   } else if (failure === 'initial-failure') {
     assert.equal(el('employment').options.length, 1);

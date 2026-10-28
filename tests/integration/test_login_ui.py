@@ -55,7 +55,7 @@ def replay(client, calls):
     return responses
 
 
-def test_login_page_is_served_with_the_setup_page_styles():
+def test_login_page_is_served_with_the_base_styles():
     response = TestClient(create_app()).get('/login')
     assert response.status_code == 200
     assert response.headers['content-type'].startswith('text/html')
@@ -249,12 +249,12 @@ def test_sign_up_dialog_is_wide_and_compact_so_that_it_fits_a_laptop_screen():
     assert re.search(r'<div class="actions">(?:(?!</div>).)*id="signup-status"', html, re.S)
 
 
-def test_login_css_only_uses_colours_that_setup_css_already_defines():
+def test_login_css_only_uses_colours_that_base_css_already_defines():
     colour = re.compile(r'#[0-9a-fA-F]{3,8}\b')
-    setup_colours = set(colour.findall((STATIC / 'base.css').read_text()))
+    base_colours = set(colour.findall((STATIC / 'base.css').read_text()))
     login_colours = set(colour.findall((STATIC / 'login.css').read_text()))
     assert login_colours
-    assert login_colours <= setup_colours
+    assert login_colours <= base_colours
 
 
 @pytest.mark.parametrize('scenario', [

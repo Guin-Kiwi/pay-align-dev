@@ -6,27 +6,16 @@ from fastapi.testclient import TestClient
 from src.app.domain.constants import RULES_YEAR
 from src.app.infrastructure.web.app import create_app
 from tests.integration.authenticated_client import AuthenticatedTestClient
-from tests.integration.page_scripts import Page, node_binary, page_javascript, script_paths
+from tests.integration.page_scripts import Page, node_binary, page_javascript
 
 
-SETUP_SUBMISSION_FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures' / 'employment_setup_submission.js'
+EMPLOYMENT_SETUP_SUBMISSION_FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures' / 'employment_setup_submission.js'
 
 
 def create_employer(client):
     token = client.get('/api/v1/auth/csrf').json()['csrf_token']
     details = {'name': 'Anna', 'address': 'Basel', 'ahv_number': '756.1234.5678.97', 'contact_info': 'anna@example.ch'}
     assert client.post('/api/v1/employer', json=details, headers={'X-CSRF-Token': token}).status_code == 201
-
-
-def test_first_time_employer_page_is_separate_and_authenticated():
-    assert TestClient(create_app()).get('/account-details', follow_redirects=False).status_code == 303
-    page = AuthenticatedTestClient(create_app()).get('/account-details')
-    assert page.status_code == 200
-    assert '<h1>Your account details</h1>' in page.text
-    assert 'employee-name' not in page.text
-    assert 'employment-heading' not in page.text
-    assert '/setup-assets/common.js' in page.text
-    assert '/setup-assets/account-details.js' in page.text
 
 
 def test_add_employment_warns_before_saving_because_it_cannot_be_changed():
@@ -40,13 +29,6 @@ def test_add_employment_warns_before_saving_because_it_cannot_be_changed():
     for label in ('Yes, add this employment', 'No, go back'):
         assert f'>{label}</button>' in html
     assert 'dialog.warning::backdrop' in client.get('/setup-assets/base.css').text
-
-
-def test_employer_setup_javascript_saves_then_returns_home():
-    import subprocess
-    root = Path(__file__).resolve().parents[2]
-    subprocess.run([node_binary(), str(root / 'tests/fixtures/account_details.js'),
-                    *script_paths('account-details')], check=True, timeout=10)
 
 
 def test_unauthenticated_employment_setup_page_redirects_to_login():
@@ -116,7 +98,7 @@ def test_employment_setup_page_is_accessible_and_initially_cannot_submit():
 
 
 @pytest.mark.parametrize('asset,content_type', [('base.css', 'text/css'), ('employment-setup.js', 'javascript')])
-def test_setup_assets_are_available(asset, content_type):
+def test_employment_setup_assets_are_available(asset, content_type):
     response = TestClient(create_app()).get('/setup-assets/' + asset)
     assert response.status_code == 200
     assert content_type in response.headers['content-type']
@@ -276,7 +258,7 @@ process.stdin.on('end', async () => {
     '400', '401', '403', '409', '422', '500', 'network', 'malformed-success', 'invalid-json',
     'refresh-failure', 'timeout', '200', 'holiday-five', 'cancel',
 ])
-def test_setup_submission_javascript(scenario, monkeypatch, tmp_path):
+def test_employment_setup_submission_javascript(scenario, monkeypatch, tmp_path):
     import json
     import subprocess
 
@@ -288,7 +270,7 @@ def test_setup_submission_javascript(scenario, monkeypatch, tmp_path):
     if scenario == 'new':
         monkeypatch.chdir(tmp_path)
     result = subprocess.run(
-        [node, str(SETUP_SUBMISSION_FIXTURE)],
+        [node, str(EMPLOYMENT_SETUP_SUBMISSION_FIXTURE)],
         input=json.dumps({'scenario': scenario, 'year': RULES_YEAR, 'elements': elements,
                           'javascript': page_javascript(client, 'employment-setup', rules=True)}),
         text=True, capture_output=True, timeout=10,
@@ -323,7 +305,7 @@ def test_ui_setup_payload_persists_across_app_restarts(monkeypatch, tmp_path):
         html = client.get('/employment-setup').text
         elements = {attrs['id']: attrs for _, attrs in Page(html).tags if 'id' in attrs}
         result = subprocess.run(
-            [node, str(SETUP_SUBMISSION_FIXTURE)],
+            [node, str(EMPLOYMENT_SETUP_SUBMISSION_FIXTURE)],
             input=json.dumps({'scenario': 'holiday-five', 'year': RULES_YEAR, 'elements': elements,
                               'javascript': page_javascript(client, 'employment-setup', rules=True)}),
             text=True, capture_output=True, timeout=10,

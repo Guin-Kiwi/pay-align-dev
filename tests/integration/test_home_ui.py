@@ -122,7 +122,7 @@ def test_home_page_exposes_the_minimum_accessible_workspace():
     "asset, content_type",
     [("overview.css", "text/css"), ("home.js", "javascript")],
 )
-def test_employment_assets_are_available(asset, content_type):
+def test_home_assets_are_available(asset, content_type):
     response = TestClient(create_app()).get(f"/setup-assets/{asset}")
     assert response.status_code == 200
     assert content_type in response.headers["content-type"]
@@ -138,7 +138,7 @@ def test_employment_assets_are_available(asset, content_type):
         "actions-in-the-boxes", "one-action-is-singular", "household-strip", "household-none", "household-unavailable",
     ],
 )
-def test_employment_workspace_javascript(scenario):
+def test_home_javascript(scenario):
     run_flow(scenario)
 
 
