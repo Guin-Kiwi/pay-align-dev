@@ -10,7 +10,7 @@ from src.app.interfaces.auth import require_account_id
 
 ASSETS = Path(__file__).resolve().parent / 'static'
 NAVIGATION_PLACEHOLDER = '<!-- SHARED_NAVIGATION -->'
-HOME_ROUTE = '/employments'
+HOME_ROUTE = '/home'
 BACK_BUTTON = '<button id="back-button" class="back-button" type="button">Back</button>'
 ui_router = APIRouter()
 
@@ -78,21 +78,21 @@ def login_page():
 
 
 SIGNED_IN_PAGES = {
-    '/employments': 'employments.html',
+    '/home': 'home.html',
     '/timesheets': 'timesheets.html',
-    '/setup': 'setup.html',
+    '/employment-setup': 'employment-setup.html',
     '/employees': 'employees.html',
-    '/payslips': 'payslip.html',
-    '/employer-setup': 'employer-setup.html',
+    '/payslips': 'payslips.html',
+    '/account-details': 'employer-employment-setup.html',
 }
 
 
-@ui_router.get('/employments', include_in_schema=False)
+@ui_router.get('/home', include_in_schema=False)
 @ui_router.get('/timesheets', include_in_schema=False)
-@ui_router.get('/setup', include_in_schema=False)
+@ui_router.get('/employment-setup', include_in_schema=False)
 @ui_router.get('/employees', include_in_schema=False)
 @ui_router.get('/payslips', include_in_schema=False)
-@ui_router.get('/employer-setup', include_in_schema=False)
+@ui_router.get('/account-details', include_in_schema=False)
 def signed_in_page(request: Request):
     try:
         account_id = require_account_id(request, request.app.state.account_service)
@@ -101,6 +101,6 @@ def signed_in_page(request: Request):
             raise
         return RedirectResponse('/login', status_code=303)
     route = request.url.path
-    if route == '/setup' and request.app.state.setup_repository.get_employer(account_id) is None:
-        return RedirectResponse('/employments', status_code=303)
+    if route == '/employment-setup' and request.app.state.setup_repository.get_employer(account_id) is None:
+        return RedirectResponse('/home', status_code=303)
     return _page_with_navigation(SIGNED_IN_PAGES[route], route)

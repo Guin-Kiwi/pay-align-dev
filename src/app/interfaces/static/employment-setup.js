@@ -107,7 +107,7 @@ async function loadEmployer() {
       showLoginMessage(element("employer-error"), "Your session has expired. Please log in again to continue.");
     } else if (response.status === 404 && body?.detail === "No employer is set up yet.") {
       employerState = "failed";
-      window.location.replace("/employer-setup");
+      window.location.replace("/account-details");
     } else {
       if (response.status !== 200 || !body || !Number.isSafeInteger(body.id) || body.id <= 0 ||
           !Object.keys(employerFields).every(key => typeof body[key] === "string" && body[key].trim()) ||
@@ -207,7 +207,7 @@ async function saveSetup() {
         throw new Error("response");
       }
       submissionLocked = true;
-      window.location.replace("/employments");
+      window.location.replace("/home");
     } else if ([401, 403].includes(response.status)) {
       showLoginMessage(
         element("setup-error"),
@@ -248,7 +248,7 @@ const warning = wireWarningDialog({
   onConfirm: saveSetup, isBusy: () => submitting
 });
 form.addEventListener("submit", submitSetup);
-element("view-employments").addEventListener("click", () => window.location.assign("/employments"));
+element("view-employments").addEventListener("click", () => window.location.assign("/home"));
 async function initialize() {
   await loadCsrfToken();
   await loadEmployer();
