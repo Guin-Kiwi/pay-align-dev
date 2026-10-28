@@ -114,6 +114,8 @@ At VALIDATE, record the actual test results in the commit message.
 
 ## Amendment 3 — 2026-10-23: Minimum browser views
 
+The browser URL names in this historical amendment are superseded by [Amendment 12](#amendment-12--2026-10-28-browser-page-url-cleanup-issue-55).
+
 The requesting human defined these five view boundaries on 2026-10-23 to identify the logic the application must provide. The UI implementation chooses presentation, navigation details and the data each view needs within the behavior owned by [UC-001](UC-001-Set-Up-an-Employment.md), [UC-002](UC-002-Process-the-Monthly-Employment.md) and this use case. The logic stays available through account-scoped application interfaces rather than being tied to one page layout.
 
 | View | Required capability |
@@ -180,6 +182,8 @@ context. `tests/unit/test_setup_service.py` covers in-memory isolation and rejec
 foreign saves without partial changes.
 
 ## Amendment 6 — 2026-10-27: Minimum browser navigation
+
+The browser URL names in this historical amendment are superseded by [Amendment 12](#amendment-12--2026-10-28-browser-page-url-cleanup-issue-55).
 
 Approval: Proposed by Assvinth; accepted by a non-author reviewer's approval of the pull request that records this approval.
 
@@ -367,6 +371,8 @@ The employee overview, details and stored-value decisions were approved by Guin-
 
 ## Amendment 11 — 2026-10-27: Welcome page, employer setup and payslip handoff
 
+The browser URL names in this historical amendment are superseded by [Amendment 12](#amendment-12--2026-10-28-browser-page-url-cleanup-issue-55).
+
 Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
 
 This amendment changes the browser navigation of [Amendment 6](#amendment-6--2026-10-27-minimum-browser-navigation). The journey and presentation are owned by [UC-004](UC-004-UI-AND-USER-FLOW.md); no payroll rule, endpoint or stored data changes.
@@ -379,7 +385,9 @@ This amendment changes the browser navigation of [Amendment 6](#amendment-6--202
 
 ## Amendment 12 — 2026-10-28: Browser page URL cleanup (Issue #55)
 
-Proposed for team review; effective when the UI rename PR is merged. This amendment supersedes only the **browser page URLs** named in Amendments 3, 6 and 11; the earlier amendments remain as historical records.
+Approval: Proposed by Assvinth; acceptance is recorded by a non-author review approving the change containing this amendment.
+
+This amendment supersedes only the **browser page URLs** named in Amendments 3, 6 and 11; the earlier amendments remain as historical records.
 
 - Home moves from `/employments` to `/home`.
 - Employment setup moves from `/setup` to `/employment-setup`.

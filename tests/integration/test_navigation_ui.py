@@ -1,4 +1,7 @@
 import subprocess
+
+import pytest
+from fastapi.testclient import TestClient
 from html.parser import HTMLParser
 
 from src.app.infrastructure.web.app import create_app
@@ -126,3 +129,12 @@ def test_back_button_is_styled_like_the_other_header_buttons():
     css = AuthenticatedTestClient(create_app()).get("/setup-assets/base.css").text
     assert ".back-button" in css
     assert '.back-button::before { content: "\\2190 "' in css
+
+
+@pytest.mark.parametrize("old_page", ("/employments", "/setup", "/employer-setup"))
+@pytest.mark.parametrize("authenticated", (False, True))
+def test_obsolete_browser_urls_return_404_without_redirects(old_page, authenticated):
+    client_type = AuthenticatedTestClient if authenticated else TestClient
+    with client_type(create_app()) as client:
+        response = client.get(old_page, follow_redirects=False)
+    assert response.status_code == 404

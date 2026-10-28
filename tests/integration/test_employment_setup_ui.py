@@ -49,7 +49,7 @@ def test_employer_setup_javascript_saves_then_returns_home():
                     *script_paths('account-details')], check=True, timeout=10)
 
 
-def test_unauthenticated_setup_page_redirects_to_login():
+def test_unauthenticated_employment_setup_page_redirects_to_login():
     response = TestClient(create_app()).get('/employment-setup', follow_redirects=False)
     assert response.status_code == 303
     assert response.headers['location'] == '/login'
@@ -62,7 +62,7 @@ def test_employment_setup_is_gated_until_the_employer_profile_exists():
     assert response.headers['location'] == '/home'
 
 
-def test_setup_page_is_accessible_and_initially_cannot_submit():
+def test_employment_setup_page_is_accessible_and_initially_cannot_submit():
     client = AuthenticatedTestClient(create_app())
     create_employer(client)
     response = client.get('/employment-setup')

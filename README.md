@@ -136,7 +136,7 @@ The screenshots follow a new employer's first use.
 
 ```mermaid
 flowchart LR
-    Browser["Browser<br/>/login, /employments, /timesheets, /payslips"] --> Interfaces
+    Browser["Browser<br/>/login, /home, /timesheets, /payslips"] --> Interfaces
     subgraph Infrastructure["Infrastructure: FastAPI app, SQLAlchemy, Argon2, sessions"]
         subgraph Interfaces["Interfaces: routes, request/response models, auth, CSRF"]
             subgraph Application["Application: services and ports"]

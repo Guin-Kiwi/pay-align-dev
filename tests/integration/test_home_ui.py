@@ -71,13 +71,13 @@ def test_root_opens_the_welcome_page():
     assert 'href="/login#signup"' in response.text
 
 
-def test_employments_page_requires_an_authenticated_session():
+def test_home_page_requires_an_authenticated_session():
     response = TestClient(create_app()).get("/home", follow_redirects=False)
     assert response.status_code == 303
     assert response.headers["location"] == "/login"
 
 
-def test_employments_page_exposes_the_minimum_accessible_workspace():
+def test_home_page_exposes_the_minimum_accessible_workspace():
     response = AuthenticatedTestClient(create_app()).get("/home")
     assert response.status_code == 200
     page = Page(response.text)
