@@ -77,9 +77,9 @@ and [UC-004](docs/specs/UC-004-UI-AND-USER-FLOW.md):
 |---|---|
 | `/` | Welcome page with sign-in and registration |
 | `/login` | Sign in, or create an account |
-| `/employer-setup` | Enter or change the employer's own details |
-| `/employments` (Home) | See the household overview (wage limit, Add employment, Account details), the selected month's cost overview and the task overview of what is due |
-| `/setup` | Add an employment |
+| `/account-details` | Enter or change the employer's own details |
+| `/home` (Home) | See the household overview (wage limit, Add employment, Account details), the selected month's cost overview and the task overview of what is due |
+| `/employment-setup` | Add an employment |
 | `/timesheets` | Enter a month: fill a weekly pattern, add extra days and holidays, review and save |
 | `/employees` | See each person's employments, totals, holiday balance and wage limit |
 | `/payslips` | Open a saved payslip and print it or save it as a PDF; employer costs are shown on screen only |

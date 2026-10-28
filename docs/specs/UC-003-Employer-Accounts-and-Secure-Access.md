@@ -376,3 +376,13 @@ This amendment changes the browser navigation of [Amendment 6](#amendment-6--202
 - The employer profile has its own page, `/employer-setup`, opened from Home's account-details button; saving it returns to `/employments`. Until a profile exists, `/setup` redirects to `/employments`. The profile operations are in [Amendment 9](#amendment-9--2026-10-27-employer-profile-operations).
 - Signed-in pages share one navigation: Home, Timesheets, Employees, Payslips and Log out, with a Back button outside Home.
 - `/payslips` is the only payslip renderer, as [Amendment 7](#amendment-7--2026-10-26-payslip-view-design) describes, so Home has no saved-payslip state. After a successful save, Home stores `{url, message}` in `sessionStorage` under `payalign-saved-confirmation` and opens that month's `/payslips?employment_id=ID&year=YYYY&month=M`; a completed month opens the same URL. `/payslips` shows the message once when the URL matches, then removes it. If the saved-month read then fails, the message stays visible and the page's retry reads the month again; the payroll is never submitted again.
+
+## Amendment 12 — 2026-10-28: Browser page URL cleanup (Issue #55)
+
+Proposed for team review; effective when the UI rename PR is merged. This amendment supersedes only the **browser page URLs** named in Amendments 3, 6 and 11; the earlier amendments remain as historical records.
+
+- Home moves from `/employments` to `/home`.
+- Employment setup moves from `/setup` to `/employment-setup`.
+- Account details moves from `/employer-setup` to `/account-details`.
+- These former **browser URLs** are removed with no redirects. Links, UI navigation and browser tests use the new URLs.
+- API paths such as `/api/v1/employments`, `POST /api/v1/setup` and `/api/v1/employer` do not change. Session, CSRF, business rules and stored data do not change.
