@@ -121,3 +121,9 @@ def test_page_code_holds_no_copy_of_a_rule_that_constants_py_owns():
                 if pattern.search(line):
                     found.append(f"{path.name}:{number} repeats {name}")
     assert not found, "\n".join(found)
+
+
+@pytest.mark.parametrize("old_page", ("/employments", "/setup", "/employer-setup"))
+def test_obsolete_browser_page_urls_are_removed_without_redirects(old_page):
+    response = TestClient(create_app()).get(old_page, follow_redirects=False)
+    assert response.status_code == 404
