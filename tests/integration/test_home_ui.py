@@ -54,7 +54,7 @@ def run_flow(scenario):
                 "scenario": scenario,
                 "year": RULES_YEAR,
                 "elements": page.by_id(),
-                "javascript": page_javascript(client, "employments", rules=True),
+                "javascript": page_javascript(client, "home", rules=True),
             }
         ),
         text=True,

@@ -170,7 +170,7 @@ def test_existing_employer_javascript_displays_details_safely(employer_name):
         'ahv_number': '756.1234.5678.97',
         'contact_info': 'anna@example.ch',
     }
-    javascript = page_javascript(client, 'setup', rules=True)
+    javascript = page_javascript(client, 'employment-setup', rules=True)
     harness = r'''
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
@@ -290,7 +290,7 @@ def test_setup_submission_javascript(scenario, monkeypatch, tmp_path):
     result = subprocess.run(
         [node, str(SETUP_SUBMISSION_FIXTURE)],
         input=json.dumps({'scenario': scenario, 'year': RULES_YEAR, 'elements': elements,
-                          'javascript': page_javascript(client, 'setup', rules=True)}),
+                          'javascript': page_javascript(client, 'employment-setup', rules=True)}),
         text=True, capture_output=True, timeout=10,
     )
     assert result.returncode == 0, result.stdout + result.stderr
@@ -325,7 +325,7 @@ def test_ui_setup_payload_persists_across_app_restarts(monkeypatch, tmp_path):
         result = subprocess.run(
             [node, str(SETUP_SUBMISSION_FIXTURE)],
             input=json.dumps({'scenario': 'holiday-five', 'year': RULES_YEAR, 'elements': elements,
-                              'javascript': page_javascript(client, 'setup', rules=True)}),
+                              'javascript': page_javascript(client, 'employment-setup', rules=True)}),
             text=True, capture_output=True, timeout=10,
         )
         assert result.returncode == 0, result.stdout + result.stderr
