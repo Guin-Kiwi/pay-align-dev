@@ -28,7 +28,7 @@ if (backButton) {
 const logoutButton = document.getElementById("logout-button");
 const navigationStatus = document.getElementById("navigation-status");
 
-if (logoutButton && appNavigation?.dataset.currentRoute !== "/employments") {
+if (logoutButton && appNavigation?.dataset.currentRoute !== "/home") {
   logoutButton.addEventListener("click", async () => {
     if (logoutButton.disabled || !mayLeave()) return;
     const csrfCookie = document.cookie.split(";").map(value => value.trim())
