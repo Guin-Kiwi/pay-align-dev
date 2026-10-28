@@ -165,11 +165,11 @@ def test_same_employer_ahv_can_be_set_up_independently_by_two_accounts(
             json={**SETUP, "employer": {**SETUP["employer"], "name": "Second Employer"}},
         )
         assert second_setup.status_code == 201, second_setup.text
-        assert first_employment-setup.json()["employer_id"] != second_employment-setup.json()["employer_id"]
-        assert first_employment-setup.json()["employee_id"] != second_employment-setup.json()["employee_id"]
+        assert first_setup.json()["employer_id"] != second_setup.json()["employer_id"]
+        assert first_setup.json()["employee_id"] != second_setup.json()["employee_id"]
         assert first.get("/api/v1/employer").json()["name"] == "Anna Muster"
         assert second.get("/api/v1/employer").json()["name"] == "Second Employer"
-        foreign = second.get(f"/api/v1/employments/{first_employment-setup.json()['employment_id']}")
+        foreign = second.get(f"/api/v1/employments/{first_setup.json()['employment_id']}")
         absent = second.get("/api/v1/employments/999")
         assert foreign.status_code == absent.status_code == 404
         assert foreign.json() == absent.json()
@@ -254,7 +254,7 @@ def test_same_employee_ahv_is_kept_separate_for_two_employers(monkeypatch, tmp_p
 
         assert first_setup.status_code == 201
         assert second_setup.status_code == 201
-        assert first_employment-setup.json()["employee_id"] != second_employment-setup.json()["employee_id"]
+        assert first_setup.json()["employee_id"] != second_setup.json()["employee_id"]
 
         repeat = first.post(
             "/api/v1/setup",
@@ -265,7 +265,7 @@ def test_same_employee_ahv_is_kept_separate_for_two_employers(monkeypatch, tmp_p
             },
         )
         assert repeat.status_code == 201
-        assert repeat.json()["employee_id"] == first_employment-setup.json()["employee_id"]
+        assert repeat.json()["employee_id"] == first_setup.json()["employee_id"]
 
     with app.state.engine.connect() as connection:
         rows = connection.execute(
@@ -290,7 +290,7 @@ def test_payroll_cannot_use_another_accounts_employment_id(monkeypatch, tmp_path
         response = second.post(
             "/api/v1/monthly-payroll",
             headers={"X-CSRF-Token": _csrf(second)},
-            json={**PAYROLL, "employment_id": first_employment-setup.json()["employment_id"]},
+            json={**PAYROLL, "employment_id": first_setup.json()["employment_id"]},
         )
 
     assert response.status_code == 404
@@ -323,7 +323,7 @@ def test_employment_list_is_scoped_to_the_signed_in_account(monkeypatch, tmp_pat
             },
         )
         assert second_setup.status_code == 201
-        second_id = second_employment-setup.json()["employment_id"]
+        second_id = second_setup.json()["employment_id"]
 
         first_list = first.get("/api/v1/employments")
         second_list = second.get("/api/v1/employments")
@@ -380,11 +380,11 @@ def test_completed_months_and_payslip_are_owned_and_view_only(monkeypatch, tmp_p
         {"year": 2026, "month": 1, "monthly_record_id": saved.json()["monthly_record_id"]}
     ]
     assert payslip.status_code == 200
-    assert payslips.json()["monthly_record_id"] == saved.json()["monthly_record_id"]
-    assert payslips.json()["gross_wage"] == saved.json()["gross_wage"]
-    assert payslips.json()["net_payout"] == saved.json()["net_payout"]
+    assert payslip.json()["monthly_record_id"] == saved.json()["monthly_record_id"]
+    assert payslip.json()["gross_wage"] == saved.json()["gross_wage"]
+    assert payslip.json()["net_payout"] == saved.json()["net_payout"]
     assert {"ahv_deduction", "alv_deduction", "nbu_deduction", "tax_deduction",
-            "total_employer_cost", "holiday_balance_minutes"} <= payslips.json().keys()
+            "total_employer_cost", "holiday_balance_minutes"} <= payslip.json().keys()
     assert other_history.status_code == missing_history.status_code == 404
     assert other_payslip.status_code == 404
     assert change.status_code == deletion.status_code == 405
@@ -406,7 +406,7 @@ def test_saved_payslip_detail_uses_snapshot_and_is_account_scoped(monkeypatch, t
             json={**SETUP, "employment": {**SETUP["employment"], "start_date": "2026-04-01"}},
         )
         assert setup.status_code == 201, setup.text
-        employment_id = employment-setup.json()["employment_id"]
+        employment_id = setup.json()["employment_id"]
         saved = owner.post(
             "/api/v1/monthly-payroll", headers={"X-CSRF-Token": _csrf(owner)},
             json={

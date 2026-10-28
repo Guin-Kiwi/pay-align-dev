@@ -14,7 +14,7 @@ RULE_NAMES = (
     "RULES_YEAR", "RULES_YEAR_START", "RULES_YEAR_END", "MIN_PASSWORD_LENGTH",
     "MIN_HOURLY_WAGE", "MAX_HOURLY_WAGE", "ALLOWED_HOLIDAY_WEEKS",
 )
-SIGNED_IN_PAGES = ("/employments", "/timesheets", "/employees", "/payslips", "/setup", "/employer-setup")
+SIGNED_IN_PAGES = ("/home", "/timesheets", "/employees", "/payslips", "/employment-setup", "/account-details")
 
 
 def evaluate(script):
@@ -73,12 +73,12 @@ def test_pages_render_the_rules_into_their_html(monkeypatch):
     monkeypatch.setattr(constants, "MIN_HOURLY_WAGE", 23.5)
     monkeypatch.setattr(constants, "MAX_HOURLY_WAGE", 450.0)
     monkeypatch.setattr(constants, "ALLOWED_HOLIDAY_WEEKS", (4, 5, 6))
-    setup = client.get("/setup").text
+    setup = client.get("/employment-setup").text
     assert 'min="2031-01-01" max="2031-12-31"' in setup
     assert "Start date (must be in 2031)" in setup
     assert 'min="23.50" max="450.00"' in setup
     assert '<option value="4" selected>4</option><option value="5">5</option><option value="6">6</option>' in setup
-    assert "January 2031</option>" in client.get("/employments").text
+    assert "January 2031</option>" in client.get("/home").text
 
 
 @pytest.mark.parametrize("route", SIGNED_IN_PAGES)
@@ -99,7 +99,7 @@ LEFTOVERS = {
 }
 
 
-YEAR_FREE_FIXTURES = ("timesheet_flow.js", "setup_submission.js", "employments_flow.js", "payslip_view.js")
+YEAR_FREE_FIXTURES = ("timesheet_flow.js", "employment_setup_submission.js", "home_flow.js", "payslip_view.js")
 
 
 def test_browser_fixtures_take_the_rules_year_from_constants_py():

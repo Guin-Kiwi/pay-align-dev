@@ -149,11 +149,11 @@ def test_demo_flow_keeps_its_data_across_a_restart(database_url, tmp_path):
         assert "Set up employment" in app.get("/employment-setup").text
         setup = app.post("/api/v1/setup", headers=_csrf_header(app), json={"employee": SETUP["employee"], "employment": SETUP["employment"]})
         assert setup.status_code == 201, setup.text
-        employment_id = employment-setup.json()["employment_id"]
+        employment_id = setup.json()["employment_id"]
         assert "Your employments" in app.get("/home").text
         employments = app.get("/api/v1/employments")
         assert employments.status_code == 200
-        assert [employment["id"] for employment in home.json()] == [employment_id]
+        assert [employment["id"] for employment in employments.json()] == [employment_id]
         months_url = f"/api/v1/employments/{employment_id}/months"
         assert app.get(months_url).json() == {
             "months": [], "next_month": {"year": 2026, "month": 1}
