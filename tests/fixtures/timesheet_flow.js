@@ -480,6 +480,12 @@ const scenarios = {
     assert.match(p.el('extra-error').textContent, /Remove the annual holiday row for this date/);
     assert.equal(p.rows().length, 2);
   }},
+  'annual-holiday-once-per-day': {...ENTRY, run: async p => {
+    await p.addHoliday(day(PLAIN_MONTH, 4), '6:00');
+    await p.addHoliday(day(PLAIN_MONTH, 4), '6:00');
+    assert.match(p.el('holiday-error').textContent, /already has an annual holiday row/);
+    assert.equal(p.rows().length, 1);
+  }},
   'switch-type-in-the-table': {...ENTRY, run: async p => {
     p.pattern(weekdayOf(day(PLAIN_MONTH, 3)));
     await p.addDay(day(PLAIN_MONTH, 3));
@@ -590,6 +596,16 @@ const scenarios = {
     await p.addHoliday(FIRST_HOLIDAY, '6:00');
     assert.match(p.el('holiday-error').textContent, /public holiday/);
     assert.equal(p.rows().length, 0);
+  }},
+  'public-holiday-taken-once-per-day': {...HOLIDAY_ENTRY, run: async p => {
+    p.pattern(weekdayOf(FIRST_HOLIDAY));
+    await p.addDay(FIRST_HOLIDAY);
+    await p.addDay(FIRST_HOLIDAY);
+    for (const row of p.rows()) await p.choose(row, 'taken');
+    await p.submit();
+    assert.match(p.el('save-error').textContent, new RegExp(`Entries on ${FIRST_HOLIDAY} overlap`));
+    assert.equal(p.dialog().open, false);
+    assert.equal(p.posts().length, 0);
   }},
 
   // ---- checks before saving
