@@ -9,7 +9,7 @@ from tests.integration.authenticated_client import AuthenticatedTestClient
 from tests.integration.page_scripts import Page, node_binary, page_javascript, script_paths
 
 
-SETUP_SUBMISSION_FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures' / 'employment_setup_submission.js'
+EMPLOYMENT_SETUP_SUBMISSION_FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures' / 'employment_setup_submission.js'
 
 
 def create_employer(client):
@@ -18,7 +18,7 @@ def create_employer(client):
     assert client.post('/api/v1/employer', json=details, headers={'X-CSRF-Token': token}).status_code == 201
 
 
-def test_first_time_employer_page_is_separate_and_authenticated():
+def test_account_details_page_is_separate_and_authenticated():
     assert TestClient(create_app()).get('/account-details', follow_redirects=False).status_code == 303
     page = AuthenticatedTestClient(create_app()).get('/account-details')
     assert page.status_code == 200
@@ -42,7 +42,7 @@ def test_add_employment_warns_before_saving_because_it_cannot_be_changed():
     assert 'dialog.warning::backdrop' in client.get('/setup-assets/base.css').text
 
 
-def test_employer_setup_javascript_saves_then_returns_home():
+def test_account_details_javascript_saves_then_returns_home():
     import subprocess
     root = Path(__file__).resolve().parents[2]
     subprocess.run([node_binary(), str(root / 'tests/fixtures/account_details.js'),
@@ -116,7 +116,7 @@ def test_employment_setup_page_is_accessible_and_initially_cannot_submit():
 
 
 @pytest.mark.parametrize('asset,content_type', [('base.css', 'text/css'), ('employment-setup.js', 'javascript')])
-def test_setup_assets_are_available(asset, content_type):
+def test_employment_setup_assets_are_available(asset, content_type):
     response = TestClient(create_app()).get('/setup-assets/' + asset)
     assert response.status_code == 200
     assert content_type in response.headers['content-type']
@@ -276,7 +276,7 @@ process.stdin.on('end', async () => {
     '400', '401', '403', '409', '422', '500', 'network', 'malformed-success', 'invalid-json',
     'refresh-failure', 'timeout', '200', 'holiday-five', 'cancel',
 ])
-def test_setup_submission_javascript(scenario, monkeypatch, tmp_path):
+def test_employment_setup_submission_javascript(scenario, monkeypatch, tmp_path):
     import json
     import subprocess
 
@@ -288,7 +288,7 @@ def test_setup_submission_javascript(scenario, monkeypatch, tmp_path):
     if scenario == 'new':
         monkeypatch.chdir(tmp_path)
     result = subprocess.run(
-        [node, str(SETUP_SUBMISSION_FIXTURE)],
+        [node, str(EMPLOYMENT_SETUP_SUBMISSION_FIXTURE)],
         input=json.dumps({'scenario': scenario, 'year': RULES_YEAR, 'elements': elements,
                           'javascript': page_javascript(client, 'employment-setup', rules=True)}),
         text=True, capture_output=True, timeout=10,
@@ -323,7 +323,7 @@ def test_ui_setup_payload_persists_across_app_restarts(monkeypatch, tmp_path):
         html = client.get('/employment-setup').text
         elements = {attrs['id']: attrs for _, attrs in Page(html).tags if 'id' in attrs}
         result = subprocess.run(
-            [node, str(SETUP_SUBMISSION_FIXTURE)],
+            [node, str(EMPLOYMENT_SETUP_SUBMISSION_FIXTURE)],
             input=json.dumps({'scenario': 'holiday-five', 'year': RULES_YEAR, 'elements': elements,
                               'javascript': page_javascript(client, 'employment-setup', rules=True)}),
             text=True, capture_output=True, timeout=10,
