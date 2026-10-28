@@ -12,13 +12,13 @@ STATUS: in-progress
 | 0 — Bootstrap | Done | Project foundation and development tooling established. |
 | 1 — Specify | Done | UC-003 Amendment 2 specifies session and CSRF behaviour; ADR-007 Amendment 1 selects Starlette `SessionMiddleware` and links to the owning requirements. |
 | 2 — Design | Done | UC-003 Amendment 3 defines the five view boundaries for application logic. Presentation and navigation stay with the UI owner. ADR-007 sets the account-scoped read boundary; no new domain rule or ADR is needed. |
-| 3 — Develop | In progress | Integrate the Home workspace and the separate Timesheets, Employees and Payslip views; verify the proposed layout and its behavior. |
+| 3 — Develop | In progress | The browser flow is merged; finish the remaining agreed payroll warning and documentation work. |
 | 4 — Validate | In progress alongside development | UC-002 was re-validated after the account backend merged. The remaining partly covered database-error criterion is in the [UC-002 Validation plan](specs/UC-002-Process-the-Monthly-Employment.md). |
 | 5 — Deploy | In progress | CD deploys to Render. On 24 October 2026 the first manual CD run started the deploy and passed its smoke test. A `v*` release deploys its own commit; that path runs first with `release-tag`. |
 
 ## Active objective
 
-Deliver the rest of the UC-003 browser flow, so that a new account gets from registration to a saved payslip without Swagger, in time for the demo on Wed 28 October and submission on Thu 29 October.
+Prepare the merged browser flow and project documentation for the demo on Wed 28 October and submission on Thu 29 October.
 
 ## Current Use Case
 
@@ -26,7 +26,7 @@ docs/specs/UC-003-Employer-Accounts-and-Secure-Access.md
 
 ## Next smallest step
 
-Verify the Home layout and its embedded employment workspace, the separate Timesheets and Employees pages, and the saved-payslip handoff. Human review of the proposed Home layout and supporting decisions remains open; the demo environment check remains under `demo-path`.
+Run `demo-path` against the Render deployment with made-up data before the demo.
 
 ## Tasks
 
@@ -51,14 +51,13 @@ yours, hand it to a named teammate rather than moving it to Unassigned.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `demo-path` | todo | Prepare the demo of all three use cases on the Render deployment, through the browser flow in UC-003 Amendment 3. Use made-up names and AHV numbers only; open the free instance before the demo. Done when the whole flow has run once on the Render URL. | Capstone brief, UC-003 | `uc003-ui`, `payslip-response` | Wed 28 Oct |
+| `demo-path` | todo | Prepare the demo of all three use cases on the Render deployment, through the browser flow in UC-003 Amendment 3. Use made-up names and AHV numbers only; open the free instance before the demo. Done when the whole flow has run once on the Render URL. | Capstone brief, UC-003 | | Wed 28 Oct |
 | `uc001-input-rules` | todo | Link UC-001's required fields to ADR-006 item 2 (input rules), with a human's approval; UC-001 is review-gated. | ADR-006 | | |
 
 ### Aaron
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `payslip-pdf` | todo | Decide whether v0.1.0 includes a printable or PDF payslip. If it does, write its spec first, then build it. | UC-002 | `payslip-response` | |
 | `dedupe-calc` | todo | Remove the duplicated functions in `payroll_calculation.py`. | calculations.md | | |
 | `lifecycle-py` | todo | Decide whether `scripts/check-lifecycle.py` and `scripts/test-lifecycle.py` stay. BOOTSTRAP added them next to the template's `.sh` versions, which are the ones CI runs. | `.github/workflows/ci.yml` | | |
 
@@ -66,10 +65,7 @@ yours, hand it to a named teammate rather than moving it to Unassigned.
 
 | ID | Status | Task | Defined by | After | By |
 |---|---|---|---|---|---|
-| `uc003-ui` | doing | Address PR #50 review with a whole-month browser form: generate staged entries from one interval per selected weekday, handle public and annual holidays, allow edits/removal/manual and split-shift additions, review totals, and confirm one CSRF-protected monthly submission. Expose 2026 public-holiday dates from the backend constant through a narrow authenticated read endpoint. Keep completed months view-only and simplify setup success navigation. | UC-003 Amendments 3 and 6, UC-001, UC-002 | | Tue 27 Oct, 19:00 |
-| `readme-final` | todo | Finish the README for the capstone, with a diagram of the four layers and the main components (the grading criteria ask for a clear architecture presentation; PROJECT.md describes the layers only in text). | Capstone brief | | Tue 27 Oct |
-| `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | `readme-final` | Wed 28 Oct |
-| `arch-test` | todo | Make the layer check in `tests/unit/test_architecture.py` recognise `src.app` imports; it must fail on a deliberate inner-to-outer import and pass on `main`. An extended check exists separately and is not on `main`; it was validated against an earlier payroll router, so re-validate it against the current wiring before reporting it passing. | ADR-001 | | |
+| `release-tag` | todo | Tag v0.1.0, which also exercises the tag-triggered release publication. | Capstone brief | | Wed 28 Oct |
 | `align-gating` | todo | Align `docs/INDEX.json` and `.github/CODEOWNERS` on which files are review-gated. | INDEX.json | | |
 
 ## Acceptance / validation cues
@@ -97,8 +93,6 @@ Each use case's tests are named in its Validation plan ([UC-001](specs/UC-001-Se
 
 ## Blockers / assumptions
 
-- Open decision: whether `release-tag` also waits on the browser views and `payslip-response`, or v0.1.0 ships without them.
-- The browser UI feasibility check, deferred when ADR-007 was accepted on 23 October 2026, happens in the review of `uc003-ui`.
 - Human review remains required for the review-gated use-case specifications.
 
 ## Evidence links
