@@ -47,7 +47,7 @@ async function loadOverview() {
     if (version !== overviewVersion) return;
     if (result.status !== 200 || !Array.isArray(result.body?.employments)) throw new Error("overview");
     const data = result.body;
-    element("overview-completeness").textContent = data.eligible_count ? `${data.saved_count} of ${data.eligible_count} employments have saved payroll for ${monthLabel(RULES_YEAR, month)}.` : "No employments for this month.";
+    element("overview-completeness").textContent = data.eligible_count ? `${data.saved_count} of ${data.eligible_count} ${data.eligible_count === 1 ? "employment" : "employments"} ${data.saved_count === 1 ? "has" : "have"} saved payroll for ${monthLabel(RULES_YEAR, month)}.` : "No employments for this month.";
     if (data.saved_count) {
       element("overview-payout").textContent = formatMoney(data.payout_due);
       element("overview-reserve").textContent = formatMoney(data.estimated_set_aside);
@@ -193,7 +193,7 @@ function showHousehold(limit) {
   const line = document.createElement("p");
   line.textContent = limitText(limit);
   element("household-rows").replaceChildren(line, limitBar(limit, "The household"));
-  note.textContent = `The simplified procedure only applies while the wages you pay in a year stay within ${formatMoney(limit.limit)}. If you employ people for more than this, it no longer applies.`;
+  note.textContent = `The simplified procedure only applies while the wages you pay in a year stay within ${formatMoney(limit.limit)}. If you pay more than this, it no longer applies.`;
 }
 
 async function loadEmployees() {
@@ -242,6 +242,7 @@ async function initialize() {
       element("add-employment").disabled = false;
     } else if (employer.status === 404 && employer.body?.detail === "No employer is set up yet.") {
       element("employer-status").textContent = "Enter your account details before adding an employment.";
+      element("employer-status").className = "attention";
     } else if (employer.status === 401) {
       showLoginMessage("Your session has expired. Please log in again to continue.");
       return;

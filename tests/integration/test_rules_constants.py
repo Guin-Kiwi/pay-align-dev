@@ -75,7 +75,7 @@ def test_pages_render_the_rules_into_their_html(monkeypatch):
     monkeypatch.setattr(constants, "ALLOWED_HOLIDAY_WEEKS", (4, 5, 6))
     setup = client.get("/setup").text
     assert 'min="2031-01-01" max="2031-12-31"' in setup
-    assert "Start date (2031)" in setup
+    assert "Start date (must be in 2031)" in setup
     assert 'min="23.50" max="450.00"' in setup
     assert '<option value="4" selected>4</option><option value="5">5</option><option value="6">6</option>' in setup
     assert "January 2031</option>" in client.get("/employments").text

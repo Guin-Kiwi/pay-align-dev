@@ -245,9 +245,9 @@ const scenarios = {
     assert.equal(lea.children[1].textContent, `Employment started on ${long(1, 5)}`);
     assert.equal(nora.children[1].textContent, `Employment started on ${long(1, 5)} · ends on ${long(2, 28)}`);
     const names = months => `${months.map(month => label(month).replace(` ${YEAR}`, '')).join(', ')} ${YEAR}`;
-    assert.deepEqual(p.rowsOf(lea), [['Saved', names(range(1, PLAIN_MONTH - 1)), 'View payslip'], ['Next to enter', label(PLAIN_MONTH), 'Enter']]);
-    assert.deepEqual(p.rowsOf(marco), [['Saved', 'No saved months yet', ''], ['Next to enter', label(3), 'Enter']]);
-    assert.deepEqual(p.rowsOf(nora), [['Saved', names([1, 2]), 'View payslip'], ['Next to enter', 'All months entered', '']]);
+    assert.deepEqual(p.rowsOf(lea), [['Saved', names(range(1, PLAIN_MONTH - 1)), 'View payslip'], ['Next month', label(PLAIN_MONTH), 'Enter']]);
+    assert.deepEqual(p.rowsOf(marco), [['Saved', 'No saved months yet', ''], ['Next month', label(3), 'Enter']]);
+    assert.deepEqual(p.rowsOf(nora), [['Saved', names([1, 2]), 'View payslip'], ['Next month', 'All months entered', '']]);
     await p.click(p.named(lea, 'View payslip'));
     assert.equal(p.redirects.at(-1), payslipPage(PLAIN_MONTH - 1, 7));
     await p.click(p.named(lea, 'Enter'));

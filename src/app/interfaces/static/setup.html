@@ -20,10 +20,10 @@
     <p id="employer-status" role="status" aria-live="polite">Loading employer status …</p>
     <p id="employer-error" role="alert" hidden></p>
     <section id="employer-section" aria-labelledby="employer-heading" hidden>
-      <h2 id="employer-heading">Employer</h2>
+      <h2 id="employer-heading">Your details</h2>
       <dl id="employer-details" hidden></dl>
       <fieldset id="employer-fields" disabled>
-        <legend>Employer details</legend>
+        <legend>Account details</legend>
         <label for="employer-name">Name</label><input id="employer-name" autocomplete="section-employer name" required aria-describedby="employer-name-error">
         <p id="employer-name-error" role="alert" hidden></p>
         <label for="employer-address">Address</label><input id="employer-address" autocomplete="section-employer street-address" required aria-describedby="employer-address-error">
@@ -47,13 +47,13 @@
     </section>
     <section aria-labelledby="employment-heading">
       <h2 id="employment-heading">Employment</h2>
-      <label for="start-date">Start date ({{RULES_YEAR}})</label><input id="start-date" type="date" min="{{RULES_YEAR_START}}" max="{{RULES_YEAR_END}}" required aria-describedby="start-date-error">
+      <label for="start-date">Start date (must be in {{RULES_YEAR}})</label><input id="start-date" type="date" min="{{RULES_YEAR_START}}" max="{{RULES_YEAR_END}}" required aria-describedby="start-date-error">
       <p id="start-date-error" role="alert" hidden></p>
       <label for="end-date">End date (optional)</label><input id="end-date" type="date" aria-describedby="end-date-note end-date-error">
       <p id="end-date-note">Leave blank for an open-ended contract. The end date may extend beyond {{RULES_YEAR}}.</p>
       <p id="end-date-error" role="alert" hidden></p>
       <label for="hourly-wage">Hourly wage in CHF per hour</label><input id="hourly-wage" type="number" min="{{MIN_HOURLY_WAGE}}" max="{{MAX_HOURLY_WAGE}}" step="0.01" required aria-describedby="wage-note hourly-wage-error">
-      <p id="wage-note">Minimum CHF {{MIN_HOURLY_WAGE}} per hour, with at most two decimal places. From 5 hours a week, the NAV Hauswirtschaft minimum applies instead (CHF 20.35, or 22.30 with 4 years' experience or EBA, or 24.55 with EFZ); this version accepts only CHF {{MIN_HOURLY_WAGE}} or more and does not check the NAV category.</p>
+      <p id="wage-note">Minimum CHF {{MIN_HOURLY_WAGE}} per hour, with at most two decimal places. This is the legal minimum only below 5 hours a week. From 5 hours a week, the NAV Hauswirtschaft minimum applies instead: CHF 20.35 (unskilled), 22.30 (4 years' experience or an EBA certificate) or 24.55 (an EFZ certificate). PayAlign does not check which category applies, so it accepts only CHF {{MIN_HOURLY_WAGE}} or more.</p>
       <p id="hourly-wage-error" role="alert" hidden></p>
       <label for="weekly-hours">Weekly hours (H:MM)</label><input id="weekly-hours" type="text" placeholder="6:30" pattern="[0-9]{1,2}:[0-5][0-9]" required aria-describedby="hours-note weekly-hours-error">
       <p id="hours-note">Use H:MM, for example 6:30. Allowed range: 0:01 to 99:59.</p>
@@ -62,8 +62,8 @@
       <select id="holiday-weeks" aria-describedby="holiday-weeks-error">{{HOLIDAY_WEEK_OPTIONS}}</select>
       <p id="holiday-weeks-error" role="alert" hidden></p>
     </section>
-    <p id="save-note">Save becomes available after the employer status has loaded. Select it to check required fields before submission.</p>
-    <button id="save-setup" type="submit" disabled aria-describedby="save-note">Save Setup</button>
+    <p id="save-note">Save is available once your employer details have loaded. Required fields are checked when you save.</p>
+    <button id="save-setup" type="submit" disabled aria-describedby="save-note">Save setup</button>
     <p id="setup-status" role="status" aria-live="polite"></p>
     <p id="setup-success" role="status" aria-live="polite" hidden></p>
     <p id="setup-complete-actions" hidden><button id="view-employments" type="button">View employments</button></p>

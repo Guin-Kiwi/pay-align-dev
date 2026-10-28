@@ -197,7 +197,7 @@ The current HTTP endpoints are:
 | `GET /employees` | Serve the authenticated Employees page, one box per person; unauthenticated browsers are redirected to `/login`. |
 | `GET /timesheets` | Serve the authenticated Timesheets page: the landing, or with `?employment_id=ID` that employment's entry page; unauthenticated browsers are redirected to `/login`. |
 | `GET /payslips` | Serve the authenticated saved-payslip view; unauthenticated browsers are redirected to `/login`. |
-| `GET /employments` | Serve the authenticated Home page (the household strip with Account details, Your costs, and Your tasks with Add employment); unauthenticated browsers are redirected to `/login`. |
+| `GET /employments` | Serve the authenticated Home page (the Household overview with Add employment and Account details, the Cost overview, and the Task overview); unauthenticated browsers are redirected to `/login`. |
 | `GET /setup-assets/constants.js` | Serve, without a session, the rules the pages use (rules year and its dates, minimum password length, minimum and maximum hourly wage, allowed holiday weeks), generated from `src/app/domain/constants.py` on each request. |
 | `GET /setup-assets/*` | Serve static CSS and JavaScript assets with `Cache-Control: no-cache` and an ETag for browser revalidation. |
 | `GET /api/v1/auth/csrf` | Issue a CSRF token. |

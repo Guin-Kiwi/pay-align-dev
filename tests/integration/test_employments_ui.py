@@ -26,7 +26,7 @@ def test_public_holidays_are_the_configured_dates_and_require_login():
 
 def test_home_offers_account_details_and_add_employment_buttons():
     page = AuthenticatedTestClient(create_app()).get("/employments").text
-    assert '<h2 id="household-heading">Household wage limit</h2>' in page
+    assert '<h2 id="household-heading">Household overview</h2>' in page
     assert '<button id="employer-details-button" type="button">Account details</button>' in page
     assert '<button id="add-employment" type="button" disabled>Add employment</button>' in page
 

@@ -125,7 +125,7 @@ async function loadEmployer() {
       details.hidden = false;
       element("employer-fields").hidden = true;
       employerState = "existing";
-      element("employer-status").textContent = "Existing employer loaded.";
+      element("employer-status").textContent = "";
     }
   } catch (failure) {
     employerState = "failed";

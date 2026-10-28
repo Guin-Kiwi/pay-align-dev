@@ -97,7 +97,7 @@ function todoRows(person, withName = false) {
     enter.addEventListener("click", () => { if (confirmBeforeLeaving()) window.location.assign(`/timesheets?employment_id=${employment.id}`); });
     rows.push({
       label: `${withName ? person.name : "Timesheet"}${several ? ` · employment from ${longDate(employment.start_date)}` : ""}`,
-      value: `Enter ${month}${behind}`,
+      value: `${month}${behind}`,
       action: enter
     });
   }

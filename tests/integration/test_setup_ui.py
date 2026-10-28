@@ -72,14 +72,15 @@ def test_setup_page_is_accessible_and_initially_cannot_submit():
     assert 'lost after a server restart' not in response.text
     page = Page(response.text)
     assert ('html', {'lang': 'en'}) in page.tags
-    for text in ('Set up employment', 'Employer', 'Employee', 'Employment'):
+    for text in ('Set up employment', 'Your details', 'Employee', 'Employment'):
         assert text in response.text
     assert 'Employee tax status defaults to ordinary taxation.' not in response.text
     assert (
-        'Minimum CHF 22.20 per hour, with at most two decimal places. From 5 hours a week, '
-        'the NAV Hauswirtschaft minimum applies instead (CHF 20.35, or 22.30 with 4 years\' '
-        'experience or EBA, or 24.55 with EFZ); this version accepts only CHF 22.20 or more '
-        'and does not check the NAV category.'
+        'Minimum CHF 22.20 per hour, with at most two decimal places. This is the legal '
+        'minimum only below 5 hours a week. From 5 hours a week, the NAV Hauswirtschaft '
+        'minimum applies instead: CHF 20.35 (unskilled), 22.30 (4 years\' experience or an '
+        'EBA certificate) or 24.55 (an EFZ certificate). PayAlign does not check which '
+        'category applies, so it accepts only CHF 22.20 or more.'
     ) in response.text
     button = next(attrs for tag, attrs in page.tags if tag == 'button' and attrs.get('id') == 'save-setup')
     assert 'disabled' in button
@@ -213,7 +214,7 @@ process.stdin.on('end', async () => {
     assert.equal(calls[0].url, '/api/v1/auth/csrf');
     assert.equal(calls[1].url, '/api/v1/employer');
     assert.equal(calls[1].options.method ?? 'GET', 'GET');
-    assert.equal(elements['employer-status'].textContent, 'Existing employer loaded.');
+    assert.equal(elements['employer-status'].textContent, '');
     assert.equal(elements['employer-details'].hidden, false);
     assert.deepEqual(elements['employer-details'].children.map(child => child.textContent), [
       'Name', employer.name, 'Address', employer.address,

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Payslip | PayAlign</title>
+  <title>Payslips | PayAlign</title>
   <link rel="stylesheet" href="/setup-assets/setup.css?v=20261027-back">
   <link rel="stylesheet" href="/setup-assets/payslip.css">
   <script src="/setup-assets/navigation.js" defer></script>
@@ -15,7 +15,7 @@
 <main>
   <div class="no-print">
     <p class="eyebrow">PAYROLL RECORDS</p>
-    <h1>Payslip</h1>
+    <h1>Payslips</h1>
     <p class="intro">Select an employee and a completed month to see the payslip.</p>
     <p id="save-confirmation" role="status" hidden></p>
     <noscript><p>Enable JavaScript to view saved payslips.</p></noscript>
@@ -51,7 +51,7 @@
     <section class="slip-section"><div class="section-heading"><span>02</span><h3>Employee deductions</h3></div>
       <dl class="lines"><div><dt>AHV / IV / EO</dt><dd id="ahv"></dd></div><div><dt>ALV</dt><dd id="alv"></dd></div><div><dt>Simplified procedure tax</dt><dd id="tax"></dd></div><div><dt>Non-occupational accident insurance (NBU)</dt><dd id="nbu"></dd></div><div class="total"><dt>Total deductions</dt><dd id="deductions"></dd></div></dl>
     </section>
-    <section class="payout"><div><p class="eyebrow">PAY SUMMARY</p><h3>Net payout due</h3><p>Gross wage − employee deductions + expense reimbursements</p></div><dl><div><dt>Expense reimbursements</dt><dd id="expenses"></dd></div><div class="payout-total"><dt>Net payout due</dt><dd id="net"></dd></div></dl></section>
+    <section class="payout"><div><h3>Pay summary</h3><p>Gross wage − employee deductions + expense reimbursements</p></div><dl><div><dt>Expense reimbursements</dt><dd id="expenses"></dd></div><div class="payout-total"><dt>Net payout due</dt><dd id="net"></dd></div></dl></section>
     <section class="slip-section"><div class="section-heading"><span>03</span><h3>Holiday balance</h3></div><dl class="lines"><div><dt>Remaining after this month</dt><dd id="holiday-balance"></dd></div></dl></section>
   </article>
     </div>

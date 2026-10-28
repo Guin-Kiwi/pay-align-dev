@@ -193,13 +193,13 @@ const scenarios = {
   'todo-months-due': {employees: [LEA, NORA], run: async p => {
     const lea = p.box(p.cards()[0], 'todo');
     assert.equal(lea.children[0].textContent, 'To do');
-    assert.deepEqual(p.rowsOf(lea), [['Timesheet', `Enter ${label(3)} (8 months behind)`, 'Enter']]);
+    assert.deepEqual(p.rowsOf(lea), [['Timesheet', `${label(3)} (8 months behind)`, 'Enter']]);
     await p.click(p.named(lea, 'Enter'));
     assert.equal(p.redirects.at(-1), '/timesheets?employment_id=7');
     const nora = p.box(p.cards()[1], 'todo');
     assert.deepEqual(p.rowsOf(nora), [
-      [`Timesheet · employment from ${long(1, 5)}`, `Enter ${label(3)} (2 months behind)`, 'Enter'],
-      [`Timesheet · employment from ${long(8, 1)}`, `Enter ${label(9)}`, 'Enter']
+      [`Timesheet · employment from ${long(1, 5)}`, `${label(3)} (2 months behind)`, 'Enter'],
+      [`Timesheet · employment from ${long(8, 1)}`, label(9), 'Enter']
     ]);
     await p.click(p.buttons(nora)[1]);
     assert.equal(p.redirects.at(-1), '/timesheets?employment_id=11');

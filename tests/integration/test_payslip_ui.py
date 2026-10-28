@@ -21,8 +21,8 @@ def test_payslip_page_is_named_for_the_payslip():
     with AuthenticatedTestClient(create_app()) as client:
         response = client.get('/payslips?employment_id=7&year=2026&month=4')
         assert response.status_code == 200
-        assert '<title>Payslip | PayAlign</title>' in response.text
-        assert '<h1>Payslip</h1>' in response.text
+        assert '<title>Payslips | PayAlign</title>' in response.text
+        assert '<h1>Payslips</h1>' in response.text
         assert 'data-current-route="/payslips"' in response.text
 
 

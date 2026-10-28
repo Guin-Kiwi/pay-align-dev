@@ -76,7 +76,7 @@ def test_timesheets_page_has_a_landing_and_a_left_and_right_entry_page():
     # the left holds exactly the four boxes you asked for, in order; the right holds the table and the save
     assert text.index('class="entry-grid"') < text.index('class="entry-inputs"') < text.index('class="entry-results"')
     inputs, results = text.index('class="entry-inputs"'), text.index('class="entry-results"')
-    legends = ["Regular work schedule", "Add extra day", "Annual holidays", "Bonus and expenses"]
+    legends = ["Regular work schedule", "Extra day", "Annual holidays", "Bonus and expenses"]
     positions = [text.index(f"<legend>{legend}</legend>") for legend in legends]
     assert positions == sorted(positions)
     assert all(inputs < position < results for position in positions)

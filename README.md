@@ -78,7 +78,7 @@ and [UC-004](docs/specs/UC-004-UI-AND-USER-FLOW.md):
 | `/` | Welcome page with sign-in and registration |
 | `/login` | Sign in, or create an account |
 | `/employer-setup` | Enter or change the employer's own details |
-| `/employments` (Home) | See the household wage limit, this month's costs and what is due |
+| `/employments` (Home) | See the household overview (wage limit, Add employment, Account details), the selected month's cost overview and the task overview of what is due |
 | `/setup` | Add an employment |
 | `/timesheets` | Enter a month: fill a weekly pattern, add extra days and holidays, review and save |
 | `/employees` | See each person's employments, totals, holiday balance and wage limit |
@@ -86,26 +86,37 @@ and [UC-004](docs/specs/UC-004-UI-AND-USER-FLOW.md):
 
 ### Screenshots
 
-**Login and registration**
+The screenshots follow a new employer's first use.
 
-![PayAlign login page](docs/screenshots/pay-align-login.png)
-![PayAlign signup page](docs/screenshots/pay-align-signup.png)
+**Welcome, login and registration**
 
-**Home**
+![PayAlign welcome page](docs/screenshots/payalign-welcome.png)
+![PayAlign login page](docs/screenshots/payalign-login.png)
+![PayAlign signup page](docs/screenshots/payalign-signup.png)
 
-![PayAlign Home payroll overview](docs/screenshots/pay-align-home.png)
+**First visit to Home: account details needed**
+
+![PayAlign Home for a new account, asking for the account details first](docs/screenshots/payalign-newaccount-employments.png)
+
+**Account details**
+
+![PayAlign account details page](docs/screenshots/payalign-employer-setup.png)
 
 **Employment setup**
 
-![PayAlign employment setup page](docs/screenshots/pay-align-employment-setup.png)
+![PayAlign employment setup page](docs/screenshots/payalign-setup.png)
+
+**Home with employments**
+
+![PayAlign Home with the household, cost and task overviews](docs/screenshots/payalign-home.png)
 
 **Timesheets**
 
-![PayAlign whole-month timesheet entry](docs/screenshots/pay-align-timesheets.png)
+![PayAlign whole-month timesheet entry](docs/screenshots/payalign-timesheets.png)
 
 **Saved payslip**
 
-![PayAlign saved payslip](docs/screenshots/pay-align-payslip.png)
+![PayAlign saved payslip](docs/screenshots/payalign-payslips.png)
 
 ## Course requirements
 
