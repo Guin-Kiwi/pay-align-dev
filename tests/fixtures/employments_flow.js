@@ -211,7 +211,7 @@ const scenarios = {
     assert.equal(lea.children[2].textContent, '2 actions pending');
     assert.equal(lea.children[2].className, 'tasks pending');
     assert.equal(lea.className, 'employee-card pending');
-    assert.deepEqual(p.rowsOf(lea).at(-1), ['Timesheet', `Enter ${label(3)} (2 months behind)`, 'Enter']);
+    assert.deepEqual(p.rowsOf(lea).at(-1), ['Timesheet', `${label(3)} (2 months behind)`, 'Enter']);
     await p.click(p.named(lea, 'Enter'));
     assert.equal(p.redirects.at(-1), '/timesheets?employment_id=7');
     assert.equal(marco.children[2].textContent, 'All actions completed');
@@ -222,7 +222,7 @@ const scenarios = {
   }},
   'one-action-is-singular': {employments: [MARCO], people: [taskPerson(2, 'Marco Probe', 9, 1, 10)], run: async p => {
     assert.equal(p.row(0).children[2].textContent, '1 action pending');
-    assert.deepEqual(p.rowsOf(p.row(0)).at(-1), ['Timesheet', `Enter ${label(10)}`, 'Enter']);
+    assert.deepEqual(p.rowsOf(p.row(0)).at(-1), ['Timesheet', label(10), 'Enter']);
   }},
   'household-strip': {household: HOUSEHOLD, people: [taskPerson(1, 'Lea Beispiel', 7, 0, 3)], run: async p => {
     assert.equal(p.el('household-status').textContent, '');
@@ -233,7 +233,7 @@ const scenarios = {
     assert.deepEqual([bar.max, bar.value], [60480, 15000]);
     assert.equal(p.el('household-note').hidden, false);
     assert.match(p.el('household-note').textContent, /simplified procedure only applies while the wages you pay in a year stay within CHF 60,480\.00/);
-    assert.match(p.el('household-note').textContent, /employ people for more than this, it no longer applies/);
+    assert.match(p.el('household-note').textContent, /If you pay more than this, it no longer applies/);
   }},
   'household-none': {people: [], run: async p => {
     assert.equal(p.el('household-status').textContent, 'No employees yet.');
@@ -249,6 +249,7 @@ const scenarios = {
   'no-employer': {noEmployer: true, run: async p => {
     assert.equal(p.el('add-employment').disabled, true);
     assert.match(p.el('employer-status').textContent, /enter your account details/i);
+    assert.equal(p.el('employer-status').className, 'attention');
   }},
   'account-buttons': {run: async p => {
     assert.equal(p.el('add-employment').disabled, false);

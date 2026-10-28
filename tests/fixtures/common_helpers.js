@@ -131,13 +131,13 @@ const reply = (status, body) => ({status, json: async () => { if (body === undef
   for (const bad of [-150, 1.5, '60', NaN, undefined]) assert.throws(() => helpers.formatDuration(bad));
   const lea = {name: 'Lea Beispiel', employments: [{id: 7, start_date: '2026-01-05', months_due: 2, next_month: {year: 2026, month: 3}}]};
   const todo = helpers.todoRows(lea);
-  same(todo.map(row => [row.label, row.value]), [['Timesheet', 'Enter March 2026 (2 months behind)']]);
+  same(todo.map(row => [row.label, row.value]), [['Timesheet', 'March 2026 (2 months behind)']]);
   assert.equal(todo[0].action.textContent, 'Enter');
   assert.equal(todo[0].action.attributes['aria-label'], 'Enter March 2026 for Lea Beispiel');
   todo[0].action.listeners.click();
   same(helpers.assigned, ['/timesheets?employment_id=7']);
   same(helpers.todoRows(lea, true).map(row => row.label), ['Lea Beispiel']);
-  same(helpers.todoRows({...lea, employments: [{...lea.employments[0], months_due: 1}]}).map(row => row.value), ['Enter March 2026']);
+  same(helpers.todoRows({...lea, employments: [{...lea.employments[0], months_due: 1}]}).map(row => row.value), ['March 2026']);
   same(helpers.todoRows({...lea, employments: [{...lea.employments[0], months_due: 0}, {id: 8, start_date: '2026-08-01', months_due: 1, next_month: null}]}), []);
   const two = {name: 'Nora Doppelt', employments: [lea.employments[0], {id: 11, start_date: '2026-08-01', months_due: 1, next_month: {year: 2026, month: 9}}]};
   same(helpers.todoRows(two).map(row => row.label), ['Timesheet · employment from 5th January 2026', 'Timesheet · employment from 1st August 2026']);

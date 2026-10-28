@@ -29,15 +29,18 @@
   <p id="page-error" role="alert" hidden></p>
   <section class="household-strip" aria-labelledby="household-heading">
     <div class="strip-head">
-      <h2 id="household-heading">Household wage limit</h2>
-      <button id="employer-details-button" type="button">Account details</button>
+      <h2 id="household-heading">Household overview</h2>
+      <div class="strip-actions">
+        <button id="add-employment" type="button" disabled>Add employment</button>
+        <button id="employer-details-button" type="button">Account details</button>
+      </div>
     </div>
     <p id="employer-status">Checking your account details…</p>
     <p id="household-status" role="status" aria-live="polite">Loading the household …</p>
     <div id="household-rows"></div>
     <p id="household-note" class="note" hidden></p>
   <section class="costs-in-strip" aria-labelledby="overview-heading">
-    <h2 id="overview-heading">Your costs</h2>
+    <h2 id="overview-heading">Cost overview</h2>
     <p id="overview-completeness" role="status">Loading payroll overview…</p>
     <dl class="overview-metrics">
       <div><dt>Pay employees</dt><dd id="overview-payout">—</dd><small>Calculated payout due</small></div>
@@ -130,8 +133,7 @@
   </section>
   <section class="overview-panel" aria-labelledby="employment-list-heading">
     <div class="section-heading">
-      <h2 id="employment-list-heading">Your tasks</h2>
-      <button id="add-employment" type="button" disabled>Add employment</button>
+      <h2 id="employment-list-heading">Task overview</h2>
     </div>
     <p id="employment-empty" hidden>No employments are set up yet. Add an employment to continue.</p>
     <ul id="employment-list" class="employee-list"></ul>

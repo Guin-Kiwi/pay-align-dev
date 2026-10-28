@@ -521,9 +521,9 @@ function renderCard(item, employment, history) {
   }
   if (next) {
     const label = monthLabel(next.year, next.month);
-    rows.push({label: "Next to enter", value: label, action: actionButton("Enter", `Enter ${label} for ${employment.employee_name}`, () => window.location.assign(`${TIMESHEETS_PAGE}?employment_id=${employment.id}`))});
+    rows.push({label: "Next month", value: label, action: actionButton("Enter", `Enter ${label} for ${employment.employee_name}`, () => window.location.assign(`${TIMESHEETS_PAGE}?employment_id=${employment.id}`))});
   } else {
-    rows.push({label: "Next to enter", value: "All months entered"});
+    rows.push({label: "Next month", value: "All months entered"});
   }
   item.append(cardRows(rows));
 }

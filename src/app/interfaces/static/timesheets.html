@@ -14,7 +14,7 @@
 <!-- SHARED_NAVIGATION -->
 <main class="wide">
   <header class="workspace-header">
-    <div><h1>Timesheets</h1><p>See where each employee's timesheets stand and enter the next month. Months are entered in order, a month with no work is entered empty, and a saved month cannot be changed.</p></div>
+    <div><h1>Timesheets</h1><p>See where each employee's timesheets stand and enter the next month. Months are entered in order. A month with no work is entered empty, and a saved month cannot be changed.</p></div>
   </header>
   <noscript><p>Please enable JavaScript to enter a timesheet.</p></noscript>
   <p id="page-status" role="status" aria-live="polite">Loading employments …</p>
@@ -44,7 +44,7 @@
             <p id="pattern-message" role="status" aria-live="polite" hidden></p>
           </fieldset>
           <fieldset class="box">
-            <legend>Add extra day</legend>
+            <legend>Extra day</legend>
             <label for="extra-date">Date</label>
             <input id="extra-date" type="date">
             <button id="add-day" type="button">Add</button>
@@ -71,7 +71,7 @@
           </fieldset>
         </div>
         <div class="entry-results">
-          <h3>Month table</h3>
+          <h3>Entries for this month</h3>
           <p id="table-message" role="alert" hidden></p>
           <div class="table-scroll" role="region" aria-label="Entries for this month" tabindex="0">
             <table id="entry-table" class="entries">
