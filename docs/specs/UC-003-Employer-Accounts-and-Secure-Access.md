@@ -114,7 +114,7 @@ At VALIDATE, record the actual test results in the commit message.
 
 ## Amendment 3 — 2026-10-23: Minimum browser views
 
-The browser URL names in this historical amendment are superseded by [Amendment 12](#amendment-12--2026-10-28-browser-page-url-cleanup-issue-55).
+The browser URL names in this historical amendment are superseded by [Amendment 12](#amendment-12--2026-10-28-browser-page-url-cleanup).
 
 The requesting human defined these five view boundaries on 2026-10-23 to identify the logic the application must provide. The UI implementation chooses presentation, navigation details and the data each view needs within the behavior owned by [UC-001](UC-001-Set-Up-an-Employment.md), [UC-002](UC-002-Process-the-Monthly-Employment.md) and this use case. The logic stays available through account-scoped application interfaces rather than being tied to one page layout.
 
@@ -183,7 +183,7 @@ foreign saves without partial changes.
 
 ## Amendment 6 — 2026-10-27: Minimum browser navigation
 
-The browser URL names in this historical amendment are superseded by [Amendment 12](#amendment-12--2026-10-28-browser-page-url-cleanup-issue-55).
+The browser URL names in this historical amendment are superseded by [Amendment 12](#amendment-12--2026-10-28-browser-page-url-cleanup).
 
 Approval: Proposed by Assvinth; accepted by a non-author reviewer's approval of the pull request that records this approval.
 
@@ -371,7 +371,7 @@ The employee overview, details and stored-value decisions were approved by Guin-
 
 ## Amendment 11 — 2026-10-27: Welcome page, employer setup and payslip handoff
 
-The browser URL names in this historical amendment are superseded by [Amendment 12](#amendment-12--2026-10-28-browser-page-url-cleanup-issue-55).
+The browser URL names in this historical amendment are superseded by [Amendment 12](#amendment-12--2026-10-28-browser-page-url-cleanup).
 
 Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
 
@@ -383,9 +383,9 @@ This amendment changes the browser navigation of [Amendment 6](#amendment-6--202
 - Signed-in pages share one navigation: Home, Timesheets, Employees, Payslips and Log out, with a Back button outside Home.
 - `/payslips` is the only payslip renderer, as [Amendment 7](#amendment-7--2026-10-26-payslip-view-design) describes, so Home has no saved-payslip state. After a successful save, Home stores `{url, message}` in `sessionStorage` under `payalign-saved-confirmation` and opens that month's `/payslips?employment_id=ID&year=YYYY&month=M`; a completed month opens the same URL. `/payslips` shows the message once when the URL matches, then removes it. If the saved-month read then fails, the message stays visible and the page's retry reads the month again; the payroll is never submitted again.
 
-## Amendment 12 — 2026-10-28: Browser page URL cleanup (Issue #55)
+## Amendment 12 — 2026-10-28: Browser page URL cleanup
 
-Approval: Proposed by Assvinth; acceptance is recorded by a non-author review approving the change containing this amendment.
+Approval: Proposed by Ayla; accepted by a non-author reviewer's approval of the pull request that records this approval.
 
 This amendment supersedes only the **browser page URLs** named in Amendments 3, 6 and 11; the earlier amendments remain as historical records.
 

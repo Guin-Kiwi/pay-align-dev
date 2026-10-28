@@ -161,7 +161,7 @@ from the shared navigation. [UC-004](specs/UC-004-UI-AND-USER-FLOW.md) owns the
 browser journey and presentation; the navigation decisions are in
 [UC-003 Amendment 6](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-6--2026-10-27-minimum-browser-navigation),
 [Amendment 11](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-11--2026-10-27-welcome-page-employer-setup-and-payslip-handoff),
-and [Amendment 12](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-12--2026-10-28-browser-page-url-cleanup-issue-55). The pages use shared JavaScript helpers and
+and [Amendment 12](specs/UC-003-Employer-Accounts-and-Secure-Access.md#amendment-12--2026-10-28-browser-page-url-cleanup). The pages use shared JavaScript helpers and
 rules supplied by `constants.py`; the employment workspace retains its own scoped
 handlers so its form controls do not conflict with Home.
 
