@@ -46,7 +46,7 @@ def test_employer_setup_javascript_saves_then_returns_home():
     import subprocess
     root = Path(__file__).resolve().parents[2]
     subprocess.run([node_binary(), str(root / 'tests/fixtures/account_details.js'),
-                    *script_paths('employer-setup')], check=True, timeout=10)
+                    *script_paths('account-details')], check=True, timeout=10)
 
 
 def test_unauthenticated_setup_page_redirects_to_login():

@@ -62,6 +62,6 @@ def test_payslip_javascript_renders_saved_detail_and_handles_errors():
     root = Path(__file__).resolve().parents[2]
     subprocess.run(
         ['node', str(root / 'tests/fixtures/payslip_view.js'),
-         *script_paths('payslip')],
+         *script_paths('payslips')],
         check=True, timeout=20, env={**os.environ, 'RULES_YEAR': str(RULES_YEAR)},
     )

@@ -21,7 +21,7 @@ def test_home_employment_workspace(scenario):
     page = Page(client.get("/home").text)
     fields = {key.removeprefix("workspace-"): value for key, value in page.by_id().items() if key.startswith("workspace-")}
     assert not {"payslip-section", "payslip-details", "payslip-month"} & set(fields)
-    javascript = "\n".join(client.get(f"/setup-assets/{name}.js").text for name in ("constants", "common", "workspace"))
+    javascript = "\n".join(client.get(f"/setup-assets/{name}.js").text for name in ("constants", "common", "home-workspace"))
     result = subprocess.run(
         [node_binary(), str(FLOW)],
         input=json.dumps({"scenario": scenario, "elements": fields, "javascript": javascript}),
