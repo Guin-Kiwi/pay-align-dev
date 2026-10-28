@@ -7,12 +7,12 @@ from tests.integration.page_scripts import STATIC, node_binary
 
 
 NAVIGATION = (
-    ("Home", "/employments"),
+    ("Home", "/home"),
     ("Timesheets", "/timesheets"),
     ("Employees", "/employees"),
     ("Payslips", "/payslips"),
 )
-PAGES = ("/employments", "/timesheets", "/employees", "/payslips", "/setup", "/employer-setup")
+PAGES = ("/home", "/timesheets", "/employees", "/payslips", "/employment-setup", "/account-details")
 
 
 class NavigationPage(HTMLParser):
@@ -81,9 +81,9 @@ def test_navigation_script_is_available():
 
 def test_shared_navigation_header_stays_at_the_top_without_covering_page_content():
     with AuthenticatedTestClient(create_app()) as client:
-        page = client.get("/employments").text
+        page = client.get("/home").text
         assert "<!-- SHARED_NAVIGATION -->" not in page
-        stylesheet = client.get("/setup-assets/setup.css").text
+        stylesheet = client.get("/setup-assets/base.css").text
         assert "position: sticky" in stylesheet
         assert "width: min(90rem, calc(100% - 2rem))" in stylesheet
         assert "border: 1px solid #dbe4e5" in stylesheet
@@ -102,7 +102,7 @@ def test_every_page_but_home_has_a_back_button_in_the_header():
     with signed_in_client_with_employer() as client:
         for route in PAGES:
             html = client.get(route).text
-            if route == "/employments":
+            if route == "/home":
                 assert 'id="back-button"' not in html, route
                 continue
             header = html[html.index('<header class="app-header'):html.index("</header>")]
@@ -123,6 +123,6 @@ def test_back_button_goes_back_or_home_when_there_is_no_history():
 
 
 def test_back_button_is_styled_like_the_other_header_buttons():
-    css = AuthenticatedTestClient(create_app()).get("/setup-assets/setup.css").text
+    css = AuthenticatedTestClient(create_app()).get("/setup-assets/base.css").text
     assert ".back-button" in css
     assert '.back-button::before { content: "\\2190 "' in css

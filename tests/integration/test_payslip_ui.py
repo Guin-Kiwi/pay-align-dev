@@ -49,13 +49,13 @@ def test_payslip_page_exposes_read_only_detail_and_assets():
         assert '<button id="enter-timesheet" type="button" hidden>' in response.text
         assert response.text.index('id="enter-timesheet"') < response.text.index('class="payslip-workspace"')
         assert re.findall(r'<script src="([^"]+)"', response.text) == [
-            '/setup-assets/navigation.js', '/setup-assets/common.js', '/setup-assets/payslip.js']
-        assert '@media print' in client.get('/setup-assets/payslip.css').text
-        assert '.no-print { display: none !important; }' in client.get('/setup-assets/payslip.css').text
+            '/setup-assets/navigation.js', '/setup-assets/common.js', '/setup-assets/payslips.js']
+        assert '@media print' in client.get('/setup-assets/payslips.css').text
+        assert '.no-print { display: none !important; }' in client.get('/setup-assets/payslips.css').text
         assert re.search(r'<p id="save-confirmation"[^>]*\bhidden\b', response.text)
         assert '<button id="open-employer-setup" type="button">' in response.text
-        assert client.get('/setup-assets/payslip.js').status_code == 200
-        assert client.get('/setup-assets/payslip.css').status_code == 200
+        assert client.get('/setup-assets/payslips.js').status_code == 200
+        assert client.get('/setup-assets/payslips.css').status_code == 200
 
 
 def test_payslip_javascript_renders_saved_detail_and_handles_errors():

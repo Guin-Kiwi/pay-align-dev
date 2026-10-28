@@ -9,7 +9,7 @@ from tests.integration.authenticated_client import AuthenticatedTestClient
 from tests.integration.page_scripts import Page, node_binary, page_javascript, script_paths
 
 
-SETUP_SUBMISSION_FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures' / 'setup_submission.js'
+SETUP_SUBMISSION_FIXTURE = Path(__file__).resolve().parents[1] / 'fixtures' / 'employment_setup_submission.js'
 
 
 def create_employer(client):
@@ -19,53 +19,53 @@ def create_employer(client):
 
 
 def test_first_time_employer_page_is_separate_and_authenticated():
-    assert TestClient(create_app()).get('/employer-setup', follow_redirects=False).status_code == 303
-    page = AuthenticatedTestClient(create_app()).get('/employer-setup')
+    assert TestClient(create_app()).get('/account-details', follow_redirects=False).status_code == 303
+    page = AuthenticatedTestClient(create_app()).get('/account-details')
     assert page.status_code == 200
     assert '<h1>Your account details</h1>' in page.text
     assert 'employee-name' not in page.text
     assert 'employment-heading' not in page.text
     assert '/setup-assets/common.js' in page.text
-    assert '/setup-assets/employer-setup.js' in page.text
+    assert '/setup-assets/account-details.js' in page.text
 
 
 def test_add_employment_warns_before_saving_because_it_cannot_be_changed():
     client = AuthenticatedTestClient(create_app())
     create_employer(client)
-    html = client.get('/setup').text
+    html = client.get('/employment-setup').text
     assert '<dialog id="add-employment-dialog" class="warning" aria-labelledby="add-employment-dialog-heading">' in html
     assert '<h2 id="add-employment-dialog-heading">Are you sure?</h2>' in html
     assert 'cannot be changed' in html
     assert 'saved details are kept' in html
     for label in ('Yes, add this employment', 'No, go back'):
         assert f'>{label}</button>' in html
-    assert 'dialog.warning::backdrop' in client.get('/setup-assets/setup.css').text
+    assert 'dialog.warning::backdrop' in client.get('/setup-assets/base.css').text
 
 
 def test_employer_setup_javascript_saves_then_returns_home():
     import subprocess
     root = Path(__file__).resolve().parents[2]
-    subprocess.run([node_binary(), str(root / 'tests/fixtures/employer_setup.js'),
+    subprocess.run([node_binary(), str(root / 'tests/fixtures/account_details.js'),
                     *script_paths('employer-setup')], check=True, timeout=10)
 
 
 def test_unauthenticated_setup_page_redirects_to_login():
-    response = TestClient(create_app()).get('/setup', follow_redirects=False)
+    response = TestClient(create_app()).get('/employment-setup', follow_redirects=False)
     assert response.status_code == 303
     assert response.headers['location'] == '/login'
 
 
 def test_employment_setup_is_gated_until_the_employer_profile_exists():
     client = AuthenticatedTestClient(create_app())
-    response = client.get('/setup', follow_redirects=False)
+    response = client.get('/employment-setup', follow_redirects=False)
     assert response.status_code == 303
-    assert response.headers['location'] == '/employments'
+    assert response.headers['location'] == '/home'
 
 
 def test_setup_page_is_accessible_and_initially_cannot_submit():
     client = AuthenticatedTestClient(create_app())
     create_employer(client)
-    response = client.get('/setup')
+    response = client.get('/employment-setup')
     assert response.status_code == 200
     assert response.headers['content-type'].startswith('text/html')
     assert 'configured database' not in response.text
@@ -115,18 +115,18 @@ def test_setup_page_is_accessible_and_initially_cannot_submit():
     assert fields['view-employments']['type'] == 'button'
 
 
-@pytest.mark.parametrize('asset,content_type', [('setup.css', 'text/css'), ('setup.js', 'javascript')])
+@pytest.mark.parametrize('asset,content_type', [('base.css', 'text/css'), ('employment-setup.js', 'javascript')])
 def test_setup_assets_are_available(asset, content_type):
     response = TestClient(create_app()).get('/setup-assets/' + asset)
     assert response.status_code == 200
     assert content_type in response.headers['content-type']
-    if asset == 'setup.js':
+    if asset == 'employment-setup.js':
         assert 'lost after a server restart' not in response.text
 
 
 def test_employer_lookup_uses_existing_api_without_configuring_an_employer():
     client = AuthenticatedTestClient(create_app())
-    assert client.get('/setup', follow_redirects=False).status_code == 303
+    assert client.get('/employment-setup', follow_redirects=False).status_code == 303
     assert client.get('/api/v1/employer').status_code == 404
 
 
@@ -147,7 +147,7 @@ def test_existing_employer_remains_available_after_loading_page():
         'employment': {'start_date': '2026-01-01', 'hourly_wage': '28.50', 'weekly_hours': '6:00'},
     })
     assert response.status_code == 201
-    assert client.get('/setup').status_code == 200
+    assert client.get('/employment-setup').status_code == 200
     assert client.get('/api/v1/employer').json() == {'id': 1, **employer}
     assert TestClient(create_app()).get('/api/v1/employer').status_code == 401
 
@@ -161,7 +161,7 @@ def test_existing_employer_javascript_displays_details_safely(employer_name):
 
     client = AuthenticatedTestClient(create_app())
     create_employer(client)
-    page = Page(client.get('/setup').text)
+    page = Page(client.get('/employment-setup').text)
     initial_elements = {attrs['id']: attrs for _, attrs in page.tags if 'id' in attrs}
     employer = {
         'id': 1,
@@ -283,7 +283,7 @@ def test_setup_submission_javascript(scenario, monkeypatch, tmp_path):
     node = node_binary()
     client = AuthenticatedTestClient(create_app())
     create_employer(client)
-    html = client.get('/setup').text
+    html = client.get('/employment-setup').text
     elements = {attrs['id']: attrs for _, attrs in Page(html).tags if 'id' in attrs}
     if scenario == 'new':
         monkeypatch.chdir(tmp_path)
@@ -320,7 +320,7 @@ def test_ui_setup_payload_persists_across_app_restarts(monkeypatch, tmp_path):
         employer = {'name': 'Anna', 'address': 'Basel', 'ahv_number': '756.1234.5678.97', 'contact_info': 'anna@example.ch'}
         token = client.get('/api/v1/auth/csrf').json()['csrf_token']
         assert client.post('/api/v1/employer', json=employer, headers={'X-CSRF-Token': token}).status_code == 201
-        html = client.get('/setup').text
+        html = client.get('/employment-setup').text
         elements = {attrs['id']: attrs for _, attrs in Page(html).tags if 'id' in attrs}
         result = subprocess.run(
             [node, str(SETUP_SUBMISSION_FIXTURE)],

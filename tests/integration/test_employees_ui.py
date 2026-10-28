@@ -50,7 +50,7 @@ def test_employees_page_is_a_list_of_bound_boxes_with_a_details_dialog():
     ]
     assert [
         attrs["href"] for tag, attrs in page.tags if tag == "link" and attrs.get("rel") == "stylesheet"
-    ] == ["/setup-assets/setup.css?v=20261027-back", "/setup-assets/employments.css", "/setup-assets/employees.css"]
+    ] == ["/setup-assets/base.css?v=20261027-back", "/setup-assets/overview.css", "/setup-assets/employees.css"]
     assert 'data-current-route="/employees"' in response.text
     assert "household" not in response.text.lower()
 

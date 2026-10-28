@@ -98,7 +98,7 @@ def test_timesheets_page_has_a_landing_and_a_left_and_right_entry_page():
     assert text.count(">Add</button>") == 3
     assert text.index('id="expense-reimbursements"') < text.index('id="add-bonus"') < text.index('id="bonus-error"') < results
     assert '<main class="wide">' in text
-    assert "main.wide { max-width: 90rem; }" in TestClient(create_app()).get("/setup-assets/employments.css").text
+    assert "main.wide { max-width: 90rem; }" in TestClient(create_app()).get("/setup-assets/overview.css").text
     assert "<h1>Timesheets</h1>" in text
     assert "<title>Timesheets | PayAlign</title>" in text
     assert '<h2 id="timesheet-dialog-heading">Are you sure?</h2>' in text
@@ -111,7 +111,7 @@ def test_timesheets_page_has_a_landing_and_a_left_and_right_entry_page():
     ]
     assert [
         attrs["href"] for tag, attrs in page.tags if tag == "link" and attrs.get("rel") == "stylesheet"
-    ] == ["/setup-assets/setup.css?v=20261027-back", "/setup-assets/employments.css"]
+    ] == ["/setup-assets/base.css?v=20261027-back", "/setup-assets/overview.css"]
     assert 'data-current-route="/timesheets"' in text
 
 
