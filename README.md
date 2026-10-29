@@ -324,8 +324,10 @@ Sonnet 5.5, Claude Opus 5.5, GPT-6, GPT-5.6 Luna, Mistral Large 3 and GitHub Cop
 
 ## Team
 
-Aaron Casula, Assvinth Mathikanthan, Ayla Allen and Nano
-([@Gedance23](https://github.com/Gedance23)).
+Aaron Casula ([@aaroncasula](https://github.com/aaroncasula)),
+Assvinth Mathikanthan ([@Assvinth](https://github.com/Assvinth)),
+Ayla Allen ([@Guin-Kiwi](https://github.com/Guin-Kiwi)) and
+José Gédance Bustamante ([@Gedance23](https://github.com/Gedance23)).
 
 ## Credits and licence
 
